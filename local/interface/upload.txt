@@ -1,0 +1,28 @@
+option batch abort
+option confirm off
+open sftp://%login%:%pwd%@%hostname%/
+synchronize remote "%local%\sources\Base" "%remote%/sources/Base"
+synchronize remote "%local%\sources\cmake" "%remote%/sources/cmake"
+synchronize remote "%local%\sources\configs" "%remote%/sources/configs"
+synchronize remote "%local%\sources\EQL" "%remote%/sources/EQL"
+synchronize remote "%local%\sources\FEM" "%remote%/sources/FEM"
+synchronize remote "%local%\sources\FileIO" "%remote%/sources/FileIO"
+synchronize remote "%local%\sources\GCC" "%remote%/sources/GCC"
+synchronize remote "%local%\sources\GEM" "%remote%/sources/GEM"
+synchronize remote "%local%\sources\GEO" "%remote%/sources/GEO"
+synchronize remote "%local%\sources\MathLib" "%remote%/sources/MathLib"
+synchronize remote "%local%\sources\MSH" "%remote%/sources/MSH"
+synchronize remote "%local%\sources\MSHGEOTOOLS" "%remote%/sources/MSHGEOTOOLS"
+synchronize remote "%local%\sources\OGS" "%remote%/sources/OGS"
+synchronize remote "%local%\sources\OGSProject" "%remote%/sources/OGSProject"
+synchronize remote "%local%\sources\PQC" "%remote%/sources/PQC"
+synchronize remote "%local%\sources\Qt" "%remote%/sources/Qt"
+synchronize remote "%local%\sources\scripts" "%remote%/sources/scripts"
+synchronize remote "%local%\sources\tests" "%remote%/sources/tests"
+synchronize remote "%local%\sources\UTL" "%remote%/sources/UTL"
+synchronize remote "%local%\Libs" "%remote%/Libs"
+:: put "%local%\sources\CMakeLists.txt" "%remote%/sources/CMakeLists.txt"
+exit
+
+
+

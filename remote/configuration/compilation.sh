@@ -36,7 +36,7 @@ MKL_FOLDER="$(pwd)/Libs/MKL"
 
 # if [ "$VERSION_PETSC" == "3.5" ]; then
  
-	# PETSC="cluster/Software/Dpetsc/petsc-3.5.3_intel"  
+	 #PETSC="cluster/Software/Dpetsc/petsc-3.5.3_intel"  
 
 # else
 
@@ -49,6 +49,7 @@ MKL_FOLDER="$(pwd)/Libs/MKL"
 
 INTEL="cluster/Software/intel14/composer_xe_2013_sp1/bin"
 INTEL_MPI="cluster/Software/intel14/impi/4.1.1.036/intel64/bin"
+#INTEL_MPI="cluster/Software/intel1502/impi/5.0.3.048/intel64/bin"   # change to INTEL MPI VERSION 15 - 2015-7-24
 
 									
 ICC="$INTEL/icc"

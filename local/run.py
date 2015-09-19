@@ -1,16 +1,11 @@
-import gateToMySQL
+
 import environment
 
 
-
-gateToMySQL = gateToMySQL.GateToMySQL( 'root','***','localhost','testing_environment' )
-
-environment = environment.Environment( gateToMySQL )
-environment.select()
-
+environment = environment.Environment(Computer="ibiza"  )
 environment.run()
 
-del gateToMySQL 
+ 
 
 
 

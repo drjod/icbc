@@ -1,73 +1,142 @@
 import mysql.connector
 import os
 
+##############################################
+# class GateToMySQL
+# Task:
+#     fetch entries from SQL database tables
+#     with getter member functions  
+#
+
 class GateToMySQL:
-    
-    
+
+    ##############################################
+    #  GateToMySQL: constructor
+    #  Tasks:
+    #      connect to database
+    #  Parameter:
+    #      User (string)
+    #      Password (string)
+    #      Host (string)
+    #      Schema (string): SQL database
+    #  Result:
+    #     cursor
+    #     error message if access to database failed
+    #
+           
     def __init__( self, User, Password, Host, Schema ):
         try:
             cnx = mysql.connector.connect( user = User, password = Password,
                                           host = Host, database = Schema ) 
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                print( "ERROR - user name or password wrong" )
+                print( 'ERROR - user name or password wrong' )
             elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                print( "ERROR - database does not exist" )            
+                print( 'ERROR - database does not exist' )            
             else:
                 print( err )   
         else:        
-            self.__cnx = cnx	
-                    
+            self.__cnx = cnx	# cursor
+
+    ##############################################
+    #  GateToMySQL: descructor
+    #
+                                            
     def __del__( self ):
         self.__cnx.close()   
-        
-             
+
     ##############################################
-    # 
-    # if table:
-    #    computers, codes, branches:  generally used (case (a)ll does not exist)
-    #    types, cases, configurations:  for console output 
-    # return:
-    #    string item or "-1"
+    # GateToMySQL: getNameFromId
+    # Task:
+    #     id -> name    
+    #  parameter:
+    #      table (string): name of table in SQL schema 
+    #      item_id (string): id where name is searched to 
+    #  Return:
+    #      name (string)
+    #      '-1' if no name found (exception)    
+    #  Requirements:
+    #      name must be in 2nd colum in SQL table
     #
                
-    def getSelectedItem( self, table, item_id ):        
-        if item_id == "a": 
-            return "all " + table  # console output
+    def getNameFromId( self, table, item_id ):        
+        if item_id == 'a': 
+            return 'all ' + table  # console output
                          
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( "SELECT * FROM " + table + " WHERE id=" + str ( item_id ) )
+        cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str ( item_id ) )
          
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[1] ) )
         else:
-            return "-1" # exception
-                   
-    ##############################################
-    # 
-    #   used for types, cases, configurations in loop over examples 
-    #   return:
-    #     items list - no exception handling
-    #
-                           
-    def getSelectedItemGroup( self, table, item_id, computer_id=-1, running_type_id=-1 ):
-        # set cursor
-        cursor = self.__cnx.cursor( buffered=True ) 
-        if item_id == "a":
-           
-            if table == "computer" or table == "codes" or table == "branches" or table == "types":
-            #if table == "types": # or ( table == "cases" and self.__type == "a" ): 
-                cursor.execute( "SELECT * FROM " + table )
-            elif table == "cases":   # specific type selected 
-                cursor.execute( "SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = " + str( running_type_id )) # + str(self.__type) )
-            elif table == "configurations":  # depends on selected computer
-                cursor.execute( "SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = " + str( computer_id ) )    
-            else:
-                print( "ERROR - schema " + table + " not supported in gateToMySQL.getSelectedItemGroup" )     
-        else:    
-            cursor.execute( "SELECT * FROM " + table + " WHERE id=" + str( item_id ) )    
+            return '-1' # exception
 
+    ##############################################
+    #  GateToMySQL: getIdFromName
+    #  Task:
+    #      name -> id   
+    #      table columns must be: id, name, ...  
+    #  Parameter:
+    #      table (string): name of table in SQL schema 
+    #      name (string): entry in column name
+    #  Return:
+    #      id (string)
+    #      '-1' if no id found (exception)    
+    #  Requirements:
+    #      id must be in first column in SQL table
+    #
+            
+    def getIdFromName(self, table, name ):
+    
+        if name == '':
+            return ''  # no name given
+        else:    
+            cursor = self.__cnx.cursor( buffered=True ) 
+            cursor.execute( 'SELECT t.id FROM ' + table + ' t WHERE t.name=%s',(name, ))
+             
+            row = cursor.fetchone()
+            if row is not None:
+                return ( str ( row[0] ) )
+            else:
+                return '-1' # exception            
+                                                         
+    ##############################################
+    #  GateToMySQL: getNamesFromIdGroup
+    #  Task:
+    #      get table entries (id and name) 
+    #  Options: 
+    #      1. all
+    #      2. for specific id
+    #      3. configurations for specific computer
+    #      4. cases for specific example type
+    #  Parameter:
+    #      table (string): name of table in SQL schema
+    #      item_id (string): entry in id column (primary key) (e.g. option 2.) 
+    #      computer_id (string): for option 3.
+    #      running_type_id (string): for option 4.
+    #  Return:
+    #      items list - no exception handling
+    #      item (struct): id, type_name
+    #  Requirements:
+    #      if all cases requested, running_type_id must be given
+    # 
+                       
+    def getNamesFromIdGroup( self, table, item_id, computer_id='-1', running_type_id='-1' ):
+        # set cursor       
+        cursor = self.__cnx.cursor( buffered=True ) 
+        if item_id == 'a':
+           
+            if table == 'computer' or table == 'codes' or table == 'branches' or table == 'types':
+                cursor.execute( 'SELECT * FROM ' + table )
+            elif table == 'cases':   # specific type selected 
+                cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + str( running_type_id )) 
+            elif table == 'configurations':  # depends on selected computer
+                cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + str( computer_id ) )    
+            else:
+                print( 'ERROR - schema ' + table + ' not supported in gateToMySQL.getNameFromIdGroup' )     
+        else:    
+            cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str( item_id ) )    
         # cursor -> struct 
         items = []
         row = cursor.fetchone()
@@ -83,36 +152,29 @@ class GateToMySQL:
         return items
 
     ##############################################
-
+    #  GateToMySQL: getColumnEntry
+    #  Task:
+    #      id -> entry in specific column 
+    #  Paramter:
+    #      table (string): name of table in SQL schema
+    #      item_id (string): entry in id column (primary key) 
+    #      column_name (string): name of column where entry is searched from 
+    #  Return:
+    #      column entry as string
+    #      '-1' if no entry found (exception)   
                                                
     def getColumnEntry(self, table, item_id, column_name ):
-    
+        # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( "SELECT t." + column_name + " FROM " + table + " t WHERE t.id=" + str ( item_id ) )
-         
+        cursor.execute( 'SELECT t.' + column_name + ' FROM ' + table + ' t WHERE t.id=' + str ( item_id ) )
+        #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            return "-1" # exception
+            return '-1' # exception
 
-    ##############################################                        
-    # only one id !!
-            
-    def getIdFromName(self, table, name ):
-    
-        if name == "":
-            return ""  # no name given
-        else:    
-            cursor = self.__cnx.cursor( buffered=True ) 
-            cursor.execute( """SELECT t.id FROM """ + table+ """ t WHERE t.name=%s""",(name, ))
-             
-            row = cursor.fetchone()
-            if row is not None:
-                return ( str ( row[0] ) )
-            else:
-                return "-1" # exception            
-            
+   
                             
         
         

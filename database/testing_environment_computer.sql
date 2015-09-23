@@ -25,6 +25,7 @@ DROP TABLE IF EXISTS `computer`;
 CREATE TABLE `computer` (
   `id` int(11) NOT NULL,
   `name` varchar(45) DEFAULT NULL,
+  `operating_system` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -35,7 +36,7 @@ CREATE TABLE `computer` (
 
 LOCK TABLES `computer` WRITE;
 /*!40000 ALTER TABLE `computer` DISABLE KEYS */;
-INSERT INTO `computer` VALUES (0,'local'),(1,'rzcluster'),(2,'NEC'),(3,'Lokstedt');
+INSERT INTO `computer` VALUES (0,'amak','windows'),(1,'rzcluster','linux'),(2,'NEC','linux'),(3,'Lokstedt','linux'),(4,'ibiza','windows');
 /*!40000 ALTER TABLE `computer` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -48,4 +49,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-09-18  9:33:54
+-- Dump completed on 2015-09-23 14:54:25

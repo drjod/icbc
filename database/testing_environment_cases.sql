@@ -35,7 +35,7 @@ CREATE TABLE `cases` (
 
 LOCK TABLES `cases` WRITE;
 /*!40000 ALTER TABLE `cases` DISABLE KEYS */;
-INSERT INTO `cases` VALUES (0,'advection_quad'),(1,'advection_tri'),(2,'advection_hex'),(3,'advection_pris_x'),(4,'advection_pris_y'),(5,'advection_pris_z'),(6,'diffusion_quad'),(7,'diffusion_tri'),(8,'diffusion_hex'),(9,'diffusion_pris_x'),(10,'difffusion_pris_y'),(11,'diffusion_pris_z');
+INSERT INTO `cases` VALUES (0,'advection_quad'),(1,'advection_tri'),(2,'advection_hex'),(3,'advection_pris_x'),(4,'advection_pris_y'),(5,'advection_pris_z'),(6,'diffusion_quad'),(7,'diffusion_tri'),(8,'diffusion_hex'),(9,'diffusion_pris_x'),(10,'difffusion_pris_y'),(11,'diffusion_pris_z'),(12,'line'),(13,'quad'),(14,'tri'),(15,'hex'),(16,'pris'),(17,'tet'),(18,'GROUNDWATER_FLOW_quad'),(19,'GROUNDWATER_FLOW_tri'),(20,'LIQUID_FLOW_quad'),(21,'LIQUID_FLOW_tri'),(22,'1_1_1'),(23,'1_1_2'),(24,'1_2_1'),(25,'2_1_1'),(26,'2_1_2'),(27,'2_2_1'),(28,'HEAT_TRANSPORT_quad'),(29,'MASS_TRANSPORT_quad'),(30,'haline'),(31,'thermal'),(32,'thermohaline'),(33,'line_LIQUID_FLOW_LPVC'),(34,'line_LIQUID_FLOW_REFERENCE'),(35,'line_HEAT_TRANSPORT_advective_LPVC'),(36,'line_HEAT_TRANSPORT_advective_REFERENCE'),(37,'line_HEAT_TRANSPORT_diffusive_LPVC'),(38,'line_HEAT_TRANSPORT_diffusive_REFERENCE'),(39,'quad_LIQUID_FLOW_LPVC'),(40,'quad_LIQUID_FLOW_REFERENCE'),(41,'quad_HEAT_TRANSPORT_advective_LPVC'),(42,'quad_HEAT_TRANSPORT_advective_REFERENCE'),(43,'quad_HEAT_TRANSPORT_diffusive_LPVC'),(44,'quad_HEAT_TRANSPORT_diffusive_REFERENCE'),(45,'advective'),(46,'diffusive');
 /*!40000 ALTER TABLE `cases` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -48,4 +48,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-09-18  9:33:55
+-- Dump completed on 2015-09-23 14:54:26

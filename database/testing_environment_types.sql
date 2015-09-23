@@ -35,7 +35,7 @@ CREATE TABLE `types` (
 
 LOCK TABLES `types` WRITE;
 /*!40000 ALTER TABLE `types` DISABLE KEYS */;
-INSERT INTO `types` VALUES (0,'2D_plane_xy'),(1,'2D_plane_xz'),(2,'3D_box'),(3,'3D_box_2'),(4,'axisymmetr_cylinder');
+INSERT INTO `types` VALUES (0,'2D_plane_xy'),(1,'2D_plane_xz'),(2,'3D_box'),(3,'3D_box_2'),(4,'axisymmetr_cylinder'),(5,'1D_analyt'),(6,'2D_analyt'),(7,'2D_plume'),(8,'bc_st_test_hex'),(9,'bc_st_test_pris'),(10,'elder'),(11,'LPVC_1D'),(12,'LPVC_2D'),(13,'NNNC_pole'),(14,'NNNC_poles_O'),(15,'NNNC_poles_U');
 /*!40000 ALTER TABLE `types` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -48,4 +48,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-09-18  9:33:55
+-- Dump completed on 2015-09-23 14:54:26

@@ -24,13 +24,13 @@ DROP TABLE IF EXISTS `modi`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `modi` (
   `id` int(11) NOT NULL,
-  `computer_id` int(11) NOT NULL,
-  `configuration_id` int(11) NOT NULL,
+  `computer_id` int(11) DEFAULT NULL,
+  `configuration_id` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `key0_idx` (`computer_id`),
-  KEY `key_modi1_idx` (`configuration_id`),
-  CONSTRAINT `key_modi0` FOREIGN KEY (`computer_id`) REFERENCES `computer` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `key_modi1` FOREIGN KEY (`configuration_id`) REFERENCES `configurations` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  KEY `user_idx` (`configuration_id`),
+  KEY `computer_idx` (`computer_id`),
+  CONSTRAINT `key_computer` FOREIGN KEY (`computer_id`) REFERENCES `computer` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `modi_ibfk_1` FOREIGN KEY (`configuration_id`) REFERENCES `configurations` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -40,7 +40,7 @@ CREATE TABLE `modi` (
 
 LOCK TABLES `modi` WRITE;
 /*!40000 ALTER TABLE `modi` DISABLE KEYS */;
-INSERT INTO `modi` VALUES (0,0,0),(1,0,1),(2,1,0),(3,1,1),(4,1,2),(5,1,3),(6,1,4),(7,2,0),(8,2,1),(9,2,2),(10,2,3),(11,2,4),(12,3,0),(13,3,1),(14,3,2),(15,3,3),(16,3,4);
+INSERT INTO `modi` VALUES (0,0,0),(1,0,1),(2,4,0),(3,4,1),(4,1,0),(5,1,1),(6,1,2),(7,1,3),(8,1,4),(9,1,5),(10,2,0),(11,2,1),(12,2,2),(13,2,3),(14,2,4),(15,2,5),(16,3,0),(17,3,1),(18,3,2),(19,3,3),(20,3,4),(21,3,5);
 /*!40000 ALTER TABLE `modi` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
@@ -53,4 +53,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-09-18  9:33:55
+-- Dump completed on 2015-09-23 14:54:25

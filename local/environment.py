@@ -2,145 +2,195 @@ import os
 import mysql.connector
 import gateToMySQL
 import operation
+import message
 
+##############################################
+#  class: Environment
+#  Task:
+#      Select tested subject and test examples (user input or preset)
+#      Generate instance Operation (configure, select and execute operation)
+#
 
 class Environment:  
-    __currentType = ""  # for loop over examples when all types selected
     
-    def __init__( self, Computer="", Code="", Branch="", Type="", Case="", Configuration="", user='root', 
+    ##############################################
+    #  Environment: constructor
+    #
+    
+    def __init__( self, computer='', code='', branch='', type='', case='', configuration='', user='root', 
                   password='*****', host='localhost', schema='testing_environment' ):
         self.__gateToMySQL = gateToMySQL.GateToMySQL( user, password, host, schema )
  
-        self.__computer =      self.__gateToMySQL.getIdFromName( "computer", Computer )
-        self.__code =          self.__gateToMySQL.getIdFromName( "codes", Code )
-        self.__branch =        self.__gateToMySQL.getIdFromName( "branches", Branch )
-        self.__type =          self.__gateToMySQL.getIdFromName( "types", Type )
-        self.__case =          self.__gateToMySQL.getIdFromName( "cases", Case )   
-        self.__configuration = self.__gateToMySQL.getIdFromName( "configurations", Configuration )
+        self.__computer =      self.__gateToMySQL.getIdFromName( 'computer', computer )
+        self.__code =          self.__gateToMySQL.getIdFromName( 'codes', code )
+        self.__branch =        self.__gateToMySQL.getIdFromName( 'branches', branch )
+        self.__type =          self.__gateToMySQL.getIdFromName( 'types', type )
+        self.__case =          self.__gateToMySQL.getIdFromName( 'cases', case )   
+        self.__configuration = self.__gateToMySQL.getIdFromName( 'configurations', configuration )
         
+        print( '\n-----------------------------------------------------------------' )
+        message.console( type='INFO', text='Connect ' + user + ' to ' + host + ' ' + schema  )
+        # print message for already set variables
+        if computer is not '':
+            message.console( type='INFO', text='Set computer ' + computer )
+        if code is not '':
+            message.console( type='INFO', text='Set code ' + code )
+        if branch is not '':
+            message.console( type='INFO', text='Set branch ' + branch )
+        if type is not '':
+            message.console( type='INFO', text='Set type ' + type )
+        if configuration is not '':
+            message.console( type='INFO', text='Set configuration ' + configuration )
+        print( '\n-----------------------------------------------------------------' )
+        
+    ##############################################
+    #  Environment: destructor
+    #
+                              
     def __del__( self ):   
         del self.__gateToMySQL   
     
     ##############################################
-    # looks if a number has been typed in      
-    # no check whether selected item exists
-    # 1 : ok
-    # 0 : exception
+    #  Environment: checkSelectedId
+    #  Task:
+    #      looks if a number has been typed in      
+    #      no check whether selected item exists
+    #  Parameter:
+    #      table (string): name of table in SQL schema
+    #      selectedId (string): input to be checked
+    #  Return:
+    #      True : ok
+    #      False : exception
     #
         
-    def checkSelectedItem( self, table, selectedItem):  
-        if table == "types" or table == "cases" or table == "branches" or table == "configurations":  
-            if selectedItem == "a":
-                return 1   # all selected
+    def checkSelectedId( self, table, selectedId):  
+        if table == 'types' or table == 'cases' or table == 'branches' or table == 'configurations':  
+            if selectedId == 'a':
+                return True   # all selected
             
         try:
-            val = int( selectedItem )
+            val = int( selectedId )
         except ValueError:
-            print( "ERROR - That was not a number" )   
-            return 0 
+            message.console( type='WARNING', text='That was not a number' )
+            return False
                        
-        return 1 
+        return True 
                                     
     #################################################################        
-    #
-    # get user input
-    # returns number if selected in range of mysql-table
-    # else: it calls itself again 
+    #  Environment: selectId
+    #  Task:
+    #      get user input - table ids (primary key)
+    #      cals itself again if user input is not a number
+    #  Parameter: 
+    #      table (string): name of table in SQL schema
+    #  Return:    
+    #      id (string)   
     #    
 
-    def selectItem( self, table ):      
+    def selectId( self, table ):      
         # get items list with options 
-        if table == "cases":
-            if self.__type == "a":
-                return "a" # all types -> all cases
-            else:
-                items = self.__gateToMySQL.getSelectedItemGroup( table, "a", running_type_id=self.__type )  
-        elif table == "configurations":
-            items = self.__gateToMySQL.getSelectedItemGroup( "configurations", "a", computer_id=self.__computer )
+        if table == 'cases':
+            if self.__type == 'a':
+                return 'a' # all types -> all cases
+            else: # cases for specific type
+                items = self.__gateToMySQL.getNamesFromIdGroup( table, 'a', running_type_id=self.__type )  
+        elif table == 'configurations':
+            items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', 'a', computer_id=self.__computer )
         else:    
-            items = self.__gateToMySQL.getSelectedItemGroup( table, "a" )
+            items = self.__gateToMySQL.getNamesFromIdGroup( table, 'a' )
         # print options                              
-        print( "\nSelect from " + table + ":\n" )  
+        print( '\nSelect from ' + table + ':\n' )  
         for row in items:
-            print( "   " + str(row['id']) + " " + str( row['type_name'] ) )
-        if table == "types" or table == "cases" or table == "configurations":  
-            print( "   a all" )    
+            print( '   ' + str(row['id']) + ' ' + str( row['type_name'] ) )
+        if table == 'types' or table == 'cases' or table == 'configurations':  
+            print( '   a all' )    
         # select
-        selectedItem = input( '\n   by typing number: ' )    
-        print( "\n-----------------------------------------------------------------" )
+        selectedId = input( '\n   by typing number: ' )    
+        print( '\n-----------------------------------------------------------------' )
     
-        if self.checkSelectedItem( table, selectedItem ) == 0:
-            selectedItem = self.selectItem( table )  # repeat input
+        if self.checkSelectedId( table, selectedId ) == False:
+            SelectedId = self.selectId( table )  # repeat input
                    
-        return selectedItem 
+        return selectedId 
                                    
     #################################################################
-    # user input: computer, codes, branches 
+    #  Environment: GlobalSelectId
+    #  Task: 
+    #      user input tested subject and test examples 
+    #      user provides id if it has not been already set with the constructor   
+    #      exceptions handled in selectId
     #
                        
-    def selectGlobal( self ):  
+    def globalSelectId( self ):  
         # tested subject (only one)    
-        if self.__computer == "":                                                                                 
-            self.__computer = self.selectItem( "computer" )
-        if self.__code == "":                                                                                 
-            self.__code = self.selectItem( "codes" )
-        if self.__branch == "":                                                                                 
-            self.__branch = self.selectItem( "branches" )
+        if self.__computer == '':                                                                                 
+            self.__computer = self.selectId( 'computer' )
+        if self.__code == '':                                                                                 
+            self.__code = self.selectId( 'codes' )
+        if self.__branch == '':                                                                                 
+            self.__branch = self.selectId( 'branches' )
        
-        print( "SELECTED " + self.__gateToMySQL.getSelectedItem( "computer", self.__computer ) + " " +
-               self.__gateToMySQL.getSelectedItem( "codes", self.__code ) + " "  + 
-               self.__gateToMySQL.getSelectedItem( "branches", self.__branch ) )    
-        # test cases               
-        
-        if self.__type == "":                                                                                 
-            self.__type = self.selectItem( "types" )
-        if self.__case == "":                                                                                 
-            self.__case = self.selectItem( "cases" )
-        if self.__configuration == "":                                                                                 
-            self.__configuration = self.selectItem( "configurations" )
+        message.console( type='INFO', text='Selected ' + 
+               self.__gateToMySQL.getNameFromId( 'computer', self.__computer ) + ' ' +
+               self.__gateToMySQL.getNameFromId( 'codes', self.__code ) + ' '  + 
+               self.__gateToMySQL.getNameFromId( 'branches', self.__branch ) )    
+        # test examples               
+        if self.__type == '':                                                                                 
+            self.__type = self.selectId( 'types' )
+        if self.__case == '':                                                                                 
+            self.__case = self.selectId( 'cases' )
+        if self.__configuration == '':                                                                                 
+            self.__configuration = self.selectId( 'configurations' )
  
-        print( "SELECTED " + self.__gateToMySQL.getSelectedItem( "types", self.__type ) + " " +
-               self.__gateToMySQL.getSelectedItem( "cases", self.__case ) + " " +
-               self.__gateToMySQL.getSelectedItem( "configurations", self.__configuration ) ) 
+        message.console( type='INFO', text='Selected ' + 
+               self.__gateToMySQL.getNameFromId( 'types', self.__type ) + ' ' +
+               self.__gateToMySQL.getNameFromId( 'cases', self.__case ) + ' ' +
+               self.__gateToMySQL.getNameFromId( 'configurations', self.__configuration ) ) 
               
     #################################################################
-    # select examples - declare and call operation
+    #  Environment: globalOperate
+    #  Task:
+    #      constuction and configuration of object Operation 
+    #      call of Operation operate for selected test eamples
     #
                             
-    def operateGlobal( self ):
-        # tested subject
-        cComputer = self.__gateToMySQL.getSelectedItem( "computer", self.__computer ) 
-        cCode = self.__gateToMySQL.getSelectedItem( "codes",  self.__code ) 
-        cBranch = self.__gateToMySQL.getSelectedItem( "branches",  self.__branch ) 
-        
-        print( "ON " + cComputer + " " + cCode + " " + cBranch ) 
-       
-        op = operation.Operation ( cComputer, cCode, cBranch, self.__gateToMySQL.getColumnEntry( "computer", self.__computer, "operating_system" )) #, self.__gateToMySQL.getOperatingSystem ( 1)) #self.__computer ))
-        op.configureGlobal()
+    def globalOperate( self ):
+        # get constituents names (computer, code, branch) of tested subject
+        cComputer = self.__gateToMySQL.getNameFromId( 'computer', self.__computer ) 
+        cCode = self.__gateToMySQL.getNameFromId( 'codes',  self.__code ) 
+        cBranch = self.__gateToMySQL.getNameFromId( 'branches',  self.__branch ) 
+        message.console( type='INFO', text='On ' + cComputer + ' ' + cCode + ' ' + cBranch ) 
+        # construct and configure operation
+        op = operation.Operation( cComputer, cCode, cBranch, 
+                                  self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' ) ) 
+        op.globalConfig()
         op.select()
         
         # loop over examples
-        items0 = self.__gateToMySQL.getSelectedItemGroup( "types", self.__type )
-        items2 = self.__gateToMySQL.getSelectedItemGroup( "configurations", self.__configuration, computer_id=self.__computer )
+        items0 = self.__gateToMySQL.getNamesFromIdGroup( 'types', self.__type )
+        items2 = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', self.__configuration, computer_id=self.__computer )
            
         for row0 in items0:
-            for row1 in self.__gateToMySQL.getSelectedItemGroup( "cases", self.__case, running_type_id=str( row0['id'] ) ):
+            for row1 in self.__gateToMySQL.getNamesFromIdGroup( 'cases', self.__case, running_type_id=str( row0['id'] ) ):
                 for row2 in items2:
                     cType = str( row0['type_name'] )
                     cCase = str( row1['type_name'] )
                     cConfiguration = str( row2['type_name'] )
                    
-                    print( "EXAMPLE " + cType + " " + cCase + " " + cConfiguration )                    
+                    message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration )                    
                     op.operate( cType, cCase, cConfiguration ) 
                     
-                    
+        del op
+                                
     #################################################################
-    # 
+    #  Environment: run  
+    #  Task:
+    #      main functions
     #
                             
     def run( self ): 
-        self.selectGlobal()    
-        self.operateGlobal()    
+        self.globalSelectId()    
+        self.globalOperate()    
         
      
                     

@@ -18,8 +18,8 @@ class Environment:
     #  Environment: constructor
     #
     
-    def __init__( self, computer='', user='', code='', branch='', type='', case='', configuration='', mySQL_user='root', 
-                  mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
+    def __init__( self, computer='', user='', code='', branch='', type='', case='', configuration='', operation='',
+                  mySQL_user='root', mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
         self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
  
         self.__computer =      self.__gateToMySQL.getIdFromName( 'computer', computer )
@@ -29,7 +29,8 @@ class Environment:
         self.__type =          self.__gateToMySQL.getIdFromName( 'types', type )
         self.__case =          self.__gateToMySQL.getIdFromName( 'cases', case )   
         self.__configuration = self.__gateToMySQL.getIdFromName( 'configurations', configuration )
-        
+        self.__preselectedOperation = operation
+
         print( '\n-----------------------------------------------------------------' )
         message.console( type='INFO', text='Connect ' + mySQL_user + ' to ' + mySQL_host + ' ' + mySQL_schema  )
         # print message for already set variables
@@ -202,9 +203,9 @@ class Environment:
         # message.console( type='INFO', text='Path: ' + path )   
         # construct and configure operation
         op = operation.Operation( cComputer, cCode, cBranch, path,
-                                  self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' ) ) 
-        selectedOperation = op.select()      
-        
+                                  self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' ) )                                                    
+        selectedOperation = op.select( self.__preselectedOperation )      
+
         if str( selectedOperation ) == 's':  
             self.reselect()  
         elif str( selectedOperation ) == 'u':
@@ -222,7 +223,7 @@ class Environment:
                         cCase = str( row1['name'] )
                         cConfiguration = str( row2['name'] )
                        
-                        message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
+                        #message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
                         if self.__gateToMySQL.getState( str( row0['id'] ), str( row1['id'] ) ) == '1':                                                
                             op.operate( cType, cCase, cConfiguration ) 
                         else:
@@ -241,8 +242,9 @@ class Environment:
     def loop( self ): 
         self.globalSelectId()    
         self.globalOperate()   
-                
-        self.loop()
+             
+        if self.__preselectedOperation == '':   
+            self.loop()
         
         
     #################################################################

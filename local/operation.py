@@ -3,6 +3,7 @@ import message
 import shutil
 import os
 import configuration
+import fileinput
 
 #################################################################
 #  class: Operation
@@ -15,8 +16,6 @@ class Operation:
     __cType = ''
     __cCase = ''
     __cConfiguration = ''
-    # operations
-    __selectedOperation = ''
     # paths    
     __root_directory_examples = ''  
     __directory_example = ''
@@ -33,7 +32,7 @@ class Operation:
         self.__cBranch = cBranch
         self.__root_directory = root_directory
         self.__operating_system = operating_system
-        
+            
         # config
         if self.__operating_system == 'windows':
             self.__root_directory_examples = self.__root_directory + 'testingEnvironment\\' \
@@ -60,21 +59,26 @@ class Operation:
     #      set __selectedOperation (string) 
     #
                        
-    def select( self ):
-        # set operations vector
-        operations = []
-        operations.append( '    (r)un ' + self.__cCode )
-        operations.append( '    (u)pdate ' + self.__operating_system +  ' releases' )
-        operations.append( '    (i)mport files from repository' )
-        operations.append( '    e(x)port files to repository' )
-        operations.append( '    (c)lean folder from results' )
-        operations.append( '    re(s)elect' )
-        
-        # select
-        print( '\nSelect operation:\n' )        
-        for operation in operations:
-            print( operation )                           
-        self.__selectedOperation = input( '\n' )    
+    def select( self, preselectedOperation ):
+    
+        if preselectedOperation == '':
+            # set operations vector
+            operations = []
+            operations.append( '    (r)un ' + self.__cCode )
+            operations.append( '    (u)pdate ' + self.__operating_system +  ' releases' )
+            operations.append( '    (i)mport files from repository' )
+            operations.append( '    e(x)port files to repository' )
+            operations.append( '    (c)lean folder from results' )
+            operations.append( '    replace (n)ans in tec files' )
+            operations.append( '    re(s)elect' )
+            
+            # select
+            print( '\nSelect operation:\n' )        
+            for operation in operations:
+                print( operation )                           
+            self.__selectedOperation = input( '\n' )
+        else:
+            self.__selectedOperation = preselectedOperation            
         
         return self.__selectedOperation
         
@@ -116,7 +120,9 @@ class Operation:
         elif self.__selectedOperation == 'x':
             self.exportToRepository() 
         elif self.__selectedOperation == 'c':
-            self.cleanFolder()                                            
+            self.cleanFolder() 
+        elif self.__selectedOperation == 'n':
+            self.replaceNans()                                                        
         else:
             message.console( type='ERROR', notSupported='Operation' ) 
        
@@ -126,7 +132,9 @@ class Operation:
     #      run one of the selected test examples with selected code
     #
                                    
-    def run( self ):          
+    def run( self ):   
+        message.console( type='INFO', text='Running ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
+               
         if self.__operating_system == 'windows':    
             executable = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + \
             '\\releases\\' + self.__cCode + '_' + self.__cBranch + '_' + 'windows' + '_' + self.__cConfiguration + '.exe' 
@@ -200,5 +208,24 @@ class Operation:
         exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
         for file in os.listdir( exampleFolder ):
             for ending in configuration.outputFileEndings: 
-                if file.endswith('.' + ending):
+                if file.endswith( '.' + ending ):
                     os.remove( exampleFolder + '\\' + file ) 
+                    
+    #################################################################
+    #  Operation: replaceNans
+    #  Task:
+    #      delete *.tec, *.txt, *.asc       
+    #
+                                   
+    def replaceNans( self ):    
+    
+        message.console( type='INFO', text='Replace nans ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
+        exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
+        for file in os.listdir( exampleFolder ): 
+            if file.endswith( '.tec' ):
+                print ( '   ' + file )
+                with fileinput.FileInput( exampleFolder + '\\' + file, inplace=True ) as fileToSearchIn:
+                    for line in fileToSearchIn:
+                        print( line.replace( 'nan', '999' ), end='' )
+                
+                    

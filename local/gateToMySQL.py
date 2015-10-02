@@ -1,5 +1,6 @@
 import mysql.connector
 import os
+import message
 
 ##############################################
 # class GateToMySQL
@@ -70,6 +71,7 @@ class GateToMySQL:
         if row is not None:
             return ( str ( row[1] ) )
         else:
+            message.console( type='ERROR', text='Name for id ' + str ( item_id ) + ' not found in table ' +  + str ( table ) )            
             return '-1' # exception
 
     ##############################################
@@ -99,6 +101,7 @@ class GateToMySQL:
             if row is not None:
                 return ( str ( row[0] ) )
             else:
+                message.console( type='ERROR', text='Column id for ' + str ( name ) + ' not found in table ' +  + str ( table ) )            
                 return '-1' # exception            
                                                          
     ##############################################
@@ -117,7 +120,7 @@ class GateToMySQL:
     #      running_type_id (string): for option 4.
     #  Return:
     #      items list - no exception handling
-    #      item (struct): id, type_name
+    #      item (struct): id, name
     #  Requirements:
     #      if all cases requested, running_type_id must be given
     # 
@@ -127,7 +130,7 @@ class GateToMySQL:
         cursor = self.__cnx.cursor( buffered=True ) 
         if item_id == 'a':
            
-            if table == 'computer' or table == 'codes' or table == 'branches' or table == 'types':
+            if table == 'computer' or table == 'user' or table == 'codes' or table == 'branches' or table == 'types':
                 cursor.execute( 'SELECT * FROM ' + table )
             elif table == 'cases':   # specific type selected 
                 cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + str( running_type_id )) 
@@ -144,7 +147,7 @@ class GateToMySQL:
         while row is not None:    
             item = {
                 'id': row[0],
-                'type_name': row[1]
+                'name': row[1]
             }    
             items.append( item )    
             row = cursor.fetchone()
@@ -163,7 +166,7 @@ class GateToMySQL:
     #      column entry as string
     #      '-1' if no entry found (exception)   
                                                
-    def getColumnEntry(self, table, item_id, column_name ):
+    def getColumnEntry( self, table, item_id, column_name ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
         cursor.execute( 'SELECT t.' + column_name + ' FROM ' + table + ' t WHERE t.id=' + str ( item_id ) )
@@ -172,9 +175,45 @@ class GateToMySQL:
         if row is not None:
             return ( str ( row[0] ) )
         else:
+            message.console( type='ERROR', text='Column entry of ' + str ( column_name ) + ' not found for id ' +  + str ( item_id ) )        
             return '-1' # exception
-
-   
+            
+    ##############################################
+    #  GateToMySQL: getRootDirectory
+    #  
+    # 
+    
+    def getRootDirectory( self, computer_id, user_id ):
+        # set cursor
+        cursor = self.__cnx.cursor( buffered=True ) 
+        cursor.execute( 'SELECT p.root FROM paths p WHERE p.computer_id=' + str ( computer_id ) + ' AND p.user_id=' + str ( user_id ) )
+        #  
+        row = cursor.fetchone()
+        if row is not None:
+            return ( str ( row[0] ) )
+        else:
+            message.console( type='ERROR', text='Path not found for ' + str ( computer_id ) + ' ' +  + str ( user_id ) )
+            return '-1' # exception
+     
+                    
+    ##############################################
+    #  GateToMySQL: getState
+    #  
+    # 
+    
+    def getState( self, type_id, case_id ):
+        # set cursor
+        cursor = self.__cnx.cursor( buffered=True ) 
+        cursor.execute( 'SELECT e.state FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+        #  
+        row = cursor.fetchone()
+        if row is not None:
+            return ( str ( row[0] ) )
+        else:
+            message.console( type='ERROR', text='State not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            return '-1' # exception    
+        
+  
                             
         
         

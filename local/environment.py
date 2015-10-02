@@ -3,6 +3,7 @@ import mysql.connector
 import gateToMySQL
 import operation
 import message
+import shutil
 
 ##############################################
 #  class: Environment
@@ -17,11 +18,12 @@ class Environment:
     #  Environment: constructor
     #
     
-    def __init__( self, computer='', code='', branch='', type='', case='', configuration='', user='root', 
-                  password='*****', host='localhost', schema='testing_environment' ):
-        self.__gateToMySQL = gateToMySQL.GateToMySQL( user, password, host, schema )
+    def __init__( self, computer='', user='', code='', branch='', type='', case='', configuration='', mySQL_user='root', 
+                  mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
+        self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
  
         self.__computer =      self.__gateToMySQL.getIdFromName( 'computer', computer )
+        self.__user =          self.__gateToMySQL.getIdFromName( 'user', user )        
         self.__code =          self.__gateToMySQL.getIdFromName( 'codes', code )
         self.__branch =        self.__gateToMySQL.getIdFromName( 'branches', branch )
         self.__type =          self.__gateToMySQL.getIdFromName( 'types', type )
@@ -29,7 +31,7 @@ class Environment:
         self.__configuration = self.__gateToMySQL.getIdFromName( 'configurations', configuration )
         
         print( '\n-----------------------------------------------------------------' )
-        message.console( type='INFO', text='Connect ' + user + ' to ' + host + ' ' + schema  )
+        message.console( type='INFO', text='Connect ' + mySQL_user + ' to ' + mySQL_host + ' ' + mySQL_schema  )
         # print message for already set variables
         if computer is not '':
             message.console( type='INFO', text='Set computer ' + computer )
@@ -101,7 +103,7 @@ class Environment:
         # print options                              
         print( '\nSelect from ' + table + ':\n' )  
         for row in items:
-            print( '   ' + str(row['id']) + ' ' + str( row['type_name'] ) )
+            print( '   ' + str(row['id']) + ' ' + str( row['name'] ) )
         if table == 'types' or table == 'cases' or table == 'configurations':  
             print( '   a all' )    
         # select
@@ -125,6 +127,8 @@ class Environment:
         # tested subject (only one)    
         if self.__computer == '':                                                                                 
             self.__computer = self.selectId( 'computer' )
+        if self.__user == '':                                                                                 
+            self.__user = self.selectId( 'user' )        
         if self.__code == '':                                                                                 
             self.__code = self.selectId( 'codes' )
         if self.__branch == '':                                                                                 
@@ -134,7 +138,7 @@ class Environment:
                self.__gateToMySQL.getNameFromId( 'computer', self.__computer ) + ' ' +
                self.__gateToMySQL.getNameFromId( 'codes', self.__code ) + ' '  + 
                self.__gateToMySQL.getNameFromId( 'branches', self.__branch ) )    
-        # test examples               
+        # test examples    
         if self.__type == '':                                                                                 
             self.__type = self.selectId( 'types' )
         if self.__case == '':                                                                                 
@@ -146,7 +150,39 @@ class Environment:
                self.__gateToMySQL.getNameFromId( 'types', self.__type ) + ' ' +
                self.__gateToMySQL.getNameFromId( 'cases', self.__case ) + ' ' +
                self.__gateToMySQL.getNameFromId( 'configurations', self.__configuration ) ) 
+
+    #################################################################
+    #  Environment: reselect
+    #  Task:
+    #
+    
+    def reselect ( self ):
+           
+        options = []
+        options.append( '    (c)ode')
+        options.append( '    (b)ranch')
+        options.append( '    (e)xample')
+        options.append( '    (t)ype')
+        options.append( '    c(a)se')
+        options.append( '    c(o)nfiguration')
+        
+        # select
+        print( '\nSelect:\n' )        
+        for option in options:
+            print( option )          
+        selectedOption = input( '\n' )
               
+        if str( selectedOption ) == 'c':  
+            self.__code = ''
+        if str( selectedOption ) == 'b':  
+            self.__branch = ''
+        if str( selectedOption ) == 't' or str( selectedOption ) == 'e':     
+            self.__type = ''
+        if str( selectedOption ) == 'a' or str( selectedOption ) == 'e':             
+            self.__case = ''
+        if str( selectedOption ) == 'o' or str( selectedOption ) == 'e':             
+            self.__configuration = ''            
+                                                                                  
     #################################################################
     #  Environment: globalOperate
     #  Task:
@@ -157,30 +193,44 @@ class Environment:
     def globalOperate( self ):
         # get constituents names (computer, code, branch) of tested subject
         cComputer = self.__gateToMySQL.getNameFromId( 'computer', self.__computer ) 
+        cUser = self.__gateToMySQL.getNameFromId( 'user', self.__user )
         cCode = self.__gateToMySQL.getNameFromId( 'codes',  self.__code ) 
         cBranch = self.__gateToMySQL.getNameFromId( 'branches',  self.__branch ) 
-        message.console( type='INFO', text='On ' + cComputer + ' ' + cCode + ' ' + cBranch ) 
-        # construct and configure operation
-        op = operation.Operation( cComputer, cCode, cBranch, 
-                                  self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' ) ) 
-        op.globalConfig()
-        op.select()
+        message.console( type='INFO', text='On ' + cComputer + ' ' + cCode + ' ' + cBranch )
         
-        # loop over examples
-        items0 = self.__gateToMySQL.getNamesFromIdGroup( 'types', self.__type )
-        items2 = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', self.__configuration, computer_id=self.__computer )
-           
-        for row0 in items0:
-            for row1 in self.__gateToMySQL.getNamesFromIdGroup( 'cases', self.__case, running_type_id=str( row0['id'] ) ):
-                for row2 in items2:
-                    cType = str( row0['type_name'] )
-                    cCase = str( row1['type_name'] )
-                    cConfiguration = str( row2['type_name'] )
-                   
-                    message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration )                    
-                    op.operate( cType, cCase, cConfiguration ) 
+        path = self.__gateToMySQL.getRootDirectory( self.__computer, self.__user )  
+        # message.console( type='INFO', text='Path: ' + path )   
+        # construct and configure operation
+        op = operation.Operation( cComputer, cCode, cBranch, path,
+                                  self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' ) ) 
+        selectedOperation = op.select()      
+        
+        if str( selectedOperation ) == 's':  
+            self.reselect()  
+        elif str( selectedOperation ) == 'u':
+            #message.console( type='INFO', text='Move windows executables' )   
+            self.updateRelease()             
+        else:  # 'r'un, 'i'mport, e'x'port   
+            # loop over examples
+            items0 = self.__gateToMySQL.getNamesFromIdGroup( 'types', self.__type )
+            items2 = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', self.__configuration, computer_id=self.__computer )
+               
+            for row0 in items0:
+                for row1 in self.__gateToMySQL.getNamesFromIdGroup( 'cases', self.__case, running_type_id=str( row0['id'] ) ):
+                    for row2 in items2:
+                        cType = str( row0['name'] )
+                        cCase = str( row1['name'] )
+                        cConfiguration = str( row2['name'] )
+                       
+                        message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
+                        if self.__gateToMySQL.getState( str( row0['id'] ), str( row1['id'] ) ) == '1':                                                
+                            op.operate( cType, cCase, cConfiguration ) 
+                        else:
+                            message.console( type='INFO', text='        inactive' )     
                     
         del op
+        
+        print( '\n-----------------------------------------------------------------' )
                                 
     #################################################################
     #  Environment: run  
@@ -188,10 +238,45 @@ class Environment:
     #      main functions
     #
                             
-    def run( self ): 
+    def loop( self ): 
         self.globalSelectId()    
-        self.globalOperate()    
+        self.globalOperate()   
+                
+        self.loop()
         
+        
+    #################################################################
+    #  Environment: updateRelease
+    #  Task:
+    #      copy and rename windows binaries
+    #
+                                   
+    def updateRelease( self ): 
+        operatingSystem = self.__gateToMySQL.getColumnEntry( 'computer', self.__computer, 'operating_system' )    
+        code = self.__gateToMySQL.getNameFromId( 'codes',  self.__code )
+        branch = self.__gateToMySQL.getNameFromId( 'branches',  self.__branch )
+        path = 'F:\\testingEnvironment\\' + code + '\\' + branch  
+         
+        try:
+            os.stat(path + '\\releases\\' )
+        except:
+            os.mkdir(path + '\\releases\\' ) 
+                           
+        if operatingSystem == 'windows':          
+            items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', self.__configuration, computer_id=self.__computer )
+            for row in items:      
+                message.console( type='INFO', text='Updating release ' + str( operatingSystem ) + ' ' + str( row['name'] ) )   
+                if code == 'ogs':
+                    fileName = path + '\\sources\\Build_' + str( row['name'] ) + '\\bin\\Release\\ogs.exe'
+                    if os.path.isfile(fileName) and os.access(fileName, os.R_OK): 
+                        shutil.copy( fileName, 
+                                     path + '\\releases\\' + code  + '_' + branch + '_' + 'windows' + '_'  + str( row['name'] ) + '.exe' )  
+                    else:
+                        message.console( type='ERROR', text='Binary does not exist - nothing done' )                         
+                else:
+                    message.console( type='ERROR', notSupported=code )                       
+        else:
+            message.console( type='ERROR', notSupported=operating_system )          
      
                     
                    

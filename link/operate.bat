@@ -151,7 +151,7 @@ if %synchronizationType%==2 (
 	call unpack.bat
 		
 	F: 									
-	cd %baseLocal%\remoteResults%inputRoot%\%code%\%version%
+	cd %baseLocal%\remoteResults%inputRoot%\%code%\%version%\output
 
 	for /r %%g in (*.tec) do C:\"Program Files\Tecplot\Tec360 2013R1\bin"\preplot.exe %%g
 

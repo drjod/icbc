@@ -210,7 +210,7 @@ class Environment:
         if str( selectedOperation ) == 's':  
             self.reselect()  
         elif str( selectedOperation ) == 'u':
-            #message.console( type='INFO', text='Move windows executables' )   
+            # message.console( type='INFO', text='Move windows executables' )   
             self.updateRelease()             
         else:  # 'r'un, 'i'mport, e'x'port   
             # loop over examples
@@ -224,8 +224,8 @@ class Environment:
                         cCase = str( row1['name'] )
                         cConfiguration = str( row2['name'] )
                        
-                        #message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
-                        if int( self.__gateToMySQL.getStage( str( row0['id'] ), str( row1['id'] ) ) ) <= int( self.__stage ):                                                
+                        # message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
+                        if int( self.__gateToMySQL.getStage( str( row0['id'] ), str( row1['id'] ) ) ) <= int( self.__stage ):  
                             op.operate( cType, cCase, cConfiguration ) 
                         else:
                             message.console( type='INFO', text='inactive - example is of stage ' + self.__gateToMySQL.getStage( str( row0['id'] ), str( row1['id'] ) ) )     

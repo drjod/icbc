@@ -70,6 +70,7 @@ class Operation:
             operations.append( '    e(x)port files to repository' )
             operations.append( '    (c)lean folder from results' )
             operations.append( '    replace (n)ans in tec files' )
+            operations.append( '    (p)replot')
             operations.append( '    re(s)elect' )
             
             # select
@@ -122,7 +123,9 @@ class Operation:
         elif self.__selectedOperation == 'c':
             self.cleanFolder() 
         elif self.__selectedOperation == 'n':
-            self.replaceNans()                                                        
+            self.replaceNans()  
+        elif self.__selectedOperation == 'p':
+            self.preplot()                                                                  
         else:
             message.console( type='ERROR', notSupported='Operation' ) 
        
@@ -214,7 +217,7 @@ class Operation:
     #################################################################
     #  Operation: replaceNans
     #  Task:
-    #      delete *.tec, *.txt, *.asc       
+    #      replace each nan by 999 in all tec files 
     #
                                    
     def replaceNans( self ):    
@@ -223,9 +226,22 @@ class Operation:
         exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
         for file in os.listdir( exampleFolder ): 
             if file.endswith( '.tec' ):
-                print ( '   ' + file )
+                message.console( type='INFO', text='File: ' + file )
                 with fileinput.FileInput( exampleFolder + '\\' + file, inplace=True ) as fileToSearchIn:
                     for line in fileToSearchIn:
                         print( line.replace( 'nan', '999' ), end='' )
                 
-                    
+    #################################################################
+    #  Operation: preplot
+    #  Task:
+    #      preplot for all tec files in folder            
+    #
+                                   
+    def preplot( self ): 
+        
+        message.console( type='INFO', text='Preplot ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
+        exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
+        for file in os.listdir( exampleFolder ): 
+            if file.endswith( '.tec' ):
+                message.console( type='INFO', text='File: ' + file )                        
+                subprocess.check_call(configuration.preplot + ' ' + exampleFolder + '\\' + file ) 

@@ -1,0 +1,11 @@
+#!/bin/sh						
+cVersions=(					
+kb1						
+ogs_kb1						
+trunk						
+)							
+cCode="ogs"					
+workfolder="work_j"				
+icbcVersion="0.1"			
+versionRoot=""			
+inputRoot="/examples"			

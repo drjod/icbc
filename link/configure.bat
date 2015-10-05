@@ -15,5 +15,5 @@ set sevenZip=C:\"Program Files"\7-Zip\7z.exe
 
 set code=ogs
 set versionRoot=
-set inputRoot=\testCases
+set inputRoot=\examples
 set versions=kb1 ogs_kb1 trunk

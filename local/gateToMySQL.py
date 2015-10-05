@@ -201,17 +201,17 @@ class GateToMySQL:
     #  
     # 
     
-    def getState( self, type_id, case_id ):
+    def getStage( self, type_id, case_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT e.state FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+        cursor.execute( 'SELECT e.stage FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='State not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
-            return '-1' # exception    
+            message.console( type='ERROR', text='Stage not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            return '1000' # exception - no operation for high number    
         
   
                             

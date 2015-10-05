@@ -18,7 +18,7 @@ class Environment:
     #  Environment: constructor
     #
     
-    def __init__( self, computer='', user='', code='', branch='', type='', case='', configuration='', operation='',
+    def __init__( self, computer='', user='', code='', branch='', type='', case='', configuration='', operation='', stage='',
                   mySQL_user='root', mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
         self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
  
@@ -30,7 +30,8 @@ class Environment:
         self.__case =          self.__gateToMySQL.getIdFromName( 'cases', case )   
         self.__configuration = self.__gateToMySQL.getIdFromName( 'configurations', configuration )
         self.__preselectedOperation = operation
-
+        self.__stage = stage
+        
         print( '\n-----------------------------------------------------------------' )
         message.console( type='INFO', text='Connect ' + mySQL_user + ' to ' + mySQL_host + ' ' + mySQL_schema  )
         # print message for already set variables
@@ -224,10 +225,10 @@ class Environment:
                         cConfiguration = str( row2['name'] )
                        
                         #message.console( type='INFO', text='Example ' + cType + ' ' + cCase + ' ' + cConfiguration ) 
-                        if self.__gateToMySQL.getState( str( row0['id'] ), str( row1['id'] ) ) == '1':                                                
+                        if int( self.__gateToMySQL.getStage( str( row0['id'] ), str( row1['id'] ) ) ) <= int( self.__stage ):                                                
                             op.operate( cType, cCase, cConfiguration ) 
                         else:
-                            message.console( type='INFO', text='        inactive' )     
+                            message.console( type='INFO', text='inactive - example is of stage ' + self.__gateToMySQL.getStage( str( row0['id'] ), str( row1['id'] ) ) )     
                     
         del op
         
@@ -240,6 +241,7 @@ class Environment:
     #
                             
     def loop( self ): 
+        self.selectStage()
         self.globalSelectId()    
         self.globalOperate()   
              
@@ -281,17 +283,32 @@ class Environment:
             message.console( type='ERROR', notSupported=operating_system )          
      
                     
-                   
-                                 
+    #################################################################
+    #  Environment: selectStage
+    #  Task:                   
+    #      sets stage (string)
+    #
+                              
+    def selectStage( self ):    
+        if self.__stage == '':
+            print( '\nSelect testing depth (0, 1, 2):\n' )        
+       
+            selectedStage = input( '\n' ) 
+            
+            try:
+             val = int( selectedStage )
+            except ValueError:
+                message.console( type='ERROR', text='That was not a number. Try again' )
+                self.selectStage()
+       
+            if val < 0 or val > 2:
+                message.console( type='ERROR', text='Number out of range. Try again' )                    
+                self.selectStage()        
                 
+            self.__stage = selectedStage
+                  
         
  
         
       
-
-
-
-                               
-                                
-  
 

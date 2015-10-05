@@ -16,4 +16,4 @@ set sevenZip=C:\"Program Files"\7-Zip\7z.exe
 set code=ogs
 set versionRoot=
 set inputRoot=\testCases
-set versions=trunk ogs_branches_kiel_one kiel_one_2015_3_26 ogs_elisabetta_2015_3_26 ogs_abm_2015_4_7 ogs_2014_11_10_JOD 
+set versions=kb1 ogs_kb1 trunk

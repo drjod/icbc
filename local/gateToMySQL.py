@@ -25,10 +25,10 @@ class GateToMySQL:
     #     error message if access to database failed
     #
            
-    def __init__( self, User, Password, Host, Schema ):
+    def __init__( self, mySQL_struct ):
         try:
-            cnx = mysql.connector.connect( user = User, password = Password,
-                                          host = Host, database = Schema ) 
+            cnx = mysql.connector.connect( user = mySQL_struct.user, password = mySQL_struct.password,
+                                          host = mySQL_struct.host, database = mySQL_struct.schema ) 
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
                 print( 'ERROR - user name or password wrong' )
@@ -125,7 +125,7 @@ class GateToMySQL:
     #      if all cases requested, running_type_id must be given
     # 
                        
-    def getNamesFromIdGroup( self, table, item_id, computer_id='-1', running_type_id='-1' ):
+    def getNamesFromIdGroup( self, table, item_id, computer_id='-1', selectedType_id='-1' ):
         # set cursor       
         cursor = self.__cnx.cursor( buffered=True ) 
         if item_id == 'a':
@@ -133,9 +133,9 @@ class GateToMySQL:
             if table == 'computer' or table == 'user' or table == 'codes' or table == 'branches' or table == 'types':
                 cursor.execute( 'SELECT * FROM ' + table )
             elif table == 'cases':   # specific type selected 
-                cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + str( running_type_id )) 
+                cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + selectedType_id ) 
             elif table == 'configurations':  # depends on selected computer
-                cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + str( computer_id ) )    
+                cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + computer_id )    
             else:
                 print( 'ERROR - schema ' + table + ' not supported in gateToMySQL.getNameFromIdGroup' )     
         else:    

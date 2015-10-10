@@ -1,6 +1,5 @@
 import sys
-
-verbosity=1     # 0: no messages , 1: messages
+import configurationShared
 
 #################################################################
 #  error
@@ -18,7 +17,7 @@ verbosity=1     # 0: no messages , 1: messages
 
 def console ( type='ERROR', text='', notSupported='' ):
 
-    if verbosity > 0:
+    if configurationShared.verbosity > 0:
         if notSupported is not '':
             message = notSupported + ' is not supported'
         else:    

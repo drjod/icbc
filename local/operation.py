@@ -2,56 +2,42 @@ import subprocess
 import message
 import shutil
 import os
-import configuration
+import configurationShared
+import configurationLocal
 import fileinput
+import item
+import subject
+
 
 #################################################################
 #  class: Operation
 #  Task:
-#      configure and execute operations 
+#      
 #
 
 class Operation:
-   # test examples
-    __cType = ''
-    __cCase = ''
-    __cConfiguration = ''
-    # paths    
-    __root_directory_examples = ''  
-    __directory_example = ''
-    
-    __examplesName = ''
+
+
+    _selectedOperation = ''   
+    _item = ''
+    _operations = [] 
     
     #################################################################
     #  Operation: constructor
     #
-           
-    def __init__( self, cComputer, cCode, cBranch, root_directory, operating_system ):
-        self.__cComputer = cComputer
-        self.__cCode = cCode
-        self.__cBranch = cBranch
-        self.__root_directory = root_directory
-        self.__operating_system = operating_system
-            
-        # config
-        if self.__operating_system == 'windows':
-            self.__root_directory_examples = self.__root_directory + 'testingEnvironment\\' \
-            + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\'
-        elif self.__operating_system == 'linux': 
-            self.__root_directory_examples = self.__root_directory + 'testingEnvironment/' + \
-            self.__cCode + '/' + self.__cBranch + '/examples/files/'
-        else:
-            print('ERROR - Operating system ' + self.__operating_system + ' not supported')
-            
-        self.__examplesName = 'testCase'  
-            
+        
+        
+    def __init__( self, subject ):
+        self._subject = subject
+
     #################################################################
     #  Operation: destructor
     #
     
     def __del__( self ):
-        pass  
-                               
+        pass 
+            
+ 
     #################################################################
     #  Operation: select
     #  Task:
@@ -59,189 +45,294 @@ class Operation:
     #      set __selectedOperation (string) 
     #
                        
-    def select( self, preselectedOperation ):
+    def selectOperation( self, preselectedOperation ):
     
         if preselectedOperation == '':
-            # set operations vector
-            operations = []
-            operations.append( '    (r)un ' + self.__cCode )
-            operations.append( '    (u)pdate ' + self.__operating_system +  ' releases' )
-            operations.append( '    (i)mport files from repository' )
-            operations.append( '    e(x)port files to repository' )
-            operations.append( '    (c)lean folder from results' )
-            operations.append( '    replace (n)ans in tec files' )
-            operations.append( '    (p)replot')
-            operations.append( '    re(s)elect' )
-            
-            # select
             print( '\nSelect operation:\n' )        
-            for operation in operations:
+            for operation in self._operations:
                 print( operation )                           
-            self.__selectedOperation = input( '\n' )
+            self._selectedOperation = input( '\n' )
         else:
-            self.__selectedOperation = preselectedOperation            
-        
-        return self.__selectedOperation
-        
+            self._selectedOperation = preselectedOperation            
+    
+             
     #################################################################
-    #  Operation: setPathToExample
-    #  Task:
-    #      set path to test example
-    #
+    #  Operation: 
+             
+    def getSelectedOperation( self ):
                    
-    def setPathToExample( self):  
-        if self.__operating_system == 'windows':    
-            self.__directory_example = self.__root_directory_examples + \
-            self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration + '\\'     
-        elif self.__operating_system == 'linux':       
-            self.__directory_example = self.__root_directory_examples + \
-            self.__cType + '/' + self.__cCase + '/' + self.__cConfiguration + '/'     
-        else:
-            message.console( type='ERROR', notSupported=self.__operating_system )
+        return self._selectedOperation
+    
+                        
+#################################################################
+#  class: Building
+#  Task:
+#     
+#
+
+class Building(Operation):
+
+            
+    #################################################################
+    #  Building: constructor
+    #
+           
+    def __init__( self, subject ):
+
+        self._operations.clear()                                     
+        self._operations.append( '    (c)ompile' )                  
+        self._operations.append( '    (u)pdate release file' )      
+        self._operations.append( '    re(s)elect' )                     
+            
+        Operation.__init__( self, subject )
         
     #################################################################
-    #  Operation: operate
+    #  Building: operate
+    #  Task:
+    #      configure build and call operation for this build
+    #
+                                     
+    def operate( self, build ):
+        
+        self._item = build
+        #self.__cConfiguration = cConfiguration              
+        #self.__directoryBuildbuild = self._subject.adaptPath( self._subject.getRootDirectory() + 'sources\\' + 'Build_' + self.__cConfiguration + '\\' )   
+        
+        if self._selectedOperation == 'c':
+            self.compileRelease()  
+        elif self._selectedOperation == 'u':
+            self.updateRelease()                                                                             
+        else:
+            message.console( type='ERROR', notSupported='Operation' + self.__selectedOperation )                          
+  
+    #################################################################
+    #  Building: run
+    #  Task:
+    #      run one of the selected test items with selected code
+    #
+                                   
+    def compileRelease( self ): 
+        message.console( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
+        
+        subprocess.check_call( self._subject.getCompilationCommand( self._item )   )  
+
+            
+    #################################################################
+    #  Building: updateRelease
+    #  Task:
+    #      copy and rename windows binaries
+    #
+                                   
+    def updateRelease( self ):   
+        
+        try: 
+            os.stat(self._subject.getDirectory() + 'releases' )
+        except:
+            os.mkdir(self._subject.getDirectory() + 'releases' ) 
+        
+        message.console( type='INFO', text='Updating release ' + self._subject.getOperatingSystem() + ' ' + self._item.getConfiguration() )   
+      
+        if os.path.isfile( self._subject.getExecutableForRelease( self._item ) ) and os.access( self._subject.getExecutableForRelease( self._item ), os.R_OK ): 
+            shutil.copy( self._subject.getExecutable( self._item ), self._subject.getExecutableForRelease( self._item ) )  
+        else:
+            message.console( type='ERROR', text='Binary does not exist - nothing done' )                         
+           
+                               
+#################################################################
+#  class: Testing
+#  Task:
+#      configure and execute operations 
+#
+
+class Testing(Operation):
+
+    
+    #################################################################
+    #  Testing: constructor
+    #
+           
+    def __init__( self, subject ):
+
+        self._operations.clear()
+        self._operations.append( '    (r)un ' + subject.getCode() )
+        self._operations.append( '    (i)mport files from repository' )
+        self._operations.append( '    e(x)port files to repository' )
+        self._operations.append( '    (c)lean folder from results' )
+        self._operations.append( '    replace (n)ans in tec files' )
+        self._operations.append( '    (p)replot')
+        self._operations.append( '    generate (j)pgs' )            
+        self._operations.append( '    re(s)elect' )
+        
+        
+        Operation.__init__( self, subject )
+        
+             
+    #################################################################
+    #  Testing: operate
     #  Task:
     #      configure and run operation
     #
                                      
-    def operate( self, cType, cCase, cConfiguration ):
-        self.__cType = cType
-        self.__cCase = cCase
-        self.__cConfiguration = cConfiguration        
-        
-        self.setPathToExample()
-        
-        if self.__selectedOperation == 'r':
-            self.run() 
-        elif self.__selectedOperation == 'u':
-            self.updateRelease()  
-        elif self.__selectedOperation == 'i':
+    def operate( self, test ):
+    
+        self._item = test
+                                                                      
+        if self._selectedOperation == 'r':
+            self.run()  
+        elif self._selectedOperation == 'i':
             self.importFromRepository()
-        elif self.__selectedOperation == 'x':
+        elif self._selectedOperation == 'x':
             self.exportToRepository() 
-        elif self.__selectedOperation == 'c':
+        elif self._selectedOperation == 'c':
             self.cleanFolder() 
-        elif self.__selectedOperation == 'n':
+        elif self._selectedOperation == 'n':
             self.replaceNans()  
-        elif self.__selectedOperation == 'p':
-            self.preplot()                                                                  
+        elif self._selectedOperation == 'p':
+            self.preplot()   
+        elif self._selectedOperation == 'j':
+            self.generateJpgs()                                                                               
         else:
-            message.console( type='ERROR', notSupported='Operation' ) 
+            message.console( type='ERROR', notSupported='Operation' + self.__selectedOperation ) 
        
     #################################################################
-    #  Operation: run
+    #  Testing: run
     #  Task:
-    #      run one of the selected test examples with selected code
+    #      run one of the selected test items with selected code
     #
                                    
-    def run( self ):   
-        message.console( type='INFO', text='Running ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
-               
-        if self.__operating_system == 'windows':    
-            executable = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + \
-            '\\releases\\' + self.__cCode + '_' + self.__cBranch + '_' + 'windows' + '_' + self.__cConfiguration + '.exe' 
+    def run( self ): 
+        
+        message.console( type='INFO', text='Running ' + self._item.getNameString() )
+                        
+        with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
             
-        # message.console( type='INFO', text='Executable: ' + executable )  
-        # message.console( type='INFO', text='Example:    ' + self.__directory_example + self.__examplesName )    
-            
-        with open ( self.__directory_example + 'out.txt', 'wb' ) as f:
-            if self.__operating_system == 'windows':  
-                subprocess.check_call( executable + ' ' + self.__directory_example + self.__examplesName, stdout=f )   
-            elif self.__operating_system == 'linux':
-                subprocess.check_call( 'qsub ' + self.__directory_example + 'run.bat', stdout=f )               
+            #subprocess.check_call( self._subject.getExecutable() + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f ) 
+            if self._subject.getOperatingSystem() == 'windows':  
+                subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
+            elif self._subject.getOperatingSystem() == 'linux':
+                subprocess.check_call( 'qsub ' + self._item.getDirectory() + 'run.bat', stdout=f )               
             else:
-                message.console( type='ERROR', notSupported=self.__operating_system )
+                message.console( type='ERROR', notSupported=self._subject.getOperatingSystem() )  
+              
+ 
+        
                       
     #################################################################
-    #  Operation: importFromRepository
+    #  Testing: importFromRepository
     #  Task:
     #      copy input files from repository into folder for test runs
     #
                                    
     def importFromRepository( self ):           
-        message.console( type='INFO', text='Importing ' + str( self.__cType ) + ' ' + str( self.__cCase ) )   
-        path = self.__root_directory + 'testingEnvironment'
+        message.console( type='INFO', text='Importing ' + self._item.getNameString() ) 
         
-        levels = [ self.__cCode, self.__cBranch, 'examples', 'files', self.__cType, self.__cCase, self.__cConfiguration ]       
-        for level in levels:
-            path = path + '\\' + level           
-            try:
-                os.stat(path)
-            except:
-                os.mkdir(path)        
-                      
-        for ending in configuration.inputFileEndings:                    
-            fileName = self.__root_directory + 'testingEnvironment\\repository\\' + self.__cType + '\\' + self.__cCase + '\\testCase.' + ending
-            if os.path.isfile(fileName) and os.access(fileName, os.R_OK):   
-                shutil.copy( fileName, path )    
+        # make test folder if it does not exist  
+        testVector = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
+                       'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
+        self._subject.generateFolder ( self._subject.getDirectory(), testVector )
+           
+       
+        # import              
+        for ending in configurationShared.inputFileEndings:  
+            fileName = self._item.getDirectoryRepository() + configurationShared.examplesName + '.' + ending          
+            if os.path.isfile( fileName ) and os.access(fileName, os.R_OK):   
+                shutil.copy( fileName, self._item.getDirectory() )    
         
     #################################################################
-    #  Operation: exportToRepository
+    #  Testing: exportToRepository
     #  Task:
     #      copy input files into repository       
     #
                                    
     def exportToRepository( self ):   
-        message.console( type='INFO', text='Exporting ' + str( self.__cType ) + ' ' + str( self.__cCase ) )   
-        path = self.__root_directory + 'testingEnvironment'
-        
-        levels = [ 'repository', self.__cType, self.__cCase ]       
-        for level in levels:
-            path = path + '\\' + level        
-            try:
-                os.stat(path)
-            except:
-                os.mkdir(path) 
+        message.console( type='INFO', text='Exporting ' + self._item.getNameString() )   
+ 
+        # make repository folder if it does not exist                
+        repositoryVector = [ 'testingEnvironment', self._subject.getName(), 'repository', self._item.getType(), self._item.getCase() ]                   
+        self._subject.generateFolder ( self._subject.getRootDirectory(), repositoryVector )
                     
-        for ending in configuration.inputFileEndings:                    
-            fileName = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration + '\\testCase.' + ending
+        for ending in configurationShared.inputFileEndings:      
+            fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending                   
             if os.path.isfile(fileName) and os.access(fileName, os.R_OK):   
-                shutil.copy( fileName, path )
+                shutil.copy( fileName, self._item.getDirectoryRepository() )
         			 
     #################################################################
-    #  Operation: cleanFolder
+    #  Testing: cleanFolder
     #  Task:
     #      delete *.tec, *.txt, *.asc       
     #
                                    
     def cleanFolder( self ):   
     
-        message.console( type='INFO', text='Clean folder ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
-        exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
-        for file in os.listdir( exampleFolder ):
-            for ending in configuration.outputFileEndings: 
+        message.console( type='INFO', text='Clean folder ' + self._item.getNameString() )
+
+        for file in os.listdir( self._item.getDirectory() ):
+            for ending in configurationShared.outputFileEndings: 
                 if file.endswith( '.' + ending ):
-                    os.remove( exampleFolder + '\\' + file ) 
-                    
+                    os.remove( self._item.getDirectory() + file )  
+                            
     #################################################################
-    #  Operation: replaceNans
+    #  Testing: replaceNans
     #  Task:
     #      replace each nan by 999 in all tec files 
     #
                                    
     def replaceNans( self ):    
     
-        message.console( type='INFO', text='Replace nans ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
-        exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
-        for file in os.listdir( exampleFolder ): 
+        for file in os.listdir( self._item.getDirectory() ): 
             if file.endswith( '.tec' ):
-                message.console( type='INFO', text='File: ' + file )
-                with fileinput.FileInput( exampleFolder + '\\' + file, inplace=True ) as fileToSearchIn:
+                message.console( type='INFO', text='File: ' + file )                     
+                with fileinput.FileInput( self._item.getDirectory() + file, inplace=True ) as fileToSearchIn:
                     for line in fileToSearchIn:
                         print( line.replace( 'nan', '999' ), end='' )
                 
     #################################################################
-    #  Operation: preplot
+    #  Testing: preplot
     #  Task:
     #      preplot for all tec files in folder            
     #
                                    
     def preplot( self ): 
         
-        message.console( type='INFO', text='Preplot ' + str( self.__cType ) + ' ' + str( self.__cCase ) + ' ' + str( self.__cConfiguration ) )
-        exampleFolder = self.__root_directory + 'testingEnvironment\\' + self.__cCode + '\\' + self.__cBranch + '\\examples\\files\\' + self.__cType + '\\' + self.__cCase + '\\' + self.__cConfiguration
-        for file in os.listdir( exampleFolder ): 
+        message.console( type='INFO', text='Preplot ' + self._item.getNameString() )
+        for file in os.listdir( self._item.getDirectory() ): 
             if file.endswith( '.tec' ):
-                message.console( type='INFO', text='File: ' + file )                        
-                subprocess.check_call(configuration.preplot + ' ' + exampleFolder + '\\' + file ) 
+                message.console( type='INFO', text='File: ' + file )    
+                           
+                subprocess.check_call(configurationLocal.preplot + ' ' + self._item.getDirectory() + file ) 
+               
+ 
+    #################################################################
+    #  Testing:generateJpgs
+    #  Task:
+    #      generate JPG with tecplot           
+    #
+                                   
+    def generateJpgs( self ): 
+    
+        if self._item.getType() == '':
+            message.console( type='ERROR', text='test case not given' )
+        else:
+   
+            directoryPlots = self._subject.getDirectory() + 'examples\\plots\\'       # always windows  
+            directoryPlots = directoryPlots.replace( '/', '\\' )
+            
+            layout = directoryPlots + self._item.getType() + '.lay'
+            
+            f = open( directoryPlots + '_genJPG.mcr', 'w' )
+            f.write( '#!MC 1300\n' )
+            f.write( '#-----------------------------------------------------------------------\n' )
+            f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
+            f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
+            f.write( '#-----------------------------------------------------------------------\n' )
+            f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + directoryPlots + "results_" + self._item.getType() + ".jpg\'\n" )
+            f.write( '$!EXPORT\n' )
+            f.write( 'EXPORTREGION = ALLFRAMES\n' )
+            
+            f.close()
+            
+            subprocess.check_call( configurationLocal.tecplot + ' -b -p ' + directoryPlots + '_genJPG.mcr' ) 
+            
+            os.remove( directoryPlots + '_genJPG.mcr' )         
+        
+        

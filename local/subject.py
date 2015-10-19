@@ -8,7 +8,7 @@ import message
 class Subject:  
     
     __operatingSystem = ''        # windwos or linux   
-    __state = ''                  # local or remote
+    __location = ''                  # local or remote
     __directory = ''
     __rootDirectory = ''
     
@@ -46,8 +46,8 @@ class Subject:
                
     def getOperatingSystem( self ):
         return self.__operatingSystem        
-    def getState( self ):
-        return self.__state
+    def getTestingDepth( self ):
+        return self.__location
     def getDirectory( self ):
         return self.__directory 
     def getRootDirectory( self ):
@@ -66,18 +66,18 @@ class Subject:
                                
     def select( self, setting_inst ):
     
-        if self.__computer == '':                                                                                 
-            self.__computer = setting_inst.selectName( 'computer' )       
-        if self.__user == '':                                                                                 
-            self.__user = setting_inst.selectName( 'user' )               
-        if self.__code == '':                                                                                 
-            self.__code = setting_inst.selectName( 'codes' )        
-        if self.__branch == '':                                                                                 
-            self.__branch = setting_inst.selectName( 'branches' ) 
+        if self.__computer == ' ':                                                                                 
+            self.__computer = setting_inst.selectGroup( 'computer' )[0]    # only one entry in list here and in the following     
+        if self.__user == ' ':                                                                                 
+            self.__user = setting_inst.selectGroup( 'user' )[0]               
+        if self.__code == ' ':                                                                                 
+            self.__code = setting_inst.selectGroup( 'codes' )[0]        
+        if self.__branch == ' ':                                                                                 
+            self.__branch = setting_inst.selectGroup( 'branches' )[0] 
         
         setting_inst.setComputerId( self.__computer )
         self.__operatingSystem = setting_inst.getOperatingSystem() 
-        self.__state = setting_inst.getState()
+        self.__location = setting_inst.getTestingDepth()
         self.__rootDirectory = setting_inst.getRootDirectory( self.__user )
         self.__directory = self.adaptPath( self.__rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
                                                                             
@@ -105,10 +105,10 @@ class Subject:
     #      
     #        
         
-    def generateFolder( self, root, folderVector ):  
+    def generateFolder( self, root, folderList ):  
      
         path = root  
-        for folder in folderVector:   
+        for folder in folderList:   
             path =  self.adaptPath( path+ '\\' + folder   )
         
             try:
@@ -123,6 +123,7 @@ class Subject:
     #        item can be build or test           
                 
     def getExecutableForRelease( self, item ):
+           
         if self.__operatingSystem == 'windows' or self.__operatingSystem == 'linux':
             return self.__directory + '\\releases\\' + self.__code + '_' + self.__branch + '_' + self.__operatingSystem + '_' + item.getConfiguration() + '.exe'  
         else:
@@ -135,6 +136,7 @@ class Subject:
     #      to do: intel compiler name, check if exe exists             
                 
     def getExecutable( self, item ):
+        
         if self.__operatingSystem == 'windows': 
             if self.__code == 'ogs': 
                 return self.__directory + 'sources\\' + 'Build_' + item.getConfiguration() + '\\' + '\\bin\\Release\\ogs.exe'

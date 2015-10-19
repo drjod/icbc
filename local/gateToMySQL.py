@@ -137,7 +137,7 @@ class GateToMySQL:
             elif table == 'configurations':  # depends on selected computer
                 cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + computer_id )    
             else:
-                print( 'ERROR - schema ' + table + ' not supported in gateToMySQL.getNameFromIdGroup' )     
+                message.console( type='ERROR', notSupported=table )
         else:    
             cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str( item_id ) )    
         # cursor -> struct 
@@ -197,20 +197,20 @@ class GateToMySQL:
      
                     
     ##############################################
-    #  GateToMySQL: getState
+    #  GateToMySQL: getTestingDepth
     #  
     # 
     
-    def getStage( self, type_id, case_id ):
+    def getTestingDepth( self, type_id, case_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT e.stage FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+        cursor.execute( 'SELECT e.testingDepth FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='Stage not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            message.console( type='ERROR', text='Testing depth not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
             return '1000' # exception - no operation for high number    
         
   

@@ -18,9 +18,9 @@ import subject
 class Operation:
 
 
-    _selectedOperation = ''   
-    _item = ''
-    _operations = [] 
+    _selectedOperation = ' '   
+    _item = ' '
+    _operationList = [] 
     
     #################################################################
     #  Operation: constructor
@@ -39,7 +39,7 @@ class Operation:
             
  
     #################################################################
-    #  Operation: select
+    #  Operation: selectOperation
     #  Task:
     #      user input 
     #      set __selectedOperation (string) 
@@ -47,9 +47,9 @@ class Operation:
                        
     def selectOperation( self, preselectedOperation ):
     
-        if preselectedOperation == '':
+        if preselectedOperation == ' ':
             print( '\nSelect operation:\n' )        
-            for operation in self._operations:
+            for operation in self._operationList:
                 print( operation )                           
             self._selectedOperation = input( '\n' )
         else:
@@ -79,10 +79,10 @@ class Building(Operation):
            
     def __init__( self, subject ):
 
-        self._operations.clear()                                     
-        self._operations.append( '    (c)ompile' )                  
-        self._operations.append( '    (u)pdate release file' )      
-        self._operations.append( '    re(s)elect' )                     
+        self._operationList.clear()                                     
+        self._operationList.append( '    (c)ompile' )                  
+        self._operationList.append( '    (u)pdate release file' )      
+        self._operationList.append( '    re(s)elect' )                     
             
         Operation.__init__( self, subject )
         
@@ -125,6 +125,8 @@ class Building(Operation):
                                    
     def updateRelease( self ):   
         
+        
+    
         try: 
             os.stat(self._subject.getDirectory() + 'releases' )
         except:
@@ -153,15 +155,15 @@ class Testing(Operation):
            
     def __init__( self, subject ):
 
-        self._operations.clear()
-        self._operations.append( '    (r)un ' + subject.getCode() )
-        self._operations.append( '    (i)mport files from repository' )
-        self._operations.append( '    e(x)port files to repository' )
-        self._operations.append( '    (c)lean folder from results' )
-        self._operations.append( '    replace (n)ans in tec files' )
-        self._operations.append( '    (p)replot')
-        self._operations.append( '    generate (j)pgs' )            
-        self._operations.append( '    re(s)elect' )
+        self._operationList.clear()
+        self._operationList.append( '    (r)un ' + subject.getCode() )
+        self._operationList.append( '    (i)mport files from repository' )
+        self._operationList.append( '    e(x)port files to repository' )
+        self._operationList.append( '    (c)lean folder from results' )
+        self._operationList.append( '    replace (n)ans in tec files' )
+        self._operationList.append( '    (p)replot')
+        self._operationList.append( '    generate (j)pgs' )            
+        self._operationList.append( '    re(s)elect' )
         
         
         Operation.__init__( self, subject )
@@ -203,7 +205,7 @@ class Testing(Operation):
     def run( self ): 
         
         message.console( type='INFO', text='Running ' + self._item.getNameString() )
-                        
+                       
         with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
             
             #subprocess.check_call( self._subject.getExecutable() + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f ) 
@@ -227,9 +229,9 @@ class Testing(Operation):
         message.console( type='INFO', text='Importing ' + self._item.getNameString() ) 
         
         # make test folder if it does not exist  
-        testVector = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
+        testList = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
                        'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
-        self._subject.generateFolder ( self._subject.getDirectory(), testVector )
+        self._subject.generateFolder ( self._subject.getDirectory(), testList )
            
        
         # import              
@@ -248,8 +250,8 @@ class Testing(Operation):
         message.console( type='INFO', text='Exporting ' + self._item.getNameString() )   
  
         # make repository folder if it does not exist                
-        repositoryVector = [ 'testingEnvironment', self._subject.getName(), 'repository', self._item.getType(), self._item.getCase() ]                   
-        self._subject.generateFolder ( self._subject.getRootDirectory(), repositoryVector )
+        repositoryList = [ 'testingEnvironment', self._subject.getName(), 'repository', self._item.getType(), self._item.getCase() ]                   
+        self._subject.generateFolder ( self._subject.getRootDirectory(), repositoryList )
                     
         for ending in configurationShared.inputFileEndings:      
             fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending                   
@@ -279,6 +281,8 @@ class Testing(Operation):
                                    
     def replaceNans( self ):    
     
+        message.console( type='INFO', text='Replace nans ' + self._item.getNameString() )
+            
         for file in os.listdir( self._item.getDirectory() ): 
             if file.endswith( '.tec' ):
                 message.console( type='INFO', text='File: ' + file )                     
@@ -298,7 +302,7 @@ class Testing(Operation):
         for file in os.listdir( self._item.getDirectory() ): 
             if file.endswith( '.tec' ):
                 message.console( type='INFO', text='File: ' + file )    
-                           
+                #print (configurationLocal.preplot + ' ' + self._item.getDirectory() + file)           
                 subprocess.check_call(configurationLocal.preplot + ' ' + self._item.getDirectory() + file ) 
                
  
@@ -310,29 +314,27 @@ class Testing(Operation):
                                    
     def generateJpgs( self ): 
     
-        if self._item.getType() == '':
-            message.console( type='ERROR', text='test case not given' )
-        else:
-   
-            directoryPlots = self._subject.getDirectory() + 'examples\\plots\\'       # always windows  
-            directoryPlots = directoryPlots.replace( '/', '\\' )
-            
-            layout = directoryPlots + self._item.getType() + '.lay'
-            
-            f = open( directoryPlots + '_genJPG.mcr', 'w' )
-            f.write( '#!MC 1300\n' )
-            f.write( '#-----------------------------------------------------------------------\n' )
-            f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
-            f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
-            f.write( '#-----------------------------------------------------------------------\n' )
-            f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + directoryPlots + "results_" + self._item.getType() + ".jpg\'\n" )
-            f.write( '$!EXPORT\n' )
-            f.write( 'EXPORTREGION = ALLFRAMES\n' )
-            
-            f.close()
-            
-            subprocess.check_call( configurationLocal.tecplot + ' -b -p ' + directoryPlots + '_genJPG.mcr' ) 
-            
-            os.remove( directoryPlots + '_genJPG.mcr' )         
+        message.console( type='INFO', text='Generate Jpgs ' + self._item.getType() )
+
+        directoryPlots = self._subject.getDirectory() + 'examples\\plots\\'       # always windows  
+        directoryPlots = directoryPlots.replace( '/', '\\' )
+        
+        layout = directoryPlots + self._item.getType() + '.lay'
+        
+        f = open( directoryPlots + '_genJPG.mcr', 'w' )
+        f.write( '#!MC 1300\n' )
+        f.write( '#-----------------------------------------------------------------------\n' )
+        f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
+        f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
+        f.write( '#-----------------------------------------------------------------------\n' )
+        f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + directoryPlots + "results_" + self._item.getType() + ".jpg\'\n" )
+        f.write( '$!EXPORT\n' )
+        f.write( 'EXPORTREGION = ALLFRAMES\n' )
+        
+        f.close()
+        
+        subprocess.check_call( configurationLocal.tecplot + ' -b -p ' + directoryPlots + '_genJPG.mcr' ) 
+        
+        os.remove( directoryPlots + '_genJPG.mcr' )         
         
         

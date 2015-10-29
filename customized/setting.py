@@ -1,7 +1,9 @@
 import message
 import mysql.connector
-import gateToMySQL
 import copy
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
+import gateToMySQL
 
 # structs
 
@@ -29,7 +31,6 @@ class TestCases:
            
 class Setting:
 
-    __computerId = ''          # to reduce number of SQL querys
     __selectedTypeIdList = []  # for tree structure (types, cases)
 
     def __init__( self, typeList, caseList, configurationList, operationType, preselectedOperation, testingDepth, mySQL_struct ):
@@ -51,15 +52,11 @@ class Setting:
     def getPreselectedOperation( self ):
         return self.__preselectedOperation     
         
-    def getOperatingSystem( self ):    
-        return self.__gateToMySQL.getColumnEntry( 'computer', self.__computerId, 'operating_system' )
-    def getLocation( self ):     
-        return self.__gateToMySQL.getColumnEntry( 'computer', self.__computerId, 'state')  # change state to location in mySQL
-    def getRootDirectory( self, user ):      
-        return self.__gateToMySQL.getRootDirectory( self.__computerId, self.__gateToMySQL.getIdFromName( 'user', user ) ) 
-        
-    def setComputerId( self, computer ):
-        self.__computerId = self.__gateToMySQL.getIdFromName( 'computer', computer )    
+    def getLocation( self, computer ):     
+        return self.__gateToMySQL.getColumnEntry( 'computer', 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  'state')  # change state to location in mySQL
+
              
     def setTypeList( self, list):
         self.__testCases.typeList = list 
@@ -122,11 +119,11 @@ class Setting:
         selectedOption = input( '\n' )
         # set variable(s) to  
         if str( selectedOption ) == 'c':  
-            subject.setComputer (' ')                     
+            subject.setComputer(' ')                     
         if str( selectedOption ) == 'o':  
-            subject.setCode (' ') 
+            subject.setCode(' ') 
         if str( selectedOption ) == 'b':  
-            subject.setBranch (' ') 
+            subject.setBranch(' ') 
             
         if str( selectedOption ) == 't' or str( selectedOption ) == 'e':            
             self.__testCases.typeList = [' ']
@@ -148,7 +145,7 @@ class Setting:
     #      names (list of strings, nested list if table = 'cases')   
     #    
     
-    def selectGroup( self, table ):      
+    def selectGroup( self, table, computer = '' ):      
         nameList = []
         nameSubList = []
         idList = []     
@@ -163,9 +160,11 @@ class Setting:
                     nameSubList.clear()                    
                 return nameList      
             else: # cases for specific type
-                items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', selectedType_id = self.__selectedTypeIdList[0] )  
+                items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', 
+                                                                selectedType_id = self.__selectedTypeIdList[0] )  
         elif table == 'configurations':
-            items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', 'a', self.__computerId )
+            items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', 'a', 
+                                                             self.__gateToMySQL.getIdFromName( 'computer', computer ) )
         else:    
             items = self.__gateToMySQL.getNamesFromIdGroup( table, 'a' )
         # print options             
@@ -227,8 +226,7 @@ class Setting:
     def checkSelectedId( self, table, selectedId):  
         if table == 'types' or table == 'cases' or table == 'branches' or table == 'configurations':  
             if selectedId == 'a':
-                return True   # all selected
-            
+                return True   # all selected        
         try:
             val = int( selectedId )
         except ValueError:
@@ -249,22 +247,22 @@ class Setting:
     #    nested list if table = 'cases'
     #
     
-    def selectTestCasesGroup( self, table ):
+    def selectTestCasesGroup( self, groupType, computerOfSubject = '' ):
     
-        if table == 'types':
-            
+        if groupType == 'types':           
             if len ( self.__testCases.typeList ) == 0 or self.__testCases.typeList[0] == ' ':   
-                return self.selectGroup( 'types' ) 
+                return self.selectGroup( table = 'types' ) 
             else:
                 return self.__testCases.typeList 
-        elif table == 'cases':
+        elif groupType == 'cases':
             if len( self.__testCases.caseList ) == 0 or self.__testCases.caseList[0] == [' ']:   
-                return self.selectGroup( 'cases' ) 
+                return self.selectGroup( table = 'cases' ) 
             else:
                 return self.__testCases.caseList 
-        elif table == 'configurations':
+        elif groupType == 'configurations':
             if len( self.__testCases.configurationList ) == 0 or self.__testCases.configurationList[0] == ' ':    
-                return self.selectGroup( 'configurations' )
+                return self.selectGroup( table = 'configurations', 
+                                         computer = computerOfSubject )
             else:
                 return self.__testCases.configurationList             
               

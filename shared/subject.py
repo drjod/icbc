@@ -1,18 +1,15 @@
 import item
 import message
 import configurationShared
+import platform
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import configurationCustomized
 
 class Subject:  
-    
-    __operatingSystem = ''        # windows or linux   
-    __location = ''                  # local or remote
+     
     __directory = ''
-    __rootDirectory = ''
     
-
     ##############################################
     #  Subject: constructor
     #
@@ -43,26 +40,20 @@ class Subject:
         return self.__code  
     def getBranch( self ):
         return self.__branch
-               
-    def getOperatingSystem( self ):
-        return self.__operatingSystem        
-    def getTestingDepth( self ):
-        return self.__location
+                      
     def getDirectory( self ):
         return self.__directory 
-    def getRootDirectory( self ):
-        return self.__rootDirectory  
         
     #################################################################
     #  Subject: 
     #  Setter 
  
-    def setComputer( self, computer ):
-        self.__computer = computer    
-    def setCode( self, code ):
-        self.__code = code 
-    def setBranch( self, branch ):
-        self.__branch = branch
+    #def setComputer( self, computer ):
+    #    self.__computer = computer    
+    #def setCode( self, code ):
+    #    self.__code = code 
+    #def setBranch( self, branch ):
+    #    self.__branch = branch
                                
     def select( self, setting_inst ):
     
@@ -74,14 +65,9 @@ class Subject:
             self.__code = setting_inst.selectGroup( 'codes' )[0]        
         if self.__branch == ' ':                                                                                 
             self.__branch = setting_inst.selectGroup( 'branches' )[0] 
-        
-        setting_inst.setComputerId( self.__computer )
-        self.__operatingSystem = setting_inst.getOperatingSystem() 
-        self.__location = setting_inst.getLocation()
-        self.__rootDirectory = setting_inst.getRootDirectory( self.__user )
-        self.__directory = self.adaptPath( self.__rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+
+        self.__directory = self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
                                                                             
-        message.console( type='INFO', text=self.__operatingSystem + ' ' + self.__location )
         message.console( type='INFO', text=self.__directory )
 
     #################################################################
@@ -91,13 +77,13 @@ class Subject:
     #
         
     def adaptPath( self, path ):   
-        if self.__operatingSystem == 'windows':  
+        if platform.system() == 'Windows':  
             return path  
-        elif self.__operatingSystem == 'linux':
+        elif platform.system() == 'Linux':
             path = path.replace( '\\', '/' )
             return path               
         else:
-            message.console( type='ERROR', notSupported=self.__operatingSystem )
+            message.console( type='ERROR', notSupported=platform.system() )
             
             
     #################################################################
@@ -110,7 +96,7 @@ class Subject:
      
         path = root  
         for folder in folderList:   
-            path =  self.adaptPath( path+ '\\' + folder   )
+            path =  self.adaptPath( path + '\\' + folder   )
         
             try:
                 os.stat( path )
@@ -125,12 +111,12 @@ class Subject:
                 
     def getExecutableForRelease( self, item ):
            
-        if self.__operatingSystem == 'windows': 
-            return self.__directory + 'releases\\' + self.__code + '_' + self.__branch + '_' + self.__operatingSystem + '_' + item.getConfiguration() + '.exe'  
-        elif self.__operatingSystem == 'linux':
-          return self.__directory + 'releases/' + self.__code + '_' + self.__branch + '_' + self.__operatingSystem + '_' + item.getConfiguration()
+        if platform.system() == 'Windows':
+            return self.__directory + 'releases\\' + self.__code + '_' + self.__branch + '_' + platform.system() + '_' + item.getConfiguration() + '.exe'  
+        elif platform.system() == 'Linux':
+            return self.__directory + 'releases/' + self.__code + '_' + self.__branch + '_' + platform.system() + '_' + item.getConfiguration()
         else:
-            message.console( type='ERROR', notSupported=self.__operatingSystem )
+            message.console( type='ERROR', notSupported=platform.system() )
                     
     #################################################################
     #  Subject: Executable
@@ -139,18 +125,18 @@ class Subject:
     #      to do: intel compiler name, check if exe exists             
                 
     def getExecutable( self, item ):
-        if self.__operatingSystem == 'windows': 
+        if platform.system() == 'Windows':
             if self.__code == 'ogs': 
-                return self.__directory + 'sources\\' + 'Build_' + item.getConfiguration() + '\\' + '\\bin\\Release\\ogs.exe'
+                return self.__directory + 'Build_' + item.getConfiguration() + '\\' + '\\bin\\Release\\ogs.exe'
             else:
                 message.console( type='ERROR', notSupported=self.__code) 
-        elif self.__operatingSystem == 'linux':
+        elif platform.system() == 'Linux':
             if self.__code == 'ogs':
                 return self.__directory + 'Build_Release_intel1502' + '/' + item.getConfiguration() + '/bin/ogs_' + item.getConfiguration()
             else:
                 message.console( type='ERROR', notSupported=self.__code)                        
         else:
-            message.console( type='ERROR', notSupported=self.__operatingSystem )
+            message.console( type='ERROR', notSupported=platform.system() )
    
             
     #################################################################
@@ -161,12 +147,12 @@ class Subject:
                
     def getCompilationCommand( self, item ):
     
-        if self.__operatingSystem == 'windows': 
+        if platform.system() == 'Windows':
             return configurationCustomized.visualStudio + ' ' + item.getDirectory() + 'OGS.sln' +  ' /build release ' + item.getDirectory() + 'OGS.sln' # change item to subject???
-        elif self.__operatingSystem == 'linux': 
-            return self.getDirectory() + 'compileInKiel.sh ' + self.getDirectory() + ' ' + str(configurationShared.configurationsNumber[item.getConfiguration()]) + ' Release' 
+        elif platform.system() == 'Linux':
+            return self.getDirectory() + 'compileInKiel.sh ' + self.getDirectory() + ' ' + item.getConfiguration() + ' Release' 
         else:
-            message.console( type='ERROR', notSupported=self.__operatingSystem )                                                                          
+            message.console( type='ERROR', notSupported=platform.system() )                                                                          
 
     #################################################################
     #  Subject:
@@ -177,11 +163,10 @@ class Subject:
     
     def getRunCommand( self, test ):
     
-        
-        if self.__operatingSystem == 'windows':  
-            
-            return configurationCustomized.visualStudio + ' ' + buildDirectory + 'OGS.sln' +  ' /build release ' + buildDirectory + 'OGS.sln'
-        #elif self.__operatingSystem == 'linux': 
+        pass
+        #if platform.system() == 'Windows':           
+        #    return configurationCustomized.visualStudio + ' ' + buildDirectory + 'OGS.sln' +  ' /build release ' + buildDirectory + 'OGS.sln'
+        #elif platform.system() == 'Linux':
         #    return 'make -C ' + self.__rootDirectory + 'sources/' + 'Build_' + configuration + '/make'
-        else:
-            message.console( type='ERROR', notSupported=self.__operatingSystem )                            
+        #else:
+        #    message.console( type='ERROR', notSupported=platform.system() )                            

@@ -5,10 +5,12 @@ import configurationShared
 import fileinput
 import item
 import subject
-
+import platform
+import tarfile
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import configurationCustomized
+import gateToCluster
 
 #################################################################
 #  class: Operation
@@ -18,16 +20,15 @@ import configurationCustomized
 
 class Operation:
 
-
-    _selectedOperation = ' '   
+    _selectedOperation = ' '
+    _selectedOperationType = ' '   
     _item = ' '
     _operationList = [] 
     
     #################################################################
     #  Operation: constructor
     #
-        
-        
+               
     def __init__( self, subject ):
         self._subject = subject
 
@@ -38,7 +39,6 @@ class Operation:
     def __del__( self ):
         pass 
             
- 
     #################################################################
     #  Operation: selectOperation
     #  Task:
@@ -63,7 +63,17 @@ class Operation:
     def getSelectedOperation( self ):
                    
         return self._selectedOperation
+
+    #################################################################
+    #  Operation: 
     
+    def run( self, item, location ):
+        
+        if location == 'local': 
+            self.operate( item ) 
+        else:
+            gateToCluster.operate( self._subject, item, 
+                                  self._selectedOperationType, self._selectedOperation )    
                         
 #################################################################
 #  class: Building
@@ -80,7 +90,9 @@ class Building(Operation):
            
     def __init__( self, subject ):
 
-        self._operationList[:]=[] # .clear()                                     
+        self._selectedOperationType = 'b'
+
+        self._operationList[:]=[]                                    
         self._operationList.append( '    (c)ompile' )                  
         self._operationList.append( '    (u)pdate release file' )      
         self._operationList.append( '    re(s)elect' )                     
@@ -115,12 +127,12 @@ class Building(Operation):
     def compileRelease( self ): 
         message.console( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
         
-        if self._subject.getOperatingSystem() == 'windows':        
+        if platform.system() == 'Windows':                     
             subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
-        elif self._subject.getOperatingSystem() == 'linux':
+        elif platform.system() == 'Linux':
             subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)               
         else:
-            message.console( type='ERROR', notSupported=self._subject.getOperatingSystem() )  
+            message.console( type='ERROR', notSupported=platform.system() )  
 
             
     #################################################################
@@ -135,7 +147,7 @@ class Building(Operation):
         except:
             os.mkdir(self._subject.getDirectory() + 'releases' ) 
         
-        message.console( type='INFO', text='Updating release ' + self._subject.getOperatingSystem() + ' ' + self._item.getConfiguration() )   
+        message.console( type='INFO', text='Updating release ' + platform.system() + ' ' + self._item.getConfiguration() )   
       
         if os.path.isfile( self._subject.getExecutable( self._item ) ) and os.access( self._subject.getExecutable( self._item ), os.R_OK ): 
             shutil.copy( self._subject.getExecutable( self._item ), self._subject.getExecutableForRelease( self._item ) )  
@@ -158,11 +170,14 @@ class Testing(Operation):
            
     def __init__( self, subject ):
 
-        self._operationList[:]=[] #.clear()
+        self._selectedOperationType = 't'
+
+        self._operationList[:]=[] 
         self._operationList.append( '    (r)un ' + subject.getCode() )
         self._operationList.append( '    (i)mport files from repository' )
         self._operationList.append( '    e(x)port files to repository' )
         self._operationList.append( '    (c)lean folder from results' )
+        self._operationList.append( '    (d)ownload results' )
         self._operationList.append( '    replace (n)ans in tec files' )
         self._operationList.append( '    (p)replot')
         self._operationList.append( '    generate (j)pgs' )            
@@ -183,13 +198,15 @@ class Testing(Operation):
         self._item = test
                                                                       
         if self._selectedOperation == 'r':
-            self.run()  
+            self.runTest()  
         elif self._selectedOperation == 'i':
             self.importFromRepository()
         elif self._selectedOperation == 'x':
             self.exportToRepository() 
         elif self._selectedOperation == 'c':
             self.cleanFolder() 
+        elif self._selectedOperation == 'd':
+            self.downloadResults() 
         elif self._selectedOperation == 'n':
             self.replaceNans()  
         elif self._selectedOperation == 'p':
@@ -205,21 +222,19 @@ class Testing(Operation):
     #      run one of the selected test items with selected code
     #
                                    
-    def run( self ): 
+    def runTest( self ): 
         
         message.console( type='INFO', text='Running ' + self._item.getNameString() )
-                       
-        with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
-            
-            #subprocess.check_call( self._subject.getExecutable() + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f ) 
-            if self._subject.getOperatingSystem() == 'windows':        
+                    
+        if platform.system() == 'Windows':        
+            with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
                 subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
-            elif self._subject.getOperatingSystem() == 'linux':
-                subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)               
-            else:
-                message.console( type='ERROR', notSupported=self._subject.getOperatingSystem() )  
+        elif platform.system() == 'Linux':
+            subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)                     
+        else:
+            message.console( type='ERROR', notSupported=platform.system() )  
               
- 
+
         
                       
     #################################################################
@@ -250,7 +265,7 @@ class Testing(Operation):
         message.console( type='INFO', text='Exporting ' + self._item.getNameString() )   
         # make repository folder if it does not exist                
         repositoryList = [ 'testingEnvironment', self._subject.getComputer(), 'repository', self._item.getType(), self._item.getCase() ]                   
-        self._subject.generateFolder ( self._subject.getRootDirectory(), repositoryList )
+        self._subject.generateFolder ( configurationCustomized.rootDirectory, repositoryList )
         # export            
         for ending in configurationShared.inputFileEndings:      
             fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending                   
@@ -269,8 +284,48 @@ class Testing(Operation):
         for file in os.listdir( self._item.getDirectory() ):
             for ending in configurationShared.outputFileEndings: 
                 if file.endswith( '.' + ending ):
-                    os.remove( self._item.getDirectory() + file )  
-                            
+                    os.remove( self._item.getDirectory() + file ) 
+                    
+        if configurationCustomized.location == 'remote':
+            for file in os.listdir( self._item.getLocalDirectory() ):
+                for ending in configurationShared.outputFileEndings: 
+                    if file.endswith( '.' + ending ):
+                        os.remove( self._item.getLocalDirectory() + file ) 
+                                             
+            
+    #################################################################
+    #  Testing: downLoadResults
+    #  Task:
+    #      download *.tec, *.txt, *.asc       
+    #
+                                   
+    def downloadResults( self ):   
+          
+        #shutil.rmtree( self._item.getDirectory() + '/results' ) # remove results folder if exists
+        #os.mkdir( self._item.getDirectory() + '/results' )  
+        #os.mkdir( self._item.getDirectory() + '/results/packed' )
+
+        tar = tarfile.open(self._item.getDirectory() + 'results.tar', 'w')
+
+        for ending in configurationShared.outputFileEndings:  
+            fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending       
+            if os.path.isfile( fileName ) and os.access(fileName, os.R_OK): 
+                tar.add( fileName )  
+                #shutil.copy( fileName, self._item.getDirectory() + '/results/packed' )  
+        tar.close()
+
+        #subprocess.Popen('tar cfv results *tec *txt', shell=True)     
+            
+        f = open( 'F:\\tools\\icbc-0.2\\icbc\\customized\\winscp_downloadResults.txt', 'w' )
+        f.write( 'option batch abort \n' )
+        f.write( 'option confirm off \n' )
+        f.write( 'open sftp://sungw389:fuwyek90@rzcluster.rz.uni-kiel.de/ \n' )
+        f.write( 'get ' + self._item.getDirectory() + 'results.tar ' + self._item.getLocalDirectory()  )
+                
+        f.close()
+               
+
+                             
     #################################################################
     #  Testing: replaceNans
     #  Task:

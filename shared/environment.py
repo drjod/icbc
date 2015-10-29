@@ -1,14 +1,14 @@
-
 import operation
 import message
 import shutil
 import configurationShared
 import item
 import subject
-
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import setting
+import configurationCustomized
+
 
 
 
@@ -37,37 +37,41 @@ class Environment:
                   
         mySQL_struct = setting.MySQL ( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
         self.__subject_inst = subject.Subject( computer, user, code, branch  )                                                              
-        self.__setting_inst = setting.Setting ( typeList, caseList, configurationList, operationType, operation, testingDepth, mySQL_struct )
+        self.__setting_inst = setting.Setting ( typeList, caseList, configurationList, 
+                                                operationType, operation, 
+                                                testingDepth, 
+                                                mySQL_struct )
         
         print( '\n-----------------------------------------------------------------' )
         
-        # print message for already set variables
-        if computer is not ' ':
-            message.console( type='INFO', text='Set computer ' + computer )
-        if user is not ' ':
-            message.console( type='INFO', text='Set user ' + user )
-        if code is not ' ':
-            message.console( type='INFO', text='Set code ' + code )
-        if branch is not ' ':
-            message.console( type='INFO', text='Set branch ' + branch )
-        if typeList[0] is not ' ':
-            for i in range(0, len( typeList )):
-                message.console( type='INFO', text='Set type ' + typeList[i] )
-        if caseList[0] is not [' ']:
-            for i in range(0, len( caseList )):
-                for j in range(0, len( caseList[i] )):
-                    message.console( type='INFO', text='Set case ' + caseList[i][j] )
-        if configurationList[0] is not ' ':
-            for i in range(0, len( configurationList )):
-                message.console( type='INFO', text='Set configuration ' + configurationList[i] )
-        if operationType is not ' ':
-            message.console( type='INFO', text='Set operation type ' + operationType )
-        if operation is not ' ':
-            message.console( type='INFO', text='Set operation ' + operation )           
-        if testingDepth is not ' ':
-            message.console( type='INFO', text='Set testing depth ' + testingDepth )                            
+        if int( configurationCustomized.verbosity ) > 1:
+            # print message for already set variables
+            if computer is not ' ':
+                message.console( type='INFO', text='Set computer ' + computer )
+            if user is not ' ':
+                message.console( type='INFO', text='Set user ' + user )
+            if code is not ' ':
+                message.console( type='INFO', text='Set code ' + code )
+            if branch is not ' ':
+                message.console( type='INFO', text='Set branch ' + branch )
+            if typeList[0] is not ' ':
+                for i in range(0, len( typeList )):
+                    message.console( type='INFO', text='Set type ' + typeList[i] )
+            if caseList[0] is not [' ']:
+                for i in range(0, len( caseList )):
+                    for j in range(0, len( caseList[i] )):
+                        message.console( type='INFO', text='Set case ' + caseList[i][j] )
+            if configurationList[0] is not ' ':
+                for i in range(0, len( configurationList )):
+                    message.console( type='INFO', text='Set configuration ' + configurationList[i] )
+            if operationType is not ' ':
+                message.console( type='INFO', text='Set operation type ' + operationType )
+            if operation is not ' ':
+                message.console( type='INFO', text='Set operation ' + operation )           
+            if testingDepth is not ' ':
+                message.console( type='INFO', text='Set testing depth ' + testingDepth )                            
                 
-        print( '\n-----------------------------------------------------------------' )
+            print( '\n-----------------------------------------------------------------' )
         
                               
     def __del__( self ):   
@@ -94,22 +98,27 @@ class Environment:
             message.console( type='ERROR', notSupported=selectedOperationType )      
         operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
         
+     
         if operation_inst.getSelectedOperation() == 's': 
             self.__setting_inst.reselect( self.__subject_inst )
-        else:                   
-            # select test cases (type, case, configuration)
-            if selectedOperationType == 'b': # building 
-                self.__setting_inst.setTypeList( [' '] ) 
-                self.__setting_inst.setCaseList( [[' ']] )                           
-                self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( 'configurations' ) )   
-            elif selectedOperationType == 't':  # testing  
-                self.__setting_inst.setTypeList( self.__setting_inst.selectTestCasesGroup( 'types' ) ) 
-                if operation_inst.getSelectedOperation() == 'j': # generateJPGs 
-                    self.__setting_inst.setCaseList( [[' ']] ) 
-                    self.__setting_inst.setConfigurationList( [' '] ) 
-                else:      
-                    self.__setting_inst.setCaseList( self.__setting_inst.selectTestCasesGroup( 'cases' ) )                   
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( 'configurations' ) )  
+        else:   
+            if configurationCustomized.location == 'local':                        
+                # select test cases (type, case, configuration)
+                if selectedOperationType == 'b': # building 
+                    self.__setting_inst.setTypeList( [' '] ) 
+                    self.__setting_inst.setCaseList( [[' ']] )                          
+                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( groupType = 'configurations',
+                                                                                                        computerOfSubject = self.__subject_inst.getComputer() ) ) 
+                          
+                elif selectedOperationType == 't':  # testing  
+                    self.__setting_inst.setTypeList( self.__setting_inst.selectTestCasesGroup( groupType = 'types' ) ) 
+                    if operation_inst.getSelectedOperation() == 'j': # generateJPGs 
+                        self.__setting_inst.setCaseList( [[' ']] ) 
+                        self.__setting_inst.setConfigurationList( [' '] ) 
+                    else:      
+                        self.__setting_inst.setCaseList( self.__setting_inst.selectTestCasesGroup( groupType = 'cases' ) )                                      
+                        self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( groupType = 'configurations',
+                                                                                                        computerOfSubject = self.__subject_inst.getComputer() ) )  
             # loop over test cases 
             typeList_counter = 0        
             for type in self.__setting_inst.getTestCases().typeList: 
@@ -121,8 +130,14 @@ class Environment:
                             item_inst = item.Test( self.__subject_inst, type, case, configuration )
                                  
                         #if int( self.__gateToMySQL.getTestingDepth( str( row0['id'] ), str( row1['id'] ) ) ) <= configurationShared.testingDepth: 
-                       
-                        operation_inst.operate( item_inst ) 
+                        locationOfOperation = ''
+                        if configurationCustomized.location == 'local':
+                            locationOfOperation = self.__setting_inst.getLocation( self.__subject_inst.getComputer() )  # mysql querry                             
+                        else: # no mysql querry
+                            locationOfOperation = 'local'  # operation is always local on remote computer (it cannot call another one)
+
+                        operation_inst.run( item_inst, locationOfOperation ) 
+                        #operation_inst.operate( item_inst ) 
                         #else:
                         #    message.console( type='INFO', text='inactive - item is of depth ' + self.__gateToMySQL.getTestingDepth( str( row0['id'] ), str( row1['id'] ) ) )
                         del item_inst          

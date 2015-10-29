@@ -2,9 +2,11 @@ import message
 import sys, os
 
                
-# operatingSystem = 'windows'
-# rootDirectory = 'F:\\'
+location = 'local'
+rootDirectory = 'F:\\'
+computer = 'amak'
 
+verbosity = '2'
 
 # set WINSCP=C:\"Program Files (x86)"\WinSCP\WinSCP.com
 # set DOS2UNIX=F:\tools\dos2unix-6.0.5-win64-nls\bin\dos2unix.exe

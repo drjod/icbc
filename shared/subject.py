@@ -9,7 +9,11 @@ import configurationCustomized
 class Subject:  
      
     __directory = ''
-    
+    __operatingSystem = ' '
+    __location = ' '
+    __plotDirectory = ''
+    __gateDirectory = ''
+
     ##############################################
     #  Subject: constructor
     #
@@ -40,20 +44,31 @@ class Subject:
         return self.__code  
     def getBranch( self ):
         return self.__branch
-                      
+    def getLocation( self ):
+        return self.__location                      
     def getDirectory( self ):
         return self.__directory 
-        
+    def getPlotDirectory( self ):
+        return self.__plotDirectory
+    def getGateDirectory( self ):
+        return self.__gateDirectory
+    def getOperatingSystem( self ):
+        return self.__operatingSystem 
+    def getHostname( self ):
+        return self.__hostname
+                
     #################################################################
     #  Subject: 
-    #  Setter 
+    #  Setter - used in reselect
  
-    #def setComputer( self, computer ):
-    #    self.__computer = computer    
-    #def setCode( self, code ):
-    #    self.__code = code 
-    #def setBranch( self, branch ):
-    #    self.__branch = branch
+    def setComputer( self, computer ):
+        self.__computer = computer   
+    def setUser( self, user ):
+        self.__user = user          
+    def setCode( self, code ):
+        self.__code = code 
+    def setBranch( self, branch ):
+        self.__branch = branch
                                
     def select( self, setting_inst ):
     
@@ -65,31 +80,53 @@ class Subject:
             self.__code = setting_inst.selectGroup( 'codes' )[0]        
         if self.__branch == ' ':                                                                                 
             self.__branch = setting_inst.selectGroup( 'branches' )[0] 
-
-        self.__directory = self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-                                                                            
-        message.console( type='INFO', text=self.__directory )
+ 
+        
+        if configurationCustomized.location == 'local':
+            self.__location = setting_inst.getLocation( self.__computer )
+            self.__operatingSystem = setting_inst.getOperatingSystem( self.__computer )
+            self.__directory = self.adaptPath( setting_inst.getRootDirectory( self.__computer, self.__user ) + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+            self.__gateDirectory =  self.adaptPath( setting_inst.getRootDirectory( self.__computer, self.__user ) + '\\testingEnvironment\\' + self.__computer + '\\gate\\' ) 
+            self.__plotDirectory =  self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\examples\\plots\\' )  
+            self.__hostname = setting_inst.getHostname( self.__computer )
+        else:
+            self.__location = 'remote'
+            self.__directory = self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+            self.__gateDirectory =  self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\gate\\' )                                                              
+        #message.console( type='INFO', text=self.__directory )
 
     #################################################################
-    #  Subject: path
+    #  Subject: adaptPath
     #  Task:
-    #      converts windows path into linux (unix)
+    #      converts windows path into linux (unix) according to platform where script runs
     #
         
     def adaptPath( self, path ):   
         if platform.system() == 'Windows':  
             return path  
         elif platform.system() == 'Linux':
-            path = path.replace( '\\', '/' )
-            return path               
+            return path.replace( '\\', '/' )              
         else:
             message.console( type='ERROR', notSupported=platform.system() )
             
-            
+    #################################################################
+    #  Subject: adaptPathSelectedComputer
+    #  Task:
+    #      converts windows path into linux (unix) and vice verca according to platform of selected computer
+    #      used for plotting operations (all local while simulation operations might be remote)
+        
+    def adaptPathSelectedComputer( self, path ):   
+        if self.__operatingSystem == 'windows':  
+            return path.replace( '/', '\\' )   
+        elif self.__operatingSystem == 'linux':
+            return path.replace( '\\', '/' )              
+        else:
+            message.console( type='ERROR', notSupported=self.__operatingSystem )
+                        
     #################################################################
     #  Subject: generate Folder
     #  Task:
-    #      
+    #     called if folder is missing 
     #        
         
     def generateFolder( self, root, folderList ):  
@@ -104,10 +141,9 @@ class Subject:
                 os.mkdir( path ) 
                 
     #################################################################
-    #  Subject: ExecutableToRelease
+    #  Subject: getExecutableForRelease
     #  Task:
-    #      
-    #        item can be build or test           
+    #      Store executables         
                 
     def getExecutableForRelease( self, item ):
            
@@ -119,10 +155,9 @@ class Subject:
             message.console( type='ERROR', notSupported=platform.system() )
                     
     #################################################################
-    #  Subject: Executable
+    #  Subject: getExecutable
     #  Task:
-    #       item can be build or test  
-    #      to do: intel compiler name, check if exe exists             
+    #        used to run code           
                 
     def getExecutable( self, item ):
         if platform.system() == 'Windows':
@@ -142,7 +177,7 @@ class Subject:
     #################################################################
     #  Subject:
     #  Task:
-    #      
+    #      Sets compilation command according to platform 
     #              
                
     def getCompilationCommand( self, item ):
@@ -150,23 +185,8 @@ class Subject:
         if platform.system() == 'Windows':
             return configurationCustomized.visualStudio + ' ' + item.getDirectory() + 'OGS.sln' +  ' /build release ' + item.getDirectory() + 'OGS.sln' # change item to subject???
         elif platform.system() == 'Linux':
-            return self.getDirectory() + 'compileInKiel.sh ' + self.getDirectory() + ' ' + item.getConfiguration() + ' Release' 
+            return configurationCustomized.rootDirectory + 'testingEnvironment/scripts/' + 'compileInKiel.sh ' + self.getDirectory() + ' ' + item.getConfiguration() + ' Release'
         else:
             message.console( type='ERROR', notSupported=platform.system() )                                                                          
 
-    #################################################################
-    #  Subject:
-    #  Task:
-    #      nor used
-    #              
-    #           self.__subject.getExecutable() + ' ' + self.__directoryInstance + configurationShared.itemsName
-    
-    def getRunCommand( self, test ):
-    
-        pass
-        #if platform.system() == 'Windows':           
-        #    return configurationCustomized.visualStudio + ' ' + buildDirectory + 'OGS.sln' +  ' /build release ' + buildDirectory + 'OGS.sln'
-        #elif platform.system() == 'Linux':
-        #    return 'make -C ' + self.__rootDirectory + 'sources/' + 'Build_' + configuration + '/make'
-        #else:
-        #    message.console( type='ERROR', notSupported=platform.system() )                            
+                         

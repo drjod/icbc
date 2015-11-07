@@ -192,7 +192,7 @@ class GateToMySQL:
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='Path not found for ' + str ( computer_id ) + ' ' +  str ( user_id ) )
+            message.console( type='ERROR', text='Path not found for computer id ' + str ( computer_id ) + ' - user id ' +  str ( user_id ) )
             return '-1' # exception
      
                     

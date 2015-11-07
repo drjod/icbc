@@ -4,6 +4,7 @@ import copy
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import gateToMySQL
+import simulationData
 
 # structs
 
@@ -42,6 +43,7 @@ class Setting:
                                 
         self.__mySQL_struct = mySQL_struct
         self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_struct )
+            
         message.console( type='INFO', text='Connect ' + mySQL_struct.user + ' to ' + mySQL_struct.host + ' ' + mySQL_struct.schema  )
         
     def __del__( self ):    
@@ -55,9 +57,20 @@ class Setting:
     def getLocation( self, computer ):     
         return self.__gateToMySQL.getColumnEntry( 'computer', 
                                                   self.__gateToMySQL.getIdFromName( 'computer', computer ), 
-                                                  'state')  # change state to location in mySQL
-
-             
+                                                  'location') 
+    def getOperatingSystem( self, computer ):     
+        return self.__gateToMySQL.getColumnEntry( 'computer', 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  'operating_system') 
+ 
+    def getRootDirectory( self, computer, user ): 
+        return self.__gateToMySQL.getRootDirectory( self.__gateToMySQL.getIdFromName( 'computer', computer ), self.__gateToMySQL.getIdFromName( 'user', user ) )  
+          
+    def getHostname( self, computer):
+        return self.__gateToMySQL.getColumnEntry( 'computer', 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  'hostname')         
+                                                             
     def setTypeList( self, list):
         self.__testCases.typeList = list 
     def setCaseList( self, list):        
@@ -68,23 +81,24 @@ class Setting:
     #################################################################
     #  Setting: selectOperationType 
     #  Task:
-    #      select between building and testing
+    #      select between building and testing (simulating, plotting)
     #        
         
     def selectOperationType( self ):
         if self.__operationType == ' ':
             operationTypeList = []
             operationTypeList.append( '    (b)uilding')
-            operationTypeList.append( '    (t)esting') 
+            operationTypeList.append( '    (s)imulating')
+            operationTypeList.append( '    (p)lotting') 
             print('\n Select operation type:') 
             for operationType in operationTypeList:
                 print( operationType )             
             selectedOperationType = input( '\n' )
             
-            if selectedOperationType == 'b' or selectedOperationType == 't':
+            if selectedOperationType == 'b' or selectedOperationType == 's' or selectedOperationType == 'p':
                 self.__operationType = selectedOperationType                  
             else:
-                message.console( type='ERROR', text='Mode is (build) or (t)est. Try again.' )   
+                message.console( type='ERROR', text='Operation type ' + selectedOperationType + ' does not exist. Try again.' )   
                 self.selectOperationType()
                 
         return self.__operationType            
@@ -107,7 +121,7 @@ class Setting:
         optionList.append( '    c(o)de')
         optionList.append( '    (b)ranch')
         optionList.append( '    co(n)figuration')
-        if self.__operationType == 't': 
+        if self.__operationType == 's' or self.__operationType == 'p': 
             optionList.append( '    (e)xample')
             optionList.append( '    (t)ype')
             optionList.append( '    c(a)se')
@@ -119,14 +133,17 @@ class Setting:
         selectedOption = input( '\n' )
         # set variable(s) to  
         if str( selectedOption ) == 'c':  
-            subject.setComputer(' ')                     
+            subject.setComputer(' ')    
+            subject.setUser(' ')   # user must be reselected too                 
         if str( selectedOption ) == 'o':  
             subject.setCode(' ') 
+            subject.setBranch(' ')    # branch must be reselected too               
         if str( selectedOption ) == 'b':  
             subject.setBranch(' ') 
             
         if str( selectedOption ) == 't' or str( selectedOption ) == 'e':            
             self.__testCases.typeList = [' ']
+            self.__testCases.caseList = [[' ']] # case must be reselected too
             self.__selectedTypeIdList.clear()
         if str( selectedOption ) == 'a' or str( selectedOption ) == 'e':             
             self.__testCases.caseList = [[' ']]
@@ -265,4 +282,40 @@ class Setting:
                                          computer = computerOfSubject )
             else:
                 return self.__testCases.configurationList             
-              
+
+    ##############################################
+    #  Setting: selectTestCasesGroup
+    #  Task:
+    #     Used to write *.num *.pbs files
+    #
+    
+    def setSimulationData( self, simulationData, type, case, configuration ):
+                
+        flowProcess = self.__gateToMySQL.getNameFromId( 'flow_processes',
+                                                        self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                                                           self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                                                           'flow_id' )
+                                                       )
+        massFlag = self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                      'mass' )                                                                                    
+        heatFlag = self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                      'heat' )  
+        coupledFlag = self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                      'coupled' )                                               
+        numberOfCPUs = self.__gateToMySQL.getColumnEntry( 'types', 
+                                                    self.__gateToMySQL.getIdFromName( 'types', type ), 
+                                                    'numberOfCPUS' )    
+        processing = self.__gateToMySQL.getColumnEntry( 'configurations', 
+                                                      self.__gateToMySQL.getIdFromName( 'configurations', configuration ), 
+                                                      'processing' )                  
+        lumpingFlag = self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                    self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                    'lumping' )
+        nonlinearFlag = self.__gateToMySQL.getColumnEntry( 'cases', 
+                                                    self.__gateToMySQL.getIdFromName( 'cases', case ), 
+                                                    'nonlinear' )                                                                                                                                             
+        simulationData.set( flowProcess, massFlag, heatFlag, coupledFlag, processing, numberOfCPUs, lumpingFlag, nonlinearFlag )                                                                                                                                                                                             
+        return simulationData                         

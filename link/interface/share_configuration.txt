@@ -1,8 +1,0 @@
-option batch abort
-option confirm off
-open sftp://%login%:%pwd%@%hostname%/
-put "%icbcLocal%\interface\shared.sh" "/%icbcRemote%/configuration/shared.sh"
-exit
-
-
-

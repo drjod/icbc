@@ -1,5 +1,0 @@
-option batch abort
-option confirm off
-open sftp://%login%:%pwd%@%hostname%/
-synchronize local "%baseLocal%\remoteResults%inputRoot%\%code%\%version%\output" "/%baseRemote%%inputRootRemote%/results/%code%/%version%"
-exit

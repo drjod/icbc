@@ -11,6 +11,7 @@ class Subject:
     __directory = ''
     __operatingSystem = ' '
     __location = ' '
+    __rootDirectory = ''
     __plotDirectory = ''
     __gateDirectory = ''
 
@@ -18,8 +19,9 @@ class Subject:
     #  Subject: constructor
     #
     
-    def __init__( self, computer , user, code, branch ):
+    def __init__( self, superuser, computer , user, code, branch ):
         
+        self.__superuser = superuser
         self.__computer = computer
         self.__user = user
         self.__code = code
@@ -48,6 +50,8 @@ class Subject:
         return self.__location                      
     def getDirectory( self ):
         return self.__directory 
+    def getRootDirectory( self ):
+        return self.__rootDirectory
     def getPlotDirectory( self ):
         return self.__plotDirectory
     def getGateDirectory( self ):
@@ -73,15 +77,19 @@ class Subject:
     def select( self, setting_inst ):
     
         if self.__computer == ' ':                                                                                 
-            self.__computer = setting_inst.selectGroup( 'computer' )[0]    # only one entry in list here and in the following     
-        if self.__user == ' ':                                                                                 
-            self.__user = setting_inst.selectGroup( 'user' )[0]               
+            self.__computer = setting_inst.selectGroup( 'computer' )[0]    # only one entry in list here and in the following 
+        if self.__superuser == ' ':        
+            if self.__user == ' ':                                                                                 
+                self.__user = setting_inst.selectGroup( 'user' )[0]    
+        else:
+            self.__user = setting_inst.getUser( self.__superuser, self.__computer )
+                                 
         if self.__code == ' ':                                                                                 
             self.__code = setting_inst.selectGroup( 'codes' )[0]        
         if self.__branch == ' ':                                                                                 
             self.__branch = setting_inst.selectGroup( 'branches' )[0] 
  
-        
+        self.__rootDirectory = setting_inst.getRootDirectory( self.__computer, self.__user ) 
         if configurationCustomized.location == 'local':
             self.__location = setting_inst.getLocation( self.__computer )
             self.__operatingSystem = setting_inst.getOperatingSystem( self.__computer )

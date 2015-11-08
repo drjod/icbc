@@ -6,14 +6,14 @@ import message
 
 # structs
 
-class MySQL:
+class mySQL:
     def __init__( self, user, password, host, schema):
         self.user = user                                   
         self.password = password
         self.host = host
         self.schema = schema
 
-class TestCases:
+class itemConstituents:
     def __init__( self, typeList, caseList, configurationList):
         self.typeList = typeList                                   
         self.caseList = caseList
@@ -24,7 +24,7 @@ class TestCases:
 #  class Setting
 #  Task:
 #      console input 
-#      hosts TestCases lists, gateToMySQL
+#      hosts lists for item constituents, gateToMySQL
 #            preselectedOperation, operationType
 #
            
@@ -35,7 +35,7 @@ class Setting:
 
     def __init__( self, typeList, caseList, configurationList, operationType, preselectedOperation, testingDepth, mySQL_struct ):
     
-        self.__testCases = TestCases( typeList, caseList, configurationList )
+        self.__itemConstituents = itemConstituents( typeList, caseList, configurationList )
         self.__operationType = operationType                           # building or testing                         
         self.__preselectedOperation = preselectedOperation             # if specified, operation done only once
         self.__testingDepth = testingDepth                                         
@@ -47,18 +47,18 @@ class Setting:
         pass	
         
         
-    def getTestCases( self ):
-        return self.__testCases
+    def getItemConstituents( self ):
+        return self.__ItemConstituents
     def getPreselectedOperation( self ):
         return self.__preselectedOperation     
     def getLocation( self, computer ):
         return self.__location 	
     def setTypeList( self, list):
-        self.__testCases.typeList = list 
+        self.__itemConstituents.typeList = list 
     def setCaseList( self, list):        
-        self.__testCases.caseList = list       
+        self.__itemConstituents.caseList = list       
     def setConfigurationList( self, list):                
-        self.__testCases.configurationList = list
+        self.__itemConstituents.configurationList = list
                                                              
     #################################################################
     #  Setting: selectOperationType 
@@ -92,18 +92,18 @@ class Setting:
         pass	
       
     ##############################################
-    #  Setting: selectTestCasesGroup
+    #  Setting: selectItemConstituentGroup
     #  Task:
-    #    calls member function selectGroup for test cases specification 
-    #    if test cases are not previously selected
+    #    calls member function selectGroup to specify constituents of items
+    #    if they are not previously selected
     #  Parameter:
     #    table (string): [types, cases, configurations] 
     #  Return:
-    #    list (string) for one test cases level (meaning: types, cases, configuration)  
+    #    list (string) for one item constituent (meaning: types, cases, configuration)  
     #    nested list if table = 'cases'
     #
     
-    def selectTestCasesGroup( self, groupType, computerOfSubject = '' ):  
+    def selectItemConstituentGroup( self, groupType, computerOfSubject = '' ):  
         pass           
                         
               

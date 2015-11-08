@@ -8,14 +8,14 @@ import simulationData
 
 # structs
 
-class MySQL:
+class mySQL:
     def __init__( self, user, password, host, schema):
         self.user = user                                   
         self.password = password
         self.host = host
         self.schema = schema
 
-class TestCases:
+class itemConstituents:
     def __init__( self, typeList, caseList, configurationList):
         self.typeList = typeList                                   
         self.caseList = caseList
@@ -36,7 +36,7 @@ class Setting:
 
     def __init__( self, typeList, caseList, configurationList, operationType, preselectedOperation, testingDepth, mySQL_struct ):
     
-        self.__testCases = TestCases( typeList, caseList, configurationList )
+        self.__itemConstituents = itemConstituents( typeList, caseList, configurationList )
         self.__operationType = operationType                           # building or testing                         
         self.__preselectedOperation = preselectedOperation             # if specified, operation done only once
         self.__testingDepth = testingDepth                                         
@@ -49,8 +49,8 @@ class Setting:
     def __del__( self ):    
         del self.__gateToMySQL
         
-    def getTestCases( self ):
-        return self.__testCases
+    def getItemConstituents( self ):
+        return self.__itemConstituents
     def getPreselectedOperation( self ):
         return self.__preselectedOperation     
         
@@ -69,14 +69,19 @@ class Setting:
     def getHostname( self, computer):
         return self.__gateToMySQL.getColumnEntry( 'computer', 
                                                   self.__gateToMySQL.getIdFromName( 'computer', computer ), 
-                                                  'hostname')         
+                                                  'hostname')  
+    
+    def getUser( self, superuser, computer ):
+        return self.__gateToMySQL.getNameFromId( 'user' , 
+                                                 self.__gateToMySQL.getUserIdFromSuperuser( superuser, computer ) ) 
+                                                      
                                                              
     def setTypeList( self, list):
-        self.__testCases.typeList = list 
+        self.__itemConstituents.typeList = list 
     def setCaseList( self, list):        
-        self.__testCases.caseList = list       
+        self.__itemConstituents.caseList = list       
     def setConfigurationList( self, list):                
-        self.__testCases.configurationList = list
+        self.__itemConstituents.configurationList = list
                                                              
     #################################################################
     #  Setting: selectOperationType 
@@ -255,33 +260,33 @@ class Setting:
     ##############################################
     #  Setting: selectTestCasesGroup
     #  Task:
-    #    calls member function selectGroup for test cases specification 
-    #    if test cases are not previously selected
+    #    calls member function selectGroup to specify item constituents  
+    #    if they are not previously selected
     #  Parameter:
     #    table (string): [types, cases, configurations] 
     #  Return:
-    #    list (string) for one test cases level (meaning: types, cases, configuration)  
+    #    list (string) for one item  constituent (meaning: types, cases, configuration)  
     #    nested list if table = 'cases'
     #
     
-    def selectTestCasesGroup( self, groupType, computerOfSubject = '' ):
+    def selectItemConstituentGroup( self, groupType, computerOfSubject = '' ):
     
         if groupType == 'types':           
-            if len ( self.__testCases.typeList ) == 0 or self.__testCases.typeList[0] == ' ':   
+            if len ( self.__itemConstituents.typeList ) == 0 or self.__itemConstituents.typeList[0] == ' ':   
                 return self.selectGroup( table = 'types' ) 
             else:
-                return self.__testCases.typeList 
+                return self.__itemConstituents.typeList 
         elif groupType == 'cases':
-            if len( self.__testCases.caseList ) == 0 or self.__testCases.caseList[0] == [' ']:   
+            if len( self.__itemConstituents.caseList ) == 0 or self.__itemConstituents.caseList[0] == [' ']:   
                 return self.selectGroup( table = 'cases' ) 
             else:
-                return self.__testCases.caseList 
+                return self.__itemConstituents.caseList 
         elif groupType == 'configurations':
-            if len( self.__testCases.configurationList ) == 0 or self.__testCases.configurationList[0] == ' ':    
+            if len( self.__itemConstituents.configurationList ) == 0 or self.__itemConstituents.configurationList[0] == ' ':    
                 return self.selectGroup( table = 'configurations', 
                                          computer = computerOfSubject )
             else:
-                return self.__testCases.configurationList             
+                return self.__itemConstituents.configurationList             
 
     ##############################################
     #  Setting: selectTestCasesGroup

@@ -23,6 +23,7 @@ import simulationData
 class Environment:  
   
     __reselectFlag = False
+    __currentOperation = '' # used for reselect (operation)
     ##############################################
     #  Environment: constructor
     #  Task:
@@ -30,7 +31,7 @@ class Environment:
     #    passes preselected variables
     #  
     
-    def __init__( self, computer =' ', user =' ', code =' ', branch =' ', 
+    def __init__( self, superuser = ' ', computer = ' ', user = ' ', code = ' ', branch = ' ', 
                   typeList = [' '], caseList = [[' ']], configurationList = [' '], 
                   operationType = ' ',     # [b,t]
                   operation = ' ', 
@@ -39,8 +40,8 @@ class Environment:
                   coupledFlag = ' ', processing = ' ', numberOfCPUs = ' ' , lumpingFlag = ' ', nonlinearFlag = ' ',								  
                   mySQL_user='root', mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
                   
-        mySQL_struct = setting.MySQL ( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
-        self.__subject_inst = subject.Subject( computer, user, code, branch  )                                                              
+        mySQL_struct = setting.mySQL ( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
+        self.__subject_inst = subject.Subject( superuser, computer, user, code, branch  )                                                              
         self.__setting_inst = setting.Setting ( typeList, caseList, configurationList, 
                                                 operationType, operation, 
                                                 testingDepth, 
@@ -87,11 +88,12 @@ class Environment:
     #################################################################
     #  Environment: run  
     #  Task:
-    #      select tested subject and test items (user input or preset)
+    #      select tested subject and item constituents (user input or preset)
     #      generate instance Operation (configure, select and execute operation)
     #
                             
     def run( self ): 
+        #selects
         self.__subject_inst.select( self.__setting_inst )  
 
         selectedOperationType = self.__setting_inst.selectOperationType()              
@@ -104,43 +106,43 @@ class Environment:
         else:    
             message.console( type='ERROR', notSupported=selectedOperationType )  
         if self.__reselectFlag == False:
-            operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
-        
-     
+            selectedOperation = operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
+            if not selectedOperation == 's':
+                self.__currentOperation = selectedOperation
         if operation_inst.getSelectedOperation() == 's': 
-            self.__setting_inst.reselect( self.__subject_inst )
+            self.__setting_inst.reselect( self.__subject_inst  )
             self.__reselectFlag = True
         else:   
             if configurationCustomized.location == 'local':                        
-                # select test cases (type, case, configuration)
-                if selectedOperationType == 'b': # building 
+                # selects (type, case, configuration)
+                if selectedOperationType == 'b': # building (only configuration)
                     self.__setting_inst.setTypeList( [' '] ) 
                     self.__setting_inst.setCaseList( [[' ']] )                          
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( groupType = 'configurations',
-                                                                                                        computerOfSubject = self.__subject_inst.getComputer() ) )                        
-                elif selectedOperationType == 's':  # simulating
-                    self.__setting_inst.setTypeList( self.__setting_inst.selectTestCasesGroup( groupType = 'types' ) ) 
-                    self.__setting_inst.setCaseList( self.__setting_inst.selectTestCasesGroup( groupType = 'cases' ) )                                      
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( groupType = 'configurations',
-                                                                                                        computerOfSubject = self.__subject_inst.getComputer() ) ) 
+                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
+                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) )                        
+                elif selectedOperationType == 's':  # simulating (all item constituents (type, case, configuration))
+                    self.__setting_inst.setTypeList( self.__setting_inst.selectItemConstituentGroup( groupType = 'types' ) ) 
+                    self.__setting_inst.setCaseList( self.__setting_inst.selectItemConstituentGroup( groupType = 'cases' ) )                                      
+                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
+                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) ) 
                 elif selectedOperationType == 'p':  # plotting
-                    self.__setting_inst.setTypeList( self.__setting_inst.selectTestCasesGroup( groupType = 'types' ) )
-                    if operation_inst.getSelectedOperation() == 'j': # generateJPGs 
+                    self.__setting_inst.setTypeList( self.__setting_inst.selectItemConstituentGroup( groupType = 'types' ) )
+                    if self.__currentOperation == 'j': # generateJPGs (only type)
                         self.__setting_inst.setCaseList( [[' ']] ) 
                         self.__setting_inst.setConfigurationList( [' '] ) 
-                    else:      
-                        self.__setting_inst.setCaseList( self.__setting_inst.selectTestCasesGroup( groupType = 'cases' ) )                                      
-                        self.__setting_inst.setConfigurationList( self.__setting_inst.selectTestCasesGroup( groupType = 'configurations',
-                                                                                                        computerOfSubject = self.__subject_inst.getComputer() ) )  
-            # loop over test cases 
+                    else:   # all item constituents  (type, case, configuration)
+                        self.__setting_inst.setCaseList( self.__setting_inst.selectItemConstituentGroup( groupType = 'cases' ) )                                      
+                        self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
+                                                                                                                  computerOfSubject = self.__subject_inst.getComputer() ) )  
+            # loop over items 
             if self.__reselectFlag == True:
                 self.__reselectFlag =False
             else:
                 typeList_counter = 0  
                 configuration = ' '      
-                for type in self.__setting_inst.getTestCases().typeList: 
-                    for case in self.__setting_inst.getTestCases().caseList[typeList_counter]:
-                        for configuration in self.__setting_inst.getTestCases().configurationList:
+                for type in self.__setting_inst.getItemConstituents().typeList: 
+                    for case in self.__setting_inst.getItemConstituents().caseList[typeList_counter]:
+                        for configuration in self.__setting_inst.getItemConstituents().configurationList:
 
                             if selectedOperationType == 'b': # building 
                                 item_inst = item.Build( self.__subject_inst, configuration )

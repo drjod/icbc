@@ -50,7 +50,7 @@ class Operation:
     # getter             
     def getSelectedOperation( self ):                  
         return self._selectedOperation
- 
+
                        
     #################################################################
     #  Operation: selectOperation
@@ -72,7 +72,8 @@ class Operation:
                 print( operation )                           
             self._selectedOperation = input( '\n' )
         else:
-            self._selectedOperation = preselectedOperation            
+            self._selectedOperation = preselectedOperation    
+        return self._selectedOperation          
                
     #################################################################
     #  Operation: 
@@ -140,13 +141,16 @@ class Building(Operation):
     def compileRelease( self ): 
         message.console( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
         
-        if platform.system() == 'Windows':                     
-            subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
-        elif platform.system() == 'Linux':
-            #print (self._subject.getCompilationCommand( self._item ))
-            subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)               
-        else:
-            message.console( type='ERROR', notSupported=platform.system() )  
+        try:
+            if platform.system() == 'Windows':                     
+                subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
+            elif platform.system() == 'Linux':
+                subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)   
+            else:
+                message.console( type='ERROR', notSupported=platform.system() )  
+        except:
+            message.console( type='ERROR', text=self._subject.getCode() + ' compilation failed' )            
+
 
             
     #################################################################
@@ -246,10 +250,16 @@ class Simulating(Operation):
         if os.path.exists ( self._item.getDirectory() ):                           
             if platform.system() == 'Windows':        
                 with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
-                    subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
+                    try:
+                        subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
+                    except:
+                        message.console( type='ERROR', text=self._subject.getCode() + ' call failed' )
             elif platform.system() == 'Linux':
                 if os.path.isfile( self._item.getDirectory() + 'run.pbs' ): 
-                    subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)
+                    try:
+                        subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)
+                    except:
+                        message.console( type='ERROR', text=self._subject.getCode() + ' call failed' )
                 else:
                     message.console( type='ERROR', text='Pbs missing' )                         
             else:
@@ -343,31 +353,35 @@ class Simulating(Operation):
                     ncpus = self._simulationData.getNumberOfCPUs()
                     command = 'mpirun -r rsh -machinefile $PBS_NODEFILE -n ' + ncpus + ' '
                     place = 'scatter'
-         
-                f = open( self._item.getDirectory() + 'run.pbs', 'w' )
-                f.write( '#!/bin/bash\n' )
-                f.write( '#PBS -o ' + self._subject.getDirectory() + 'screenout.txt\n' )
-                f.write( '#PBS -j oe\n' )  
-                f.write( '#PBS -r n\n' )
-                f.write( '#PBS -l walltime=2:00:00\n' )
-                f.write( '#PBS -l select=1:ncpus=' + ncpus + ':mem=3gb\n' )
-                f.write( '#PBS -l place=' + place + '\n' )
-                f.write( '#PBS -q angus\n' )
-                f.write( '#PBS -N test\n' )
-                f.write( '\n' )
-                f.write( 'cd $PBS_O_WORKDIR\n' )
-                f.write( '\n' )
-                f.write( '. /usr/share/Modules/init/bash\n' ) 
-                f.write( '\n' )
-                f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/bin/compilervars.sh  intel64\n' )
-                f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/mkl/bin/intel64/mklvars_intel64.sh\n' )
-                f.write( '. /cluster/Software/intel14/impi/5.0.3.048/intel64/bin/mpivars.sh\n' )
-                f.write( '\n' ) 
-                f.write( 'time ' + command + self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName + '\n' )
-                f.write( '\n' ) 
-                f.write( 'qstat -f $PBS_JOBID\n' )
-                f.write( 'exit\n' )                                                                                                 
-                f.close()
+
+                try:
+                    f = open( self._item.getDirectory() + 'run.pbs', 'w' )
+                except OSError as err:
+                    message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
+                else:
+                    f.write( '#!/bin/bash\n' )
+                    f.write( '#PBS -o ' + self._subject.getDirectory() + 'screenout.txt\n' )
+                    f.write( '#PBS -j oe\n' )  
+                    f.write( '#PBS -r n\n' )
+                    f.write( '#PBS -l walltime=2:00:00\n' )
+                    f.write( '#PBS -l select=1:ncpus=' + ncpus + ':mem=3gb\n' )
+                    f.write( '#PBS -l place=' + place + '\n' )
+                    f.write( '#PBS -q angus\n' )
+                    f.write( '#PBS -N test\n' )
+                    f.write( '\n' )
+                    f.write( 'cd $PBS_O_WORKDIR\n' )
+                    f.write( '\n' )
+                    f.write( '. /usr/share/Modules/init/bash\n' ) 
+                    f.write( '\n' )
+                    f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/bin/compilervars.sh  intel64\n' )
+                    f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/mkl/bin/intel64/mklvars_intel64.sh\n' )
+                    f.write( '. /cluster/Software/intel14/impi/5.0.3.048/intel64/bin/mpivars.sh\n' )
+                    f.write( '\n' ) 
+                    f.write( 'time ' + command + self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName + '\n' )
+                    f.write( '\n' ) 
+                    f.write( 'qstat -f $PBS_JOBID\n' )
+                    f.write( 'exit\n' )                                                                                                 
+                    f.close()
                             
             ##############################################
             message.console( type='INFO', text='    NUM' )
@@ -392,11 +406,14 @@ class Simulating(Operation):
         if os.path.exists ( self._item.getDirectory() ):          
             os.chdir(self._item.getDirectory())
             myMeshfile = self._item.getDirectory() + configurationShared.examplesName + '.msh'
-            if os.path.isfile( myMeshfile ):            
-               if self._simulationData.getProcessing() == 'mpi_elements': # for OGS_FEM_MPI
-                   subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -n -binary ' +  self._item.getDirectory(), shell=True )    
-               if self._simulationData.getProcessing() == 'mpi_nodes':    # for OGS_FEM_PETSC
-                   subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -e -asci ' +  self._item.getDirectory(), shell=True )                                                
+            if os.path.isfile( myMeshfile ):     
+               try:       
+                   if self._simulationData.getProcessing() == 'mpi_elements': # for OGS_FEM_MPI
+                       subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -n -binary ' +  self._item.getDirectory(), shell=True )    
+                   if self._simulationData.getProcessing() == 'mpi_nodes':    # for OGS_FEM_PETSC
+                       subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -e -asci ' +  self._item.getDirectory(), shell=True )                                                
+               except:
+                   message.console( type='ERROR', text='Partition script call failed' )
             else:
                 message.console( type='ERROR', text='Mesh file missing' )              
         else:
@@ -443,12 +460,16 @@ class Simulating(Operation):
                     os.remove( myTarfile )
 
                 os.chdir(self._item.getDirectory())
-                tar = tarfile.open( myTarfile, 'w')
-                for extension in configurationShared.outputFileEndings:   
-                    for file in os.listdir( self._item.getDirectory()  ):
-                        if file.endswith('.' + extension):
-                            tar.add( file )    
-                tar.close()
+                try:
+                    tar = tarfile.open( myTarfile, 'w')
+                except:
+                    message.console( type='ERROR', text='Preplot call failed' )
+                else:
+                    for extension in configurationShared.outputFileEndings:   
+                        for file in os.listdir( self._item.getDirectory()  ):
+                            if file.endswith('.' + extension):
+                                tar.add( file )    
+                    tar.close()
             else:     
                 message.console( type='ERROR', text='Directory missing' )
         else:
@@ -471,7 +492,8 @@ class Plotting(Operation):
         self._operationList[:]=[] 
         self._operationList.append( '    (g)et results' )
         self._operationList.append( '    (p)replot' )
-        self._operationList.append( '    generate (j)pgs' )             
+        self._operationList.append( '    generate (j)pg' )  
+        self._operationList.append( '    replace (n)ans' )                    
         self._operationList.append( '    re(s)elect' )
         
         
@@ -493,7 +515,9 @@ class Plotting(Operation):
         elif self._selectedOperation == 'p':
             self.preplot()  
         elif self._selectedOperation == 'j':
-            self.generateJpgs()                                                                               
+            self.generateJpg()  
+        elif self._selectedOperation == 'n':
+            self.replaceNans()                                                                                           
         else:
             message.console( type='ERROR', notSupported='Operation ' + self._selectedOperation )             
             
@@ -520,26 +544,37 @@ class Plotting(Operation):
                 message.console( type='INFO', text='    Download' )
                 myWinscpFile = self._subject.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt' ) 
                 myTarfile = self._item.getDirectorySelectedComputer() + 'results.tar'      
-                f = open( myWinscpFile, 'w' ) 
-                f.write( 'option batch abort \n' )
-                f.write( 'option confirm off \n' )
-                f.write( 'open sftp://' + self._subject.getUser() + ':' + mod.pwd + '@' + self._subject.getHostname() + '/ \n' )
-                f.write( 'get ' + myTarfile + ' ' + self._item.getDirectory() + ' \n' )     
-                f.write( 'exit' )            
-                f.close()
+                try:
+                    f = open( myWinscpFile, 'w' ) 
+                except OSError as err:
+                    message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
+                else:
+                    f.write( 'option batch abort \n' )
+                    f.write( 'option confirm off \n' )
+                    f.write( 'open sftp://' + self._subject.getUser() + ':' + mod.pwd + '@' + self._subject.getHostname() + '/ \n' )
+                    f.write( 'get ' + myTarfile + ' ' + self._item.getDirectory() + ' \n' )     
+                    f.write( 'exit' )            
+                    f.close()
 
-                subprocess.check_call( configurationCustomized.winscp + ' /script=' + myWinscpFile )         
+                try:
+                    subprocess.check_call( configurationCustomized.winscp + ' /script=' + myWinscpFile )    
+                except:
+                    message.console( type='ERROR', text='Preplot call failed' )      
                 # unpack
                 print(' ')
                 message.console( type='INFO', text='    Unpack' )
                 myLocalTarFile = self._item.getDirectory() + 'results.tar' 
                 if os.path.isfile( myLocalTarFile ): 
-                    os.chdir( self._item.getDirectory() )             
-                    tar = tarfile.open( myLocalTarFile )
-                    tar.extractall()
-                    tar.close()  
-                    os.remove( myLocalTarFile )
-
+                    os.chdir( self._item.getDirectory() )  
+                    try:           
+                        tar = tarfile.open( myLocalTarFile )
+                    except:
+                        message.console( type='ERROR', text='Tar call failed' )   
+                    else:    
+                        tar.extractall()
+                        tar.close()  
+                        os.remove( myLocalTarFile )
+                       
                 # unix2dos
                 message.console( type='INFO', text='    Convert to dos' )
                 for file in os.listdir( self._item.getDirectory() ): 
@@ -553,28 +588,28 @@ class Plotting(Operation):
     #  Plotting: replaceNans
     #  Task:
     #      replace each nan by 999 in all tec files 
-    #
-    #                               
-    #def replaceNans( self ):    
-    # 
-    #    message.console( type='INFO', text='Replace nans ' + self._item.getNameString() )
-    # 
-    #    if os.path.exists ( self._item.getLocalDirectory() ):                               
-    #        os.chdir(self._item.getLocalDirectory()) 
-    #        for file in os.listdir( self._item.getLocalDirectory() ): 
-    #            if file.endswith( '.tec' ):
-    #                message.console( type='INFO', text='File: ' + file )  
-    #            
-    #                infile = open(file,'r') 
-    #                outfile = open( 'new_' + file, 'w') 
-    #                for line in infile: 
-    #                    line = line.replace( 'nan', '999' )
-    #                    outfile.write(line) 
-    #                infile.close() 
-    #                outfile.close()         
-    #                shutil.move('new_' + file, file)                
-    #    else:
-    #        message.console( type='ERROR', text='Directory missing' )                                        
+    
+                                   
+    def replaceNans( self ):    
+     
+        message.console( type='INFO', text='Replace nans ' + self._item.getNameString() )
+     
+        if os.path.exists ( self._item.getDirectory() ):                               
+            os.chdir(self._item.getDirectory()) 
+            for file in os.listdir( self._item.getDirectory() ): 
+                if file.endswith( '.tec' ):
+                    message.console( type='INFO', text='File: ' + file )  
+                
+                    infile = open(file,'r') 
+                    outfile = open( 'new_' + file, 'w') 
+                    for line in infile: 
+                        line = line.replace( 'nan', '999' )
+                        outfile.write(line) 
+                    infile.close() 
+                    outfile.close()         
+                    shutil.move('new_' + file, file)                
+        else:
+            message.console( type='ERROR', text='Directory missing' )                                        
     #            #with fileinput.FileInput( self._item.getLocalDirectory() + file, inplace=True ) as fileToSearchIn:
     #            #    for line in fileToSearchIn:
     #            #        print( line.replace( 'nan', '999' ))
@@ -582,7 +617,7 @@ class Plotting(Operation):
     #################################################################
     #  Plotting: preplot
     #  Task:
-    #      replace nan's with 999 and call preplot to generate *.plt's          
+    #      call preplot to generate *.plt's          
     #
           
 
@@ -596,20 +631,23 @@ class Plotting(Operation):
                 if file.endswith( '.tec' ):
                     message.console( type='INFO', text='File: ' + file )   
                     # replace nans
-                    infile = open(file,'r') 
-                    outfile = open( 'new_' + file, 'w') 
-                    for line in infile: 
-                        line = line.replace( 'nan', '999' )
-                        outfile.write(line) 
-                    infile.close() 
-                    outfile.close()         
-                    shutil.move('new_' + file, file)                     
+                    #infile = open(file,'r') 
+                    #outfile = open( 'new_' + file, 'w') 
+                    #for line in infile: 
+                    #    line = line.replace( 'nan', '999' )
+                    #    outfile.write(line) 
+                    #infile.close() 
+                    #outfile.close()         
+                    #shutil.move('new_' + file, file)                     
                      
-                    #print (configurationCustomized.preplot + ' ' + self._item.getDirectory() + file)           
-                    subprocess.check_call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file ) 
-                                    
+                    try:            
+                        subprocess.check_call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file ) 
+                    except:
+                        message.console( type='ERROR', text='Preplot call failed' )                 
      
- 
+        else:
+            message.console( type='ERROR', text='Directory missing' ) 
+             
     #################################################################
     #  Plotting: generateJpgs
     #  Task:
@@ -617,9 +655,9 @@ class Plotting(Operation):
     #
                                    
 
-    def generateJpgs( self ):         
+    def generateJpg( self ):         
 
-        message.console( type='INFO', text='Generate Jpgs ' + self._item.getType() )
+        message.console( type='INFO', text='Generate Jpg ' + self._item.getType() )
    
         if os.path.exists ( self._subject.getPlotDirectory() ): 
 
@@ -638,7 +676,10 @@ class Plotting(Operation):
             f.write( 'EXPORTREGION = ALLFRAMES\n' )
             f.close()
 
-            subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
+            try:
+                subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
+            except:
+                message.console( type='ERROR', text='Tecplot call failed' ) 
 
             os.remove( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
   

@@ -51,7 +51,7 @@ class GateToMySQL:
     # Task:
     #     id -> name    
     #  parameter:
-    #      table (string): name of table in SQL schema 
+    #      table (string): name of table in SQL schema s
     #      item_id (string): id where name is searched to 
     #  Return:
     #      name (string)
@@ -214,7 +214,22 @@ class GateToMySQL:
             return '1000' # exception - no operation for high number    
         
   
-                            
-        
-        
+    ##############################################
+    #  GateToMySQL: getUserIdFromSuperuser
+    #  Task: 
+    #     giver user id based on preselected superuser and computer name
+    #     this is than used to get the user name
+                                
+    def getUserIdFromSuperuser( self, superuser, computer ):        
+        # set cursor
+        cursor = self.__cnx.cursor( buffered=True ) 
+        cursor.execute( "SELECT s.user_id FROM superuser s WHERE s.name='" +  str ( superuser ) +"' AND s.computer_id=" + self.getIdFromName( 'computer', computer ) )
+        #  
+        row = cursor.fetchone()
+        if row is not None:
+            return ( str ( row[0] ) )
+        else:
+            message.console( type='ERROR', text='User id not found for superuser ' + str ( superuser ) + ' on ' +  str ( computer ) )
+            return '-1' # exception
+            
         

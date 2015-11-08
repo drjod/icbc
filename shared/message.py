@@ -26,6 +26,6 @@ def console ( type='ERROR', text='', notSupported='' ):
         if type == 'INFO':
             intext = ''
         else:
-            intext = ' in ' + sys._getframe(1).f_code.co_name   
+            intext = ' in function ' + sys._getframe(1).f_code.co_name   
             
         print(type + intext +  ' - ' + message )

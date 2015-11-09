@@ -1,5 +1,12 @@
 @echo off
 
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: Provide the password for ssh with:
+:: set pwd=****
+:: in extra file ..\pwd\%remoteComputer%.bat 
+:: (with the setting below the filename is rzcluster.bat)
+::
+
 set localComputer=amak
 set remoteComputer=rzcluster
 set code=ogs

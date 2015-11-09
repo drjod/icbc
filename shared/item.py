@@ -97,7 +97,7 @@ class Plot(Test):
     def __init__( self, subject, type, case, configuration ):   
           
         localDirectory =  subject.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
-        self.__directorySelectedComputer = subject.adaptPathSelectedComputer( '\\' + subject.getDirectory() + 'examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
+        self.__directorySelectedComputer = subject.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
  
         Test.__init__( self, subject, type, case, configuration, localDirectory ) 
 

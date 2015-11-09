@@ -140,16 +140,15 @@ class Building(Operation):
                                    
     def compileRelease( self ): 
         message.console( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
-        
         try:
-            if platform.system() == 'Windows':                     
+            if platform.system() == 'Windows':                    
                 subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
             elif platform.system() == 'Linux':
                 subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)   
             else:
                 message.console( type='ERROR', notSupported=platform.system() )  
         except:
-            message.console( type='ERROR', text=self._subject.getCode() + ' compilation failed' )            
+            message.console( type='ERROR', text='%s' % sys.exc_info()[0] )            
 
 
             
@@ -253,13 +252,13 @@ class Simulating(Operation):
                     try:
                         subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
                     except:
-                        message.console( type='ERROR', text=self._subject.getCode() + ' call failed' )
+                        message.console( type='ERROR', text='%s' % sys.exc_info()[0] )
             elif platform.system() == 'Linux':
                 if os.path.isfile( self._item.getDirectory() + 'run.pbs' ): 
                     try:
                         subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)
                     except:
-                        message.console( type='ERROR', text=self._subject.getCode() + ' call failed' )
+                        message.console( type='ERROR', text='%s' % sys.exc_info()[0]  )
                 else:
                     message.console( type='ERROR', text='Pbs missing' )                         
             else:
@@ -290,7 +289,7 @@ class Simulating(Operation):
         # make test folder if it does not exist  
         testList = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
                        'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
-        self._subject.generateFolder ( self._subject.getDirectory(), testList )
+        self._subject.generateFolder( self._subject.getDirectory(), testList )
         # import
         if  os.path.exists ( sourceDirectory ):                                 
             for ending in configurationShared.inputFileEndings:  
@@ -413,7 +412,7 @@ class Simulating(Operation):
                    if self._simulationData.getProcessing() == 'mpi_nodes':    # for OGS_FEM_PETSC
                        subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -e -asci ' +  self._item.getDirectory(), shell=True )                                                
                except:
-                   message.console( type='ERROR', text='Partition script call failed' )
+                   message.console( type='ERROR', text='%s' % sys.exc_info()[0]  )
             else:
                 message.console( type='ERROR', text='Mesh file missing' )              
         else:
@@ -463,7 +462,7 @@ class Simulating(Operation):
                 try:
                     tar = tarfile.open( myTarfile, 'w')
                 except:
-                    message.console( type='ERROR', text='Preplot call failed' )
+                    message.console( type='ERROR', text='%s' % sys.exc_info()[0] )
                 else:
                     for extension in configurationShared.outputFileEndings:   
                         for file in os.listdir( self._item.getDirectory()  ):
@@ -559,7 +558,7 @@ class Plotting(Operation):
                 try:
                     subprocess.check_call( configurationCustomized.winscp + ' /script=' + myWinscpFile )    
                 except:
-                    message.console( type='ERROR', text='Preplot call failed' )      
+                    message.console( type='ERROR', text='%s' % sys.exc_info()[0] )      
                 # unpack
                 print(' ')
                 message.console( type='INFO', text='    Unpack' )
@@ -599,15 +598,18 @@ class Plotting(Operation):
             for file in os.listdir( self._item.getDirectory() ): 
                 if file.endswith( '.tec' ):
                     message.console( type='INFO', text='File: ' + file )  
-                
-                    infile = open(file,'r') 
-                    outfile = open( 'new_' + file, 'w') 
-                    for line in infile: 
-                        line = line.replace( 'nan', '999' )
-                        outfile.write(line) 
-                    infile.close() 
-                    outfile.close()         
-                    shutil.move('new_' + file, file)                
+                    try:
+                        infile = open(file,'r') 
+                        outfile = open( 'new_' + file, 'w') 
+                    except OSError as err:
+                        message.console( type='ERROR', text='OS error: {0}'.format(err) )
+                    else:
+                        for line in infile: 
+                            line = line.replace( 'nan', '999' )
+                            outfile.write(line) 
+                        infile.close() 
+                        outfile.close()         
+                        shutil.move('new_' + file, file)                
         else:
             message.console( type='ERROR', text='Directory missing' )                                        
     #            #with fileinput.FileInput( self._item.getLocalDirectory() + file, inplace=True ) as fileToSearchIn:
@@ -643,7 +645,7 @@ class Plotting(Operation):
                     try:            
                         subprocess.check_call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file ) 
                     except:
-                        message.console( type='ERROR', text='Preplot call failed' )                 
+                        message.console( type='ERROR', text='%s' % sys.exc_info()[0] )                
      
         else:
             message.console( type='ERROR', text='Directory missing' ) 
@@ -664,24 +666,28 @@ class Plotting(Operation):
             layout = self._subject.getPlotDirectory()  + self._item.getType() + '.lay'
               
             os.chdir( self._subject.getPlotDirectory() )
-
-            f = open( self._subject.getPlotDirectory() + '_genJPG.mcr', 'w' )
-            f.write( '#!MC 1300\n' )
-            f.write( '#-----------------------------------------------------------------------\n' )
-            f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
-            f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
-            f.write( '#-----------------------------------------------------------------------\n' )
-            f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg\'\n" )
-            f.write( '$!EXPORT\n' )
-            f.write( 'EXPORTREGION = ALLFRAMES\n' )
-            f.close()
-
             try:
-                subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
-            except:
-                message.console( type='ERROR', text='Tecplot call failed' ) 
+                f = open( self._subject.getPlotDirectory() + '_genJPG.mcr', 'w' )
+            except OSError as err:
+                    message.console( type='ERROR', text='OS error: {0}'.format(err) )
+            else:
+                f.write( '#!MC 1300\n' )
+                f.write( '#-----------------------------------------------------------------------\n' )
+                f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
+                f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
+                f.write( '#-----------------------------------------------------------------------\n' )
+                f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg\'\n" )
+                f.write( '$!EXPORT\n' )
+                f.write( 'EXPORTREGION = ALLFRAMES\n' )
+                f.close()
 
-            os.remove( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
+                try:
+                    subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
+                except:
+                    print('error')
+                    # message.console( type='ERROR', text='%s' % sys.exc_info()[0] ) 
+
+                os.remove( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
   
         else:
             message.console( type='ERROR', text='Directory missing' )    

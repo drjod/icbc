@@ -136,11 +136,11 @@ class Environment:
                                                                                                                   computerOfSubject = self.__subject_inst.getComputer() ) )  
             # loop over items 
             if self.__reselectFlag == True:
-                self.__reselectFlag =False
+                self.__reselectFlag = False
             else:
                 typeList_counter = 0  
                 configuration = ' '      
-                for type in self.__setting_inst.getItemConstituents().typeList: 
+                for type in self.__setting_inst.getItemConstituents().typeList:                   
                     for case in self.__setting_inst.getItemConstituents().caseList[typeList_counter]:
                         for configuration in self.__setting_inst.getItemConstituents().configurationList:
 
@@ -161,8 +161,10 @@ class Environment:
 
                             operation_inst.run( item_inst, self.__simulationData ) 
 
-                    del item_inst          
-                    typeList_counter = typeList_counter + 1
+                    del item_inst   
+                    if len( self.__setting_inst.getItemConstituents().caseList ) > 1:       
+                        typeList_counter = typeList_counter + 1
+                    # else do not increment to avoid segmentation fault (case list is not used)
 
                 print( '\n-----------------------------------------------------------------' )                
             del operation_inst

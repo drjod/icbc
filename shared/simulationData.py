@@ -196,25 +196,28 @@ class SimulationData:
 
     def writeNumerics( self, directory ):
         
-
-        f = open( directory + configurationShared.examplesName + '.num', 'w' )
-        if self.__coupledFlag == '1': 
-            coupling = CouplingNumerics()
-            coupling.write( f )
-            del coupling
-        flow = ProcessNumerics( 'flow')       
-        flow.write( f, self )
-        del flow
-        if self.__processes._massFlag == '1':
-            mass = ProcessNumerics( 'mass')       
-            mass.write( f, self )
-            del mass
-        if self.__processes._heatFlag == '1':
-            heat = ProcessNumerics( 'heat')       
-            heat.write( f, self )  
-            del heat    
-        f.write( '\n#STOP\n' )          
-        f.close()
+        try:
+            f = open( directory + configurationShared.examplesName + '.num', 'w' )
+        except OSError as err:
+            message.console( type='ERROR', text='OS error: {0}'.format(err) )
+        else:
+            if self.__coupledFlag == '1': 
+                coupling = CouplingNumerics()
+                coupling.write( f )
+                del coupling
+            flow = ProcessNumerics( 'flow')       
+            flow.write( f, self )
+            del flow
+            if self.__processes._massFlag == '1':
+                mass = ProcessNumerics( 'mass')       
+                mass.write( f, self )
+                del mass
+            if self.__processes._heatFlag == '1':
+                heat = ProcessNumerics( 'heat')       
+                heat.write( f, self )  
+                del heat    
+            f.write( '\n#STOP\n' )          
+            f.close()
 
 
     #################################################################################

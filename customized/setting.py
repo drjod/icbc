@@ -147,13 +147,13 @@ class Setting:
             subject.setBranch(' ') 
             
         if str( selectedOption ) == 't' or str( selectedOption ) == 'e':            
-            self.__testCases.typeList = [' ']
-            self.__testCases.caseList = [[' ']] # case must be reselected too
+            self.__itemConstituents.typeList = [' ']
+            self.__itemConstituents.caseList = [[' ']] # case must be reselected too
             self.__selectedTypeIdList.clear()
         if str( selectedOption ) == 'a' or str( selectedOption ) == 'e':             
-            self.__testCases.caseList = [[' ']]
+            self.__itemConstituents.caseList = [[' ']]
         if str( selectedOption ) == 'n' or str( selectedOption ) == 'e':             
-            self.__testCases.configurationList = [' ']   
+            self.__itemConstituents.configurationList = [' ']   
         if str( selectedOption ) == 'p':             
             self.__operationType = ' '  
                     

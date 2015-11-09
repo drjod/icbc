@@ -1,4 +1,14 @@
 @echo off
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::
+:: Run OGS by draging and dropping an input file 
+:: script exploits folder structure of testing environment, i.e. 
+:: F:\testingEnvironment\%computer%\%code%\%branch%\examples\files\%type%\%case%\%configuration%
+:: (convention over configuration)
+::
+::
+
 echo.
 echo __ icbc 0.2  ____________(-.-)________________________________________________
 echo ______________________________________________________________________________

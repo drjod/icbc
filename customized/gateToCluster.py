@@ -13,8 +13,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
 def operate( subject, item, operationType, operation, simulationData ):
     
     mod = __import__( subject.getComputer() )    
+    temporaryShellScript =  configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh'
     try:
-        f = open( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remote_run.sh', 'w' )
+        f = open( temporaryShellScript, 'w' )
     except OSError as err:
         message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
     else:
@@ -34,9 +35,12 @@ def operate( subject, item, operationType, operation, simulationData ):
         f.close()
       
     try:
-        subprocess.call( 'plink ' + subject.getUser() + '@' + subject.getHostname() + ' -pw ' + mod.pwd + ' -m ' + configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remote_run.sh', shell=True)# stdout=f )
+        subprocess.call( 'plink ' + subject.getUser() + '@' + subject.getHostname() + ' -pw ' + mod.pwd + ' -m ' + temporaryShellScript, shell=True)# stdout=f )
     except:
         message.console( type='ERROR', text='Plink call failed' )   
+
+    if os.path.isfile(temporaryShellScript) and os.access(temporaryShellScript, os.R_OK):   
+        os.remove( temporaryShellScript )
     
 
    

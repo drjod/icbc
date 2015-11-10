@@ -48,7 +48,7 @@ class Setting:
         
         
     def getItemConstituents( self ):
-        return self.__ItemConstituents
+        return self.__itemConstituents
     def getPreselectedOperation( self ):
         return self.__preselectedOperation     
     def getLocation( self, computer ):

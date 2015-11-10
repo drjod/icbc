@@ -89,12 +89,12 @@ class Subject:
         if self.__branch == ' ':                                                                                 
             self.__branch = setting_inst.selectGroup( 'branches' )[0] 
  
-        self.__rootDirectory = setting_inst.getRootDirectory( self.__computer, self.__user ) 
         if configurationCustomized.location == 'local':
+            self.__rootDirectory = setting_inst.getRootDirectory( self.__computer, self.__user ) 
             self.__location = setting_inst.getLocation( self.__computer )
             self.__operatingSystem = setting_inst.getOperatingSystem( self.__computer )
-            self.__directory = self.adaptPath( setting_inst.getRootDirectory( self.__computer, self.__user ) + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-            self.__gateDirectory =  self.adaptPath( setting_inst.getRootDirectory( self.__computer, self.__user ) + '\\testingEnvironment\\' + self.__computer + '\\gate\\' ) 
+            self.__directory = self.adaptPath( self.__rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+            self.__gateDirectory =  self.adaptPath( self.__rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\gate\\' ) 
             self.__plotDirectory =  self.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\examples\\plots\\' )  
             self.__hostname = setting_inst.getHostname( self.__computer )
         else:

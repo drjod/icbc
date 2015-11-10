@@ -25,8 +25,8 @@ class CouplingNumerics:
     def __init__( self ):
         imp.reload( numerics_coupling )
 
-        self.__coupling_iterations_min = coupling_iterations_min
-        self.__coupling_iterations_max = coupling_iterations_max 
+        self.__coupling_iterations_min = numerics_coupling.coupling_iterations_min
+        self.__coupling_iterations_max = numerics_coupling.coupling_iterations_max 
 
     def write( self, f ):
         f.write( '\n$OVERALL_COUPLING\n' )
@@ -39,8 +39,9 @@ class ProcessNumerics:
 
         self.__solver = solver()
         self.__iterations = iterations()
-        self. __numberOfGaussPoints = 0
-
+        self.__numberOfGaussPoints = 2
+        self.__theta = 1.   # 0: explicit, 1: implicit
+        # read files
         if processType == 'flow':
             imp.reload( numerics_flow )
             self.setFlow()
@@ -82,12 +83,12 @@ class ProcessNumerics:
         if simulationData.getProcessing() == 'mpi_nodes':
             f.write( '; method precond error_tolerance max_iterations theta\n' )  
             f.write( '  petsc bcgs asm ' + str( self.__iterations._tollerance_linear ) + ' ' + str( self.__iterations._maxIterations_linear ) + ' 1. \n' )                
-        elif  simulationData.getProcessing() == 'omp':
+        elif  simulationData.getProcessing() == 'omp':  # matrix storage is 4
             f.write( '; method norm error_tolerance max_iterations theta precond storage\n' )
-            f.write( '  805 ' + self.__iterations._norm + ' ' + str( self.__iterations._tollerance_linear ) + ' ' + str( self.__iterations._maxIterations_linear ) + ' 1.0  ' + str( configurationShared.preconditioner2number[self.__solver._precond] ) + '4\n' )
+            f.write( '  805 ' + self.__iterations._norm + ' ' + str( self.__iterations._tollerance_linear ) + ' ' + str( self.__iterations._maxIterations_linear ) + ' ' + str( self.__theta ) + '  ' + str( configurationShared.preconditioner2number[self.__solver._precond] ) + '4\n' )
         else:
             f.write( '; method norm error_tolerance max_iterations theta precond storage\n' )
-            f.write( '  ' + str( configurationShared.solver2number[self.__solver. _linear] ) + ' ' + self.__iterations._norm + ' ' + str( self.__iterations._tollerance_linear ) + ' ' + str( self.__iterations._maxIterations_linear ) + ' 1.0  ' + str( configurationShared.preconditioner2number[self.__solver._precond] ) + ' ' + str( configurationShared.matrixStorage2number[self.__solver._matrixStorage] ) + '\n' )
+            f.write( '  ' + str( configurationShared.solver2number[self.__solver. _linear] ) + ' ' + self.__iterations._norm + ' ' + str( self.__iterations._tollerance_linear ) + ' ' + str( self.__iterations._maxIterations_linear ) + ' ' + str( self.__theta ) + '  ' + str( configurationShared.preconditioner2number[self.__solver._precond] ) + ' ' + str( configurationShared.matrixStorage2number[self.__solver._matrixStorage] ) + '\n' )
         # linearization
         if simulationData.getNonlinearFlag() == '1':
             f.write( ' $NON_LINEAR_ITERATIONS\n' )
@@ -115,6 +116,7 @@ class ProcessNumerics:
         self.__solver._matrixStorage = numerics_flow.matrixStorage
 
         self.__numberOfGaussPoints = numerics_flow.numberOfGaussPoints
+        self.__theta = numerics_flow.theta
 
     def setMass( self ):
 
@@ -129,6 +131,7 @@ class ProcessNumerics:
         self.__solver._matrixStorage = numerics_mass.matrixStorage
 
         self.__numberOfGaussPoints = numerics_mass.numberOfGaussPoints
+        self.__theta = numerics_mass.theta
         
     def setHeat( self ):
 
@@ -142,7 +145,8 @@ class ProcessNumerics:
         self.__solver._precond = numerics_heat.precond
         self.__solver._matrixStorage = numerics_heat.matrixStorage
 
-        self.__numberOfGaussPoints = numerics_heat.numberOfGaussPoints     
+        self.__numberOfGaussPoints = numerics_heat.numberOfGaussPoints 
+        self.__theta = numerics_heat.theta    
 
 #################################################################
 #  class: SimulationData
@@ -193,7 +197,16 @@ class SimulationData:
         self.__lumpingFlag = lumpingFlag
         self.__nonlinearFlag = nonlinearFlag
 
-
+ 
+    #################################################################
+    #  SimulationData:writeNumerics
+    #  Task:
+    #      Read data from files and write *.num file for simulation
+    #  Requirements:
+    #      self.__coupledFlag  
+    #      self.__processes._massFlag
+    #      self.__processes._heatFlag 
+         
     def writeNumerics( self, directory ):
         
         try:

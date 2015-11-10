@@ -1,9 +1,9 @@
 import operation
-import message
 import shutil
 import configurationShared
 import item
 import subject
+import utilities
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import setting
@@ -47,39 +47,38 @@ class Environment:
                                                 testingDepth, 
                                                 mySQL_struct )
         self.__simulationData = simulationData.SimulationData( flowProcess, massProcessFlag, heatProcessFlag, coupledFlag, processing, numberOfCPUs, lumpingFlag, nonlinearFlag)
-        print( '\n-----------------------------------------------------------------' )
         
         if int( configurationCustomized.verbosity ) > 1:
             # print message for already set variables
             if computer is not ' ':
-                message.console( type='INFO', text='Set computer ' + computer )
+                utilities.message( type='INFO', text='Set computer ' + computer )
             if user is not ' ':
-                message.console( type='INFO', text='Set user ' + user )
+                utilities.message( type='INFO', text='Set user ' + user )
             if code is not ' ':
-                message.console( type='INFO', text='Set code ' + code )
+                utilities.message( type='INFO', text='Set code ' + code )
             if branch is not ' ':
-                message.console( type='INFO', text='Set branch ' + branch )
+                utilities.message( type='INFO', text='Set branch ' + branch )
             if typeList[0] is not ' ':
                 for i in range(0, len( typeList )):
-                    message.console( type='INFO', text='Set type ' + typeList[i] )
+                    utilities.message( type='INFO', text='Set type ' + typeList[i] )
             if caseList[0][0] is not ' ':
                 for i in range(0, len( caseList )):
                     for j in range(0, len( caseList[i] )):
-                        message.console( type='INFO', text='Set case ' + caseList[i][j] )
+                        utilities.message( type='INFO', text='Set case ' + caseList[i][j] )
             if configurationList[0] is not ' ':
                 for i in range(0, len( configurationList )):
-                    message.console( type='INFO', text='Set configuration ' + configurationList[i] )
+                    utilities.message( type='INFO', text='Set configuration ' + configurationList[i] )
             if operationType is not ' ':
-                message.console( type='INFO', text='Set operation type ' + operationType )
+                utilities.message( type='INFO', text='Set operation type ' + operationType )
             if operation is not ' ':
-                message.console( type='INFO', text='Set operation ' + operation )           
+                utilities.message( type='INFO', text='Set operation ' + operation )           
             if testingDepth is not ' ':
-                message.console( type='INFO', text='Set testing depth ' + testingDepth )                            
+                utilities.message( type='INFO', text='Set testing depth ' + testingDepth )                            
             if simulationData is not ' ':
                 __simulationData = simulationData
-                message.console( type='INFO', text='Simulation data set' )                
-            print( '\n-----------------------------------------------------------------' )
-        
+                utilities.message( type='INFO', text='Simulation data set' )  
+
+            print( '\n-----------------------------------------------------------------' )                        
                               
     def __del__( self ):   
         del self.__subject_inst  
@@ -104,7 +103,7 @@ class Environment:
         elif selectedOperationType == 'p':  # plotting  
             operation_inst = operation.Plotting( self.__subject_inst )                           
         else:    
-            message.console( type='ERROR', notSupported=selectedOperationType )  
+            utilities.message( type='ERROR', notSupported=selectedOperationType )  
         if self.__reselectFlag == False:
             selectedOperation = operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
             if not selectedOperation == 's':
@@ -151,7 +150,7 @@ class Environment:
                             elif selectedOperationType == 'p': # plotting
                                 item_inst = item.Plot( self.__subject_inst, type, case, configuration )      
                             else:    
-                                message.console( type='ERROR', notSupported=selectedOperationType )                                                             
+                                utilities.message( type='ERROR', notSupported=selectedOperationType )                                                             
 
                             if configurationCustomized.location == 'local': 
                                 # do mysql queries 
@@ -166,7 +165,7 @@ class Environment:
                         typeList_counter = typeList_counter + 1
                     # else do not increment to avoid segmentation fault (case list is not used)
 
-                print( '\n-----------------------------------------------------------------' )                
+                print( '\n_________________________________________________________________' )                
             del operation_inst
         
             

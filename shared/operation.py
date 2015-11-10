@@ -1,14 +1,12 @@
 import subprocess
-import message
 import shutil
 import configurationShared
 import fileinput
 import item
 import subject
-import platform
+import platform, utilities
 import tarfile
 import shutil
-import utilities
 import simulationData
 import imp
 import sys, os, glob
@@ -130,7 +128,7 @@ class Building(Operation):
         elif self._selectedOperation == 'u':
             self.updateRelease()                                                                             
         else:
-            message.console( type='ERROR', notSupported='Operation ' + self.__selectedOperation )                          
+            utilities.message( type='ERROR', notSupported='Operation ' + self.__selectedOperation )                          
   
     #################################################################
     #  Building: run
@@ -139,16 +137,16 @@ class Building(Operation):
     #
                                    
     def compileRelease( self ): 
-        message.console( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
+        utilities.message( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
         try:
             if platform.system() == 'Windows':                    
                 subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
             elif platform.system() == 'Linux':
                 subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)   
             else:
-                message.console( type='ERROR', notSupported=platform.system() )  
+                utilities.message( type='ERROR', notSupported=platform.system() )  
         except:
-            message.console( type='ERROR', text='%s' % sys.exc_info()[0] )            
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )            
 
 
             
@@ -164,12 +162,12 @@ class Building(Operation):
         except:
             os.mkdir(self._subject.getDirectory() + 'releases' ) 
         
-        message.console( type='INFO', text='Updating release ' + platform.system() + ' ' + self._item.getConfiguration() )   
+        utilities.message( type='INFO', text='Updating release ' + platform.system() + ' ' + self._item.getConfiguration() )   
       
         if os.path.isfile( self._subject.getExecutable( self._item ) ) and os.access( self._subject.getExecutable( self._item ), os.R_OK ): 
             shutil.copy( self._subject.getExecutable( self._item ), self._subject.getExecutableForRelease( self._item ) )  
         else:
-            message.console( type='ERROR', text='Binary does not exist - nothing done' )                         
+            utilities.message( type='ERROR', text='Binary does not exist - nothing done' )                         
            
                                
 #################################################################
@@ -234,7 +232,7 @@ class Simulating(Operation):
         elif self._selectedOperation == 'k':
             self.packResults()                                                                               
         else:
-            message.console( type='ERROR', notSupported='Operation ' + self._selectedOperation ) 
+            utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation ) 
        
     #################################################################
     #  Simulating: runTest
@@ -244,7 +242,7 @@ class Simulating(Operation):
                                    
     def runTest( self ): 
         
-        message.console( type='INFO', text='Running ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Running ' + self._item.getNameString() )
  
         if os.path.exists ( self._item.getDirectory() ):                           
             if platform.system() == 'Windows':        
@@ -252,20 +250,20 @@ class Simulating(Operation):
                     try:
                         subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
                     except:
-                        message.console( type='ERROR', text='%s' % sys.exc_info()[0] )
+                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )
             elif platform.system() == 'Linux':
                 if os.path.isfile( self._item.getDirectory() + 'run.pbs' ): 
                     try:
                         subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)
                     except:
-                        message.console( type='ERROR', text='%s' % sys.exc_info()[0]  )
+                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
                 else:
-                    message.console( type='ERROR', text='Pbs missing' )                         
+                    utilities.message( type='ERROR', text='Pbs missing' )                         
             else:
-                message.console( type='ERROR', notSupported=platform.system() )  
+                utilities.message( type='ERROR', notSupported=platform.system() )  
               
         else:
-            message.console( type='ERROR', text='Directory missing' )
+            utilities.message( type='ERROR', text='Directory missing' )
         
                       
     #################################################################
@@ -278,18 +276,18 @@ class Simulating(Operation):
                                    
     def importFromRepository( self ):      
 
-        message.console( type='INFO', text='Importing ' + self._item.getNameString() )              
+        utilities.message( type='INFO', text='Importing ' + self._item.getNameString() )              
         if self._gateFlag == True:
-            message.console( type='INFO', text='From gate' )     
+            utilities.message( type='INFO', text='From gate' )     
             sourceDirectory = self._subject.getGateDirectory()
         else:
-            message.console( type='INFO', text='From repository' )
+            utilities.message( type='INFO', text='From repository' )
             sourceDirectory = self._item.getDirectoryRepository() 
      
         # make test folder if it does not exist  
         testList = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
                        'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
-        self._subject.generateFolder( self._subject.getDirectory(), testList )
+        utilities.generateFolder( self._subject.getDirectory(), testList )
         # import
         if  os.path.exists ( sourceDirectory ):                                 
             for ending in configurationShared.inputFileEndings:  
@@ -299,7 +297,7 @@ class Simulating(Operation):
                         utilities.dos2unix( fileName )
                     shutil.copy( fileName, self._item.getDirectory() )    
         else:
-            message.console( type='ERROR', text='Repository directory missing' )
+            utilities.message( type='ERROR', text='Repository directory missing' )
                     
     #################################################################
     #  Simulating: exportToRepository
@@ -311,16 +309,16 @@ class Simulating(Operation):
                                            
     def exportToRepository( self ):   
 
-        message.console( type='INFO', text='Exporting ' + self._item.getNameString() )   
+        utilities.message( type='INFO', text='Exporting ' + self._item.getNameString() )   
         if self._gateFlag == True:
-            message.console( type='INFO', text='Into gate' )
+            utilities.message( type='INFO', text='Into gate' )
             destinationDirectory = self._subject.getGateDirectory()
         else:
-            message.console( type='INFO', text='Into repository' )
+            utilities.message( type='INFO', text='Into repository' )
             destinationDirectory = self._item.getDirectoryRepository() 
         # make repository folder if it does not exist                
         repositoryList = [ 'testingEnvironment', self._subject.getComputer(), 'repository', self._item.getType(), self._item.getCase() ]                   
-        self._subject.generateFolder ( configurationCustomized.rootDirectory, repositoryList )
+        utilities.generateFolder ( configurationCustomized.rootDirectory, repositoryList )
         # export  
         if os.path.exists ( self._item.getDirectory() ):                  
             for ending in configurationShared.inputFileEndings:      
@@ -328,7 +326,7 @@ class Simulating(Operation):
                 if os.path.isfile(fileName) and os.access(fileName, os.R_OK):   
                     shutil.copy( fileName, destinationDirectory )
         else:
-            message.console( type='ERROR', text='Directory missing' )
+            utilities.message( type='ERROR', text='Directory missing' )
 
     #################################################################
     #  Simulating: writeFiles
@@ -338,12 +336,12 @@ class Simulating(Operation):
                                    
     def writeFiles( self ): 
 
-        message.console( type='INFO', text='Generate files ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Generate files ' + self._item.getNameString() )
         
         if os.path.exists ( self._item.getDirectory() ):   
             if platform.system() == 'Linux':
 
-                message.console( type='INFO', text='    PBS' )
+                utilities.message( type='INFO', text='    PBS' )
                 if  self._simulationData.getProcessing() == 'sequential':            
                     ncpus = '1'              
                     command = ''
@@ -356,7 +354,7 @@ class Simulating(Operation):
                 try:
                     f = open( self._item.getDirectory() + 'run.pbs', 'w' )
                 except OSError as err:
-                    message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
+                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
                 else:
                     f.write( '#!/bin/bash\n' )
                     f.write( '#PBS -o ' + self._subject.getDirectory() + 'screenout.txt\n' )
@@ -383,12 +381,12 @@ class Simulating(Operation):
                     f.close()
                             
             ##############################################
-            message.console( type='INFO', text='    NUM' )
+            utilities.message( type='INFO', text='    NUM' )
 
             self._simulationData.writeNumerics( self._item.getDirectory() )
 
         else:
-            message.console( type='ERROR', text='Directory missing' ) 
+            utilities.message( type='ERROR', text='Directory missing' ) 
 
     
     #################################################################
@@ -398,9 +396,9 @@ class Simulating(Operation):
 
     def meshPartition( self ): 
         
-        message.console( type='INFO', text='Mesh partition ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Mesh partition ' + self._item.getNameString() )
 
-        partitionScript = configurationCustomized.rootDirectory + self._subject.adaptPath( 'testingEnvironment\\scripts\\' ) + 'partition.sh'
+        partitionScript = configurationCustomized.rootDirectory + utilities.adaptPath( 'testingEnvironment\\scripts\\' ) + 'partition.sh'
 
         if os.path.exists ( self._item.getDirectory() ):          
             os.chdir(self._item.getDirectory())
@@ -412,29 +410,34 @@ class Simulating(Operation):
                    if self._simulationData.getProcessing() == 'mpi_nodes':    # for OGS_FEM_PETSC
                        subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -e -asci ' +  self._item.getDirectory(), shell=True )                                                
                except:
-                   message.console( type='ERROR', text='%s' % sys.exc_info()[0]  )
+                   utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
             else:
-                message.console( type='ERROR', text='Mesh file missing' )              
+                utilities.message( type='ERROR', text='Mesh file missing' )              
         else:
-            message.console( type='ERROR', text='Directory missing' ) 
+            utilities.message( type='ERROR', text='Directory missing' ) 
 
     #################################################################
     #  Simulating: cleanFolder
     #  Task:
-    #      delete *.tec, *.txt, *.asc       
+    #      delete *.tec, *.txt, *.asc, and results.tar on remote computer       
     # 
                                    
     def cleanFolder( self ):   
 
-        message.console( type='INFO', text='Clean folder ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Clean folder ' + self._item.getNameString() )
         #
         if os.path.exists ( self._item.getDirectory() ):
             for file in os.listdir( self._item.getDirectory() ):
                 for ending in configurationShared.outputFileEndings: 
                     if file.endswith( '.' + ending ):
                         os.remove( self._item.getDirectory() + file ) 
+                
+                myRemoteTarFile = self._item.getDirectory() + 'results.tar' 
+                if os.path.isfile( myRemoteTarFile ): 
+                    os.remove( myRemoteTarFile )
+
         else:
-            message.console( type='ERROR', text='Directory missing' )           
+            utilities.message( type='ERROR', text='Directory missing' )           
         #if configurationCustomized.location == 'remote':
         #    for file in os.listdir( self._item.getLocalDirectory() ):
         #        for ending in configurationShared.outputFileEndings: 
@@ -450,7 +453,7 @@ class Simulating(Operation):
 
     def packResults( self ):   
          
-        message.console( type='INFO', text='Pack results ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Pack results ' + self._item.getNameString() )
 
         if self._subject.getLocation() == 'remote':
             if os.path.exists ( self._item.getDirectory() ):
@@ -462,7 +465,7 @@ class Simulating(Operation):
                 try:
                     tar = tarfile.open( myTarfile, 'w')
                 except:
-                    message.console( type='ERROR', text='%s' % sys.exc_info()[0] )
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )
                 else:
                     for extension in configurationShared.outputFileEndings:   
                         for file in os.listdir( self._item.getDirectory()  ):
@@ -470,9 +473,9 @@ class Simulating(Operation):
                                 tar.add( file )    
                     tar.close()
             else:     
-                message.console( type='ERROR', text='Directory missing' )
+                utilities.message( type='ERROR', text='Directory missing' )
         else:
-            message.console( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )            
+            utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )            
             
 class Plotting(Operation):
 
@@ -518,7 +521,7 @@ class Plotting(Operation):
         elif self._selectedOperation == 'n':
             self.replaceNans()                                                                                           
         else:
-            message.console( type='ERROR', notSupported='Operation ' + self._selectedOperation )             
+            utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation )             
             
             
                                                           
@@ -530,9 +533,13 @@ class Plotting(Operation):
                                    
     def getResults( self ):   
  
-        message.console( type='INFO', text='Get results ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Get results ' + self._item.getNameString() )
 
-        mod = __import__( self._subject.getComputer() )      
+        mod = __import__( self._subject.getComputer() )   
+        # make repository folder if it does not exist                
+        repositoryList = [ 'testingEnvironment', self._subject.getComputer(), self._subject.getCode(), self._subject.getBranch(), 'examples', 'files', self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]                   
+        utilities.generateFolder( configurationCustomized.rootDirectory, repositoryList )
+           
         if self._subject.getLocation() == 'remote':
             if os.path.exists ( self._item.getDirectory() ):      
                 # clear local directory
@@ -540,13 +547,13 @@ class Plotting(Operation):
                 for file in files:
                     os.remove(file)
                 # download with winscp     
-                message.console( type='INFO', text='    Download' )
-                myWinscpFile = self._subject.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt' ) 
+                utilities.message( type='INFO', text='    Download' )
+                myWinscpFile = utilities.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt' ) 
                 myTarfile = self._item.getDirectorySelectedComputer() + 'results.tar'      
                 try:
                     f = open( myWinscpFile, 'w' ) 
                 except OSError as err:
-                    message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
+                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
                 else:
                     f.write( 'option batch abort \n' )
                     f.write( 'option confirm off \n' )
@@ -558,30 +565,30 @@ class Plotting(Operation):
                 try:
                     subprocess.check_call( configurationCustomized.winscp + ' /script=' + myWinscpFile )    
                 except:
-                    message.console( type='ERROR', text='%s' % sys.exc_info()[0] )      
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )      
                 # unpack
                 print(' ')
-                message.console( type='INFO', text='    Unpack' )
+                utilities.message( type='INFO', text='    Unpack' )
                 myLocalTarFile = self._item.getDirectory() + 'results.tar' 
                 if os.path.isfile( myLocalTarFile ): 
                     os.chdir( self._item.getDirectory() )  
                     try:           
                         tar = tarfile.open( myLocalTarFile )
                     except:
-                        message.console( type='ERROR', text='Tar call failed' )   
+                        utilities.message( type='ERROR', text='Tar call failed' )   
                     else:    
                         tar.extractall()
                         tar.close()  
                         os.remove( myLocalTarFile )
                        
                 # unix2dos
-                message.console( type='INFO', text='    Convert to dos' )
+                utilities.message( type='INFO', text='    Convert to dos' )
                 for file in os.listdir( self._item.getDirectory() ): 
                     utilities.unix2dos( file )
             else:
-                message.console( type='ERROR', text='Directory missing' )
+                utilities.message( type='ERROR', text='Directory missing' )
         else:
-            message.console( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )
+            utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )
                                             
     #################################################################
     #  Plotting: replaceNans
@@ -591,18 +598,18 @@ class Plotting(Operation):
                                    
     def replaceNans( self ):    
      
-        message.console( type='INFO', text='Replace nans ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Replace nans ' + self._item.getNameString() )
      
         if os.path.exists ( self._item.getDirectory() ):                               
             os.chdir(self._item.getDirectory()) 
             for file in os.listdir( self._item.getDirectory() ): 
                 if file.endswith( '.tec' ):
-                    message.console( type='INFO', text='File: ' + file )  
+                    utilities.message( type='INFO', text='File: ' + file )  
                     try:
                         infile = open(file,'r') 
                         outfile = open( 'new_' + file, 'w') 
                     except OSError as err:
-                        message.console( type='ERROR', text='OS error: {0}'.format(err) )
+                        utilities.message( type='ERROR', text='OS error: {0}'.format(err) )
                     else:
                         for line in infile: 
                             line = line.replace( 'nan', '999' )
@@ -611,7 +618,7 @@ class Plotting(Operation):
                         outfile.close()         
                         shutil.move('new_' + file, file)                
         else:
-            message.console( type='ERROR', text='Directory missing' )                                        
+            utilities.message( type='ERROR', text='Directory missing' )                                        
     #            #with fileinput.FileInput( self._item.getLocalDirectory() + file, inplace=True ) as fileToSearchIn:
     #            #    for line in fileToSearchIn:
     #            #        print( line.replace( 'nan', '999' ))
@@ -625,13 +632,13 @@ class Plotting(Operation):
 
     def preplot( self ): 
     
-        message.console( type='INFO', text='Preplot ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Preplot ' + self._item.getNameString() )
 
         if os.path.exists ( self._item.getDirectory() ): 
             os.chdir(self._item.getDirectory()) 
             for file in os.listdir( self._item.getDirectory() ): 
                 if file.endswith( '.tec' ):
-                    message.console( type='INFO', text='File: ' + file )   
+                    utilities.message( type='INFO', text='File: ' + file )   
                     # replace nans
                     #infile = open(file,'r') 
                     #outfile = open( 'new_' + file, 'w') 
@@ -645,10 +652,10 @@ class Plotting(Operation):
                     try:            
                         subprocess.check_call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file ) 
                     except:
-                        message.console( type='ERROR', text='%s' % sys.exc_info()[0] )                
+                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )                
      
         else:
-            message.console( type='ERROR', text='Directory missing' ) 
+            utilities.message( type='ERROR', text='Directory missing' ) 
              
     #################################################################
     #  Plotting: generateJpgs
@@ -659,7 +666,7 @@ class Plotting(Operation):
 
     def generateJpg( self ):         
 
-        message.console( type='INFO', text='Generate Jpg ' + self._item.getType() )
+        utilities.message( type='INFO', text='Generate Jpg ' + self._item.getType() )
    
         if os.path.exists ( self._subject.getPlotDirectory() ): 
 
@@ -669,7 +676,7 @@ class Plotting(Operation):
             try:
                 f = open( self._subject.getPlotDirectory() + '_genJPG.mcr', 'w' )
             except OSError as err:
-                    message.console( type='ERROR', text='OS error: {0}'.format(err) )
+                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) )
             else:
                 f.write( '#!MC 1300\n' )
                 f.write( '#-----------------------------------------------------------------------\n' )
@@ -685,12 +692,12 @@ class Plotting(Operation):
                     subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
                 except:
                     print('error')
-                    # message.console( type='ERROR', text='%s' % sys.exc_info()[0] ) 
+                    # utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
 
                 os.remove( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
   
         else:
-            message.console( type='ERROR', text='Directory missing' )    
+            utilities.message( type='ERROR', text='Directory missing' )    
             
             
 

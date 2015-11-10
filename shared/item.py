@@ -1,5 +1,5 @@
 import subject
-import message 
+import utilities 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 # import setting
@@ -56,7 +56,7 @@ class Test(Item):
     
         self.__type = type
         self.__case = case  
-        # message.console( type='INFO', text='item ' + self.getNameString() ) 
+        # utilities.message( type='INFO', text='item ' + self.getNameString() ) 
         Item.__init__( self, subject, configuration, directory )
 
     def getNameString( self ): 
@@ -75,11 +75,11 @@ class Sim(Test):
 
     def __init__( self, subject, type, case, configuration ):
           
-        self.__directoryRepository = subject.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\'+ subject.getComputer() \
+        self.__directoryRepository = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\'+ subject.getComputer() \
                                                         + '\\repository\\' + type + '\\' + case + '\\' )           
      
         Test.__init__( self, subject, type, case, configuration,
-                       subject.adaptPath( subject.getDirectory() + 'examples\\files\\' \
+                       utilities.adaptPath( subject.getDirectory() + 'examples\\files\\' \
                                           + type + '\\' + case + '\\' + configuration + '\\' ) # test case directory
                      )
     # getter    
@@ -96,8 +96,8 @@ class Plot(Test):
            
     def __init__( self, subject, type, case, configuration ):   
           
-        localDirectory =  subject.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
-        self.__directorySelectedComputer = subject.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
+        localDirectory =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
+        self.__directorySelectedComputer = utilities.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\', subject.getOperatingSystem() )
  
         Test.__init__( self, subject, type, case, configuration, localDirectory ) 
 

@@ -1,4 +1,4 @@
-import message
+import utilities
 import mysql.connector
 import copy
 import sys, os
@@ -44,7 +44,7 @@ class Setting:
         self.__mySQL_struct = mySQL_struct
         self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_struct )
             
-        message.console( type='INFO', text='Connect ' + mySQL_struct.user + ' to ' + mySQL_struct.host + ' ' + mySQL_struct.schema  )
+        utilities.message( type='INFO', text='Connect ' + mySQL_struct.user + ' to ' + mySQL_struct.host + ' ' + mySQL_struct.schema  )
         
     def __del__( self ):    
         del self.__gateToMySQL
@@ -103,7 +103,7 @@ class Setting:
             if selectedOperationType == 'b' or selectedOperationType == 's' or selectedOperationType == 'p':
                 self.__operationType = selectedOperationType                  
             else:
-                message.console( type='ERROR', text='Operation type ' + selectedOperationType + ' does not exist. Try again.' )   
+                utilities.message( type='ERROR', text='Operation type ' + selectedOperationType + ' does not exist. Try again.' )   
                 self.selectOperationType()
                 
         return self.__operationType            
@@ -140,6 +140,7 @@ class Setting:
         if str( selectedOption ) == 'c':  
             subject.setComputer(' ')    
             subject.setUser(' ')   # user must be reselected too                 
+            self.__itemConstituents.configurationList = [' ']  # and also configurations since these depend on computer
         if str( selectedOption ) == 'o':  
             subject.setCode(' ') 
             subject.setBranch(' ')    # branch must be reselected too               
@@ -148,7 +149,7 @@ class Setting:
             
         if str( selectedOption ) == 't' or str( selectedOption ) == 'e':            
             self.__itemConstituents.typeList = [' ']
-            self.__itemConstituents.caseList = [[' ']] # case must be reselected too
+            self.__itemConstituents.caseList = [[' ']]         # case must be reselected too
             self.__selectedTypeIdList.clear()
         if str( selectedOption ) == 'a' or str( selectedOption ) == 'e':             
             self.__itemConstituents.caseList = [[' ']]
@@ -252,7 +253,7 @@ class Setting:
         try:
             val = int( selectedId )
         except ValueError:
-            message.console( type='WARNING', text='That was not a number' )
+            utilities.message( type='WARNING', text='That was not a number' )
             return False
                        
         return True 

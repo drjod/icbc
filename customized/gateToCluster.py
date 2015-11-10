@@ -2,8 +2,7 @@ import subprocess
 import fileinput
 import item
 import subject
-import platform
-import message
+import platform, utilities
 import simulationData
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
@@ -13,11 +12,15 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
 def operate( subject, item, operationType, operation, simulationData ):
     
     mod = __import__( subject.getComputer() )    
-    temporaryShellScript =  configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh'
+    if ( operationType == 's' ):
+        temporaryShellScript =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + operationType + '_' + operation + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh' )
+    else:
+        temporaryShellScript = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + operationType + '_' +  operation + '_' + item.getConfiguration() + '.sh' )
+
     try:
         f = open( temporaryShellScript, 'w' )
     except OSError as err:
-        message.console( type='ERROR', text='OS error: {0}'.format(err) ) 
+        utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
     else:
         f.write( '#!/bin/sh\n' )
         f.write( 'module load python3.3\n' )
@@ -37,7 +40,7 @@ def operate( subject, item, operationType, operation, simulationData ):
     try:
         subprocess.call( 'plink ' + subject.getUser() + '@' + subject.getHostname() + ' -pw ' + mod.pwd + ' -m ' + temporaryShellScript, shell=True)# stdout=f )
     except:
-        message.console( type='ERROR', text='Plink call failed' )   
+        utilities.message( type='ERROR', text='Plink call failed' )   
 
     if os.path.isfile(temporaryShellScript) and os.access(temporaryShellScript, os.R_OK):   
         os.remove( temporaryShellScript )

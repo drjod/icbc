@@ -1,6 +1,7 @@
 import mysql.connector
 import os
-import message
+import utilities
+
 
 ##############################################
 # class GateToMySQL
@@ -65,13 +66,15 @@ class GateToMySQL:
             return 'all ' + table  # console output
                          
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str ( item_id ) )
-         
+        try:
+            cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str ( item_id ) )
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[1] ) )
         else:
-            message.console( type='ERROR', text='Name for id ' + str ( item_id ) + ' not found in table ' +  + str ( table ) )            
+            utilities.message( type='ERROR', text='Name for id ' + str ( item_id ) + ' not found in table ' +  + str ( table ) )            
             return '-1' # exception
 
     ##############################################
@@ -95,13 +98,15 @@ class GateToMySQL:
             return ''  # no name given
         else:    
             cursor = self.__cnx.cursor( buffered=True ) 
-            cursor.execute( 'SELECT t.id FROM ' + table + ' t WHERE t.name=%s',(name, ))
-             
+            try:
+                cursor.execute( 'SELECT t.id FROM ' + table + ' t WHERE t.name=%s',(name, ))
+            except:
+                utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )                
             row = cursor.fetchone()
             if row is not None:
                 return ( str ( row[0] ) )
             else:
-                message.console( type='ERROR', text='Column id for ' + str ( name ) + ' not found in table ' +  + str ( table ) )            
+                utilities.message( type='ERROR', text='Column id for ' + str ( name ) + ' not found in table ' +  + str ( table ) )            
                 return '-1' # exception            
                                                          
     ##############################################
@@ -129,15 +134,24 @@ class GateToMySQL:
         # set cursor       
         cursor = self.__cnx.cursor( buffered=True ) 
         if item_id == 'a':
-           
+            
             if table == 'computer' or table == 'user' or table == 'codes' or table == 'branches' or table == 'types':
-                cursor.execute( 'SELECT * FROM ' + table )
+                try:
+                    cursor.execute( 'SELECT * FROM ' + table )
+                except:
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
             elif table == 'cases':   # specific type selected 
-                cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + selectedType_id ) 
+                try:
+                    cursor.execute( 'SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id = ' + selectedType_id ) 
+                except:
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
             elif table == 'configurations':  # depends on selected computer
-                cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + computer_id )    
+                try:
+                    cursor.execute( 'SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id = ' + computer_id )  
+                except:
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )   
             else:
-                message.console( type='ERROR', notSupported=table )
+                utilities.message( type='ERROR', notSupported=table )
         else:    
             cursor.execute( 'SELECT * FROM ' + table + ' WHERE id=' + str( item_id ) )    
         # cursor -> struct 
@@ -169,13 +183,16 @@ class GateToMySQL:
     def getColumnEntry( self, table, item_id, column_name ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT t.' + column_name + ' FROM ' + table + ' t WHERE t.id=' + str ( item_id ) )
+        try:
+            cursor.execute( 'SELECT t.' + column_name + ' FROM ' + table + ' t WHERE t.id=' + str ( item_id ) )
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='Column entry of ' + str ( column_name ) + ' not found for id ' +  + str ( item_id ) )        
+            utilities.message( type='ERROR', text='Column entry of ' + str ( column_name ) + ' not found for id ' +  + str ( item_id ) )        
             return '-1' # exception
             
     ##############################################
@@ -186,13 +203,16 @@ class GateToMySQL:
     def getRootDirectory( self, computer_id, user_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT p.root FROM paths p WHERE p.computer_id=' + str ( computer_id ) + ' AND p.user_id=' + str ( user_id ) )
+        try:
+            cursor.execute( 'SELECT p.root FROM paths p WHERE p.computer_id=' + str ( computer_id ) + ' AND p.user_id=' + str ( user_id ) )
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='Path not found for computer id ' + str ( computer_id ) + ' - user id ' +  str ( user_id ) )
+            utilities.message( type='ERROR', text='Path not found for computer id ' + str ( computer_id ) + ' - user id ' +  str ( user_id ) )
             return '-1' # exception
      
                     
@@ -204,13 +224,16 @@ class GateToMySQL:
     def getTestingDepth( self, type_id, case_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( 'SELECT e.testingDepth FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+        try:
+            cursor.execute( 'SELECT e.testingDepth FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )  
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='Testing depth not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            utilities.message( type='ERROR', text='Testing depth not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
             return '1000' # exception - no operation for high number    
         
   
@@ -223,13 +246,16 @@ class GateToMySQL:
     def getUserIdFromSuperuser( self, superuser, computer ):        
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
-        cursor.execute( "SELECT s.user_id FROM superuser s WHERE s.name='" +  str ( superuser ) +"' AND s.computer_id=" + self.getIdFromName( 'computer', computer ) )
+        try:
+            cursor.execute( "SELECT s.user_id FROM superuser s WHERE s.name='" +  str ( superuser ) +"' AND s.computer_id=" + self.getIdFromName( 'computer', computer ) )
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
         if row is not None:
             return ( str ( row[0] ) )
         else:
-            message.console( type='ERROR', text='User id not found for superuser ' + str ( superuser ) + ' on ' +  str ( computer ) )
+            utilities.message( type='ERROR', text='User id not found for superuser ' + str ( superuser ) + ' on ' +  str ( computer ) )
             return '-1' # exception
             
         

@@ -1,0 +1,8 @@
+option batch abort 
+option confirm off 
+open sftp://sungw389:fuwyek90@rzcluster.rz.uni-kiel.de/ 
+put F:\testingEnvironment\scripts\icbc\temp\numerics_global.py /home/sungw389/testingEnvironment/scripts/icbc/temp/numerics_global.py
+put F:\testingEnvironment\scripts\icbc\temp\numerics_flow.py /home/sungw389/testingEnvironment/scripts/icbc/temp/numerics_flow.py
+put F:\testingEnvironment\scripts\icbc\temp\numerics_mass.py /home/sungw389/testingEnvironment/scripts/icbc/temp/numerics_mass.py
+put F:\testingEnvironment\scripts\icbc\temp\numerics_heat.py /home/sungw389/testingEnvironment/scripts/icbc/temp/numerics_heat.py
+exit

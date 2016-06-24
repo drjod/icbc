@@ -218,21 +218,21 @@ class GateToMySQL:
      
                     
     ##############################################
-    #  GateToMySQL: getTestingDepth
+    #  GateToMySQL: getState
     #  
     # 
     
-    def getTestingDepth( self, type_id, case_id ):
+    def getState( self, type_id, case_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
         try:
-            cursor.execute( 'SELECT e.testingDepth FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+            cursor.execute( 'SELECT e.state FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
         except:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )  
         #  
         row = cursor.fetchone()
         if not row:
-            utilities.message( type='ERROR', text='Testing depth not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            utilities.message( type='ERROR', text='state not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
             return '1000' # exception - no operation for high number  
         else:
             return ( str ( row[0] ) )

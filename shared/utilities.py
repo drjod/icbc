@@ -91,3 +91,17 @@ def generateFolder( root, folderList ):
             os.stat( path )
         except:
             os.mkdir( path ) 
+
+#################################################################
+#  Remove file
+#  Task:
+#     Remove file if exists 
+#        
+
+def removeFile( fileName):
+
+    try:
+        os.remove(fileName)
+        message( type='INFO', text='Removing ' + fileName )
+    except OSError:
+        pass        

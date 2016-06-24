@@ -9,6 +9,8 @@ import gateToMySQL, configurationCustomized
 import simulationData
 
 
+#################################################################
+# structs
 
 class mySQL:
     def __init__( self, user, password, host, schema):
@@ -22,6 +24,13 @@ class itemConstituents:
         self.typeList = typeList                                   
         self.caseList = caseList
         self.configurationList = configurationList
+
+class lists: # stores lists for member setNames
+    def __init__( self ):
+        self._name = []     # contains selected names
+        self._nameSub = []  # to generate nested nameList for table cases, which depends on selected type
+        self._id = []       # stores selected ids
+        self._items = []    # entries contain id and name from database
      
         
 #################################################################
@@ -34,24 +43,24 @@ class itemConstituents:
            
 class Setting:
 
-    __selectedTypeIdList = []  # for tree structure (types, cases)
+    __selectedTypeIdList = []  # for tree structure (types, cases) - to know selected type when cases are selected
 
-    def __init__( self, typeList, caseList, configurationList, operationType, preselectedOperation, testingDepth, mySQL_struct ):
+    def __init__( self, typeList, caseList, configurationList, operationType, preselectedOperation, testMode, mySQL_struct ):
     
         self.__itemConstituents = itemConstituents( typeList, caseList, configurationList )
         self.__operationType = operationType                           # building or testing                         
         self.__preselectedOperation = preselectedOperation             # if specified, operation done only once
-        self.__testingDepth = testingDepth                                         
-                                
+        self.__testMode = testMode  # to switch off select                                        
         self.__mySQL_struct = mySQL_struct
         #self.__gateToMySQL = gateToMySQL.GateToMySQL( mySQL_struct )   
         #utilities.message( type='INFO', text='Connect ' + mySQL_struct.user + ' to ' + mySQL_struct.host + ' ' + mySQL_struct.schema  )
         
-    def __del__( self ):    
-        del self.__gateToMySQL
+    def __del__( self ):  
+        pass  
+        # del self.__gateToMySQL
         
     def connectToMySQL( self ):
-        utilities.message( type='INFO', text='Connect ' + self.__mySQL_struct.user + ' to ' + self.__mySQL_struct.host + ' ' + self.__mySQL_struct.schema  )
+        utilities.message( type='INFO', text='Connect ' + self.__mySQL_struct.user + ' to database ' + self.__mySQL_struct.host + ' ' + self.__mySQL_struct.schema  )
         self.__gateToMySQL = gateToMySQL.GateToMySQL(  self.__mySQL_struct )
 
     def disconnectFromMySQL( self ):
@@ -63,31 +72,29 @@ class Setting:
     def getPreselectedOperation( self ):
         return self.__preselectedOperation     
         
-    def getLocation( self, computer ):     
+    def getLocation( self, computerName ):     
         return self.__gateToMySQL.getColumnEntry( 'computer', 
-                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computerName ), 
                                                   'location') 
-    def getOperatingSystem( self, computer ):     
+    def getOperatingSystem( self, computerName ):     
         return self.__gateToMySQL.getColumnEntry( 'computer', 
-                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computerName ), 
                                                   'operating_system') 
  
-    def getRootDirectory( self, computer, user ): 
-        return self.__gateToMySQL.getRootDirectory( self.__gateToMySQL.getIdFromName( 'computer', computer ), self.__gateToMySQL.getIdFromName( 'user', user ) )  
+    def getRootDirectory( self, computerName, userName ): 
+        return self.__gateToMySQL.getRootDirectory( self.__gateToMySQL.getIdFromName( 'computer', computerName ), self.__gateToMySQL.getIdFromName( 'user', userName ) )  
           
-    def getHostname( self, computer):
+    def getHostname( self, computerName ):
         return self.__gateToMySQL.getColumnEntry( 'computer', 
-                                                  self.__gateToMySQL.getIdFromName( 'computer', computer ), 
+                                                  self.__gateToMySQL.getIdFromName( 'computer', computerName ), 
                                                   'hostname')  
     
-    def getUser( self, superuser, computer ):
+    def getUser( self, superuserName, computerName ):
         return self.__gateToMySQL.getNameFromId( 'user' , 
-                                                 self.__gateToMySQL.getUserIdFromSuperuser( superuser, computer ) ) 
+                                                 self.__gateToMySQL.getUserIdFromSuperuser( superuserName, computerName ) ) 
                                                       
-    def getLevel( self, case ):
-       return self.__gateToMySQL.getColumnEntry( 'cases', 
-                                                  self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                  'level') 
+    def getState( self, caseName ):
+        return self.__gateToMySQL.getColumnEntry( 'cases', self.__gateToMySQL.getIdFromName( 'cases', caseName ), 'state' ) 
                                                                    
     def setTypeList( self, list):
         self.__itemConstituents.typeList = list 
@@ -126,7 +133,6 @@ class Setting:
     #  Task:
     #      asks for user input which variable to reselect     
     #      and sets choosen variable to ' ' (caseList to [' '])
-    #      such that user input is requested later on for this variable   
     #  Parameter:
     #     subject (class): stores variables computer, user, code, branch
     #
@@ -172,102 +178,134 @@ class Setting:
             self.__operationType = None  
                     
     #################################################################        
-    #  Setting: selectGroup
+    #  Setting: set names
     #  Task:
-    #      get user input - table names
+    #      returns names (list of strings, nested list if table = 'cases')
+    #      for a table obtained from database and user selection  
     #  Parameter: 
     #      table (string): name of table in SQL schema
-    #  Return:    
-    #      names (list of strings, nested list if table = 'cases')   
-    #    
+
     
-    def selectGroup( self, table, computer = None ):      
-        nameList = []
-        nameSubList = []
-        idList = []     
-        # get items list with options 
-        if table == 'cases':          
-            if len( self.__selectedTypeIdList ) > 1: # all types         
+    def setNames( self, table, computer = None ):      
+
+        lists_inst= lists() 
+        names = []
+
+        self.getItemsFromDatabase( table, computer, lists_inst)  
+        if len(lists_inst._name) > 0: # for table cases if in table types all or range  was selected 
+            return lists_inst._name  # know already names, so return them directly
+        selectedId = self.selectId(table, lists_inst)                 
+        names = self.id2name(table, selectedId, lists_inst)
+
+        del lists_inst
+        return names
+      
+    ##############################################
+    #  Setting: getItemsFromDatabase
+    #  Task:     
+    #      fill lists_inst._items with instances (id, name) from database
+    #      if table cases and more than on type selected, fill lists_inst._name directly since selectId for case not required
+    #      class member to have access to __selectedTypeIdList
+
+    def getItemsFromDatabase( self, table, computer, lists_inst ):
+
+        if table == 'cases':   # has sublist for each type (nested list)      
+            if len( self.__selectedTypeIdList ) > 1: # more than one type was selected         
                 for typeId in self.__selectedTypeIdList:
-                    items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', selectedType_id = typeId )
-                    for row in items:
-                        nameSubList.append ( str( row['name'] ) ) 
-                    nameList.append ( copy.deepcopy( nameSubList ) )
-                    nameSubList.clear()                    
-                return nameList      
+                    lists_inst._items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', selectedType_id = typeId )
+                    for row in lists_inst._items:
+                        lists_inst._nameSub.append ( str( row['name'] ) ) 
+                    lists_inst._name.append ( copy.deepcopy( lists_inst._nameSub ) ) # append to _name to return this directly (without selectId)
+                    lists_inst._nameSub.clear()                    
             else: # cases for specific type
-                items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', 
+                lists_inst._items = self.__gateToMySQL.getNamesFromIdGroup( 'cases', 'a', 
                                                                 selectedType_id = self.__selectedTypeIdList[0] )  
-        elif table == 'configurations':
-            items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', 'a', 
+        elif table == 'configurations': # since it depends on computer
+            lists_inst._items = self.__gateToMySQL.getNamesFromIdGroup( 'configurations', 'a', 
                                                              self.__gateToMySQL.getIdFromName( 'computer', computer ) )
-        else:    
-            items = self.__gateToMySQL.getNamesFromIdGroup( table, 'a' )
-        # print options             
-        print( '\nSelect from ' + table + ':\n' )  
-        for row in items:
-            print( '   ' + str( row['id'] ) + ' ' + str( row['name'] ) )
-            nameSubList.append ( copy.deepcopy( str( row['name'] ) ) )
-            idList.append ( copy.deepcopy( str( row['id'] ) ) )
-            
-        if table == 'types' or table == 'cases' or table == 'configurations':    
+        else:    # computer, user, ... (anything but cases, configurations - see list in environment constructor)
+            lists_inst._items = self.__gateToMySQL.getNamesFromIdGroup( table, 'a' ) 
+
+
+    ##############################################
+    #  Setting: selectId
+    #  Task:   
+    #      print options on console 
+    #      fill lists_inst._nameSub with names from lists_inst_items 
+    #  Requirements:
+    #      items in lists_inst must be set
+       
+    def selectId( self, table, lists_inst ):
+
+        if self.__testMode == False:  
+            # print options             
+            print( '\nSelect from ' + table + ':\n' )  
+
+        for row in lists_inst._items:
+            if self.__testMode == False:
+                print( '   ' + str( row['id'] ) + ' ' + str( row['name'] ) )
+            lists_inst._nameSub.append ( copy.deepcopy( str( row['name'] ) ) )
+            lists_inst._id.append ( copy.deepcopy( str( row['id'] ) ) )
+ 
+        if self.__testMode == True:
+            # TESTMODE: preselect in testMode anything but examples (types, cases, configurations) and specify level in database
+            # all examples are selected here and level is checked in operation instance 
+            selectedId = 'a'
+        else:
             print( '   a all' )  
-        if table == 'types': # range only for types
-            print( '   r range' )    
-        # select
-        selectedId = input( '\n   by typing number: ' )    
-        if table == 'types':
-            if selectedId == 'a': # took all             
-                for i in range( 0, len( idList )):
-                    self.__selectedTypeIdList.append( copy.deepcopy( idList[i] ) )      
-            elif selectedId == 'r': # took range
+            if table == 'types': # range only for types supported
+                print( '   r range' )    
+            # select
+            #
+            selectedId = input( '\n   by typing number: ' ) 
+
+        if table == 'types': # set self.__selectedTypeIdList
+            if selectedId == 'a': # selected all             
+                for i in range( 0, len( lists_inst._id )):
+                    self.__selectedTypeIdList.append( copy.deepcopy( lists_inst._id[i] ) )      
+            elif selectedId == 'r': # selected range - so get the lower and upper range limits now
                 lowerRange = input( '\n       From: ' )    
                 upperRange = input( '\n         To: ' )
                 for i in range( int(lowerRange), int(upperRange) + 1):
-                    self.__selectedTypeIdList.append( copy.deepcopy( idList[i] ) )                                           
+                    self.__selectedTypeIdList.append( copy.deepcopy( lists_inst._id[i] ) )                                           
             else:
                 self.__selectedTypeIdList.append( copy.deepcopy( selectedId ) )
-        print( '\n-----------------------------------------------------------------' )    
-        # id to name (list)
+        print( '\n-----------------------------------------------------------------' )   
+         
+        return selectedId
+
+    #################################################################
+    #  Global: id2name
+    #  Task:
+    #      Convert id to name (list) and return this as a nested list [['...']]
+    #      class member to have access to __selectedTypeIdList
+ 
+    def id2name( self, table, selectedId, lists_inst):
+
         if selectedId == 'a':
             if table == 'cases':
-                nameList.append( copy.deepcopy( nameSubList ) )
-                return nameList   # returning nested list [['...']]
+                lists_inst._name.append( copy.deepcopy( lists_inst._nameSub ) )  
+                return lists_inst._name
             else:    
-                return nameSubList
+                return lists_inst._nameSub
         elif selectedId == 'r': 
             if table == 'types':
-                for j in self.__selectedTypeIdList:
-                    i = 0
-                    for idInst in idList:
-                        if not ( idInst == j ):                
-                            i = i+1
-                        else:
-                            break
-                    
-                    nameList.append( copy.deepcopy( nameSubList[i] ) )
-                return nameList   # returning nested list [['...']]
+                for id in self.__selectedTypeIdList:    
+                    lists_inst._name.append( copy.deepcopy( lists_inst._nameSub[getListId( id, lists_inst._id)] ) )
+                return lists_inst._name  
             else:
                 utilities.message( type='ERROR', text='Range supported only for types' )
                 return None
-        else: # single item
-            # get list id (global to local)
-            i = 0
-            for idInst in idList:
-                if not ( idInst == selectedId ):                
-                    i = i+1
-                else:
-                    break
-                    
-            nameList.append( copy.deepcopy( nameSubList[i] ) )
+        else: # single item           
+            lists_inst._name.append( copy.deepcopy( lists_inst._nameSub[getListId( selectedId, lists_inst._id)] ) )
             if table == 'cases':
                 nameList2 = []
-                nameList2.append( copy.deepcopy( nameList ) )
-                return nameList2   # returning nested list [['...']]
+                nameList2.append( copy.deepcopy( lists_inst._name ) ) 
+                return nameList2
             else:       
-                return nameList     
-    
-               
+                return lists_inst._name  
+
+                                                                    
     ##############################################
     #  Setting: checkSelectedId
     #  Task:
@@ -294,10 +332,10 @@ class Setting:
         return True 
 
     ##############################################
-    #  Setting: selectItemConstituentGroup
+    #  Setting: setItemConstituents
     #  Task:
-    #    calls member function selectGroup to specify item constituents  
-    #    if they are not previously selected
+    #    calls member function selectNames to get item constituents  
+    #    if they are not previously selected (i.e. in environment constructor or anywhere in last operations)
     #  Parameter:
     #    table (string): [types, cases, configurations] 
     #  Return:
@@ -305,21 +343,21 @@ class Setting:
     #    nested list if table = 'cases'
     #
     
-    def selectItemConstituentGroup( self, groupType, computerOfSubject = '' ):
+    def setItemConstituents( self, groupType, computerOfSubject = '' ):
     
         if groupType == 'types':           
             if len ( self.__itemConstituents.typeList ) == 0 or not self.__itemConstituents.typeList[0]:   
-                return self.selectGroup( table = 'types' ) 
+                return self.setNames( table = 'types' ) 
             else:
                 return self.__itemConstituents.typeList 
         elif groupType == 'cases':
             if len( self.__itemConstituents.caseList ) == 0 or self.__itemConstituents.caseList[0] == [None]:   
-                return self.selectGroup( table = 'cases' ) 
+                return self.setNames( table = 'cases' ) 
             else:
                 return self.__itemConstituents.caseList 
         elif groupType == 'configurations':
             if len( self.__itemConstituents.configurationList ) == 0 or not self.__itemConstituents.configurationList[0]:    
-                return self.selectGroup( table = 'configurations', 
+                return self.setNames( table = 'configurations', 
                                          computer = computerOfSubject )
             else:
                 return self.__itemConstituents.configurationList             
@@ -354,6 +392,7 @@ class Setting:
         prcs = numerics.processes() 
 
         preconditioner = []
+        solver = []
         theta = []
         # this prcs is put into globNum
         prcs.set( self.__gateToMySQL.getNameFromId( 'flow_processes',
@@ -362,92 +401,86 @@ class Setting:
                                                             'flow_id' ) ),
                                                         self.__gateToMySQL.getColumnEntry( 'cases', 
                                                             self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                            'mass' ),                                                                                    
+                                                            'mass_flag' ),                                                                                    
                                                         self.__gateToMySQL.getColumnEntry( 'cases', 
                                                             self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                            'heat' ) ) 
+                                                            'heat_flag' ) ) 
         # generall numerics data 
         globNum.set ( prcs, 
                           self.__gateToMySQL.getColumnEntry( 'cases', 
                                                                  self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                                 'coupled' ),                                                                     
+                                                                 'coupled_flag' ),                                                                     
                           self.__gateToMySQL.getColumnEntry( 'cases', 
                                                                  self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                                 'lumping' ),
+                                                                 'lumping_flow' ),
                           self.__gateToMySQL.getColumnEntry( 'cases', 
                                                                  self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                                 'nonlinear' ) )  
-                                 
-        solver = self.__gateToMySQL.getColumnEntry( 'cases', 
-                                                                 self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                                 'solver' )
-        # the data that dependent on process
-        preconditioner.append( self.convertPreconditionerCode( configuration, 
-                                                         self.__gateToMySQL.getColumnEntry( 'cases', 
-                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'flow_precond' ) ) )
-        preconditioner.append( self.convertPreconditionerCode( configuration, 
-                                                         self.__gateToMySQL.getColumnEntry( 'cases', 
-                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'mass_precond' ) ) ) 
-        preconditioner.append( self.convertPreconditionerCode( configuration, 
-                                                         self.__gateToMySQL.getColumnEntry( 'cases', 
-                                                      self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'heat_precond' ) ) )
+                                                                 'nonlinear_flag' ) )                         
+        # the data that dependent on process      
+        solver.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'solver_flow_' + configuration ), 'solver' ) ) 
+         
+        solver.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'solver_mass_' + configuration ), 'solver' ) )                            
+
+        solver.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'solver_heat_' + configuration ), 'solver' ) ) 
+        
+
+        preconditioner.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'preconditioner_flow_' + configuration ), 'preconditioner' ) ) 
+         
+        preconditioner.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'preconditioner_mass_' + configuration ), 'preconditioner' ) )                            
+
+        preconditioner.append( self.convertNumericsDbEntry2specifcation( configuration, self.__gateToMySQL.getColumnEntry( 
+            'cases', self.__gateToMySQL.getIdFromName( 'cases', case ), 'preconditioner_heat_' + configuration ), 'preconditioner' ) ) 
+
 
         theta.append ( self.__gateToMySQL.getColumnEntry( 'cases', 
                                                       self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'flow_theta' ) ) 
+                                                      'theta_flow' ) ) 
         theta.append ( self.__gateToMySQL.getColumnEntry( 'cases', 
                                                       self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'mass_theta' ) ) 
+                                                      'theta_mass' ) ) 
         theta.append ( self.__gateToMySQL.getColumnEntry( 'cases', 
                                                       self.__gateToMySQL.getIdFromName( 'cases', case ), 
-                                                      'heat_theta' ) )
+                                                      'theta_heat' ) )
 
         # store data in simulationData.simData() - local in environment.run()                                                                                                                                                        
         simData.setNum( globNum, solver, preconditioner, theta )  
                                                                                                                                                                                                            
         return simData
     
-
     #################################################################
-    #  Setting: convertPreconditionerCode
-    #  Task:
-    #      Converts code in mySQL database into preconditioner specification in ogs input file
-    #          1st bit is set 1: preconditioner used in configuration OGS_FEM           (specification 1, Jacobi)     100 is iLU
-    #          2nd bit is set 1: preconditioner used in configuration OGS_FEM_SP        (specification 1, Jacobi)
-    #          ...
-    #
+    #  Setting: convertNumericsDbEntry2specifcation
+    #      numericsType: 'solver' or 'preconditioner'
+    def convertNumericsDbEntry2specifcation( self, configuration, entry, numericsType ):
+        value = ''
+        try:
+            if not  (entry == 'null' ):
+                solverTableName = self.__gateToMySQL.getColumnEntry( 'configurations', self.__gateToMySQL.getIdFromName( 'configurations', configuration ), numericsType + '_table_name') 
+                return self.__gateToMySQL.getColumnEntry( solverTableName, entry, 'specification')
+            else:
+                return '-1'
+        except:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )  
+                
 
-    def convertPreconditionerCode( self, configuration, code ):
+#################################################################
+#  Global: getListId
+#  Task:
+#      Convert from global id to local id
 
-        b = '-1'             # bit in code
-        specification = '-1' # number for preconditioner in input file
+def getListId( selectedId, idList):
 
-        # select bit and specification according to configuration
-        if configuration == 'OGS_FEM':
-            b = '0'
-            specification = '1'
-        elif configuration == 'OGS_FEM_SP':
-            b = '1'
-            specification = '1' 
-        elif configuration == 'OGS_FEM_MKL':
-            b = '2'
-            specification = '1' 
-        elif configuration == 'OGS_FEM_MPI' or configuration == 'OGS_FEM_MPI_KRC':
-            b = '3'
-            specification = '1' 
-        #elif configuration == 'OGS_FEM_PETSC':
-        #    b = '4'
-        #    specification = '1' 
+    i = 0
+    for idInst in idList:
+        if not ( idInst == selectedId ):                
+            i = i+1
         else:
-            utilities.message( type='ERROR', notSupported=configuration )
-            return '0'
+            break
 
-        # set and return preconditioner specification for num input file 
-        if bool(int(code)&(1<<int(b))) == True:
-            return specification
-        else:
-            return '0'
-                      
+    return i
+
+

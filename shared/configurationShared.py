@@ -5,15 +5,14 @@ inputFileEndings = ['bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp',
 outputFileEndings = ['tec', 'txt', 'plt', 'vtk', 'asc']
 additionalFileEndings = ['exe', 'dat', 'sts']             # to export to or import from repository
 
-solver2number = {'gauss': 1, 'bcgs': 2, 'bicg': 3, 'qmrggStab': 4, 'cg': 5, 'cgnr': 6, 'cgs': 7, 'richardson': 8, 'jor': 9, 'sor': 10, 'amg1r5': 11, 'umf': 12, 'gmres': 13} 
+#solver2number = {'gauss': 1, 'bcgs': 2, 'bicg': 3, 'qmrggStab': 4, 'cg': 5, 'cgnr': 6, 'cgs': 7, 'richardson': 8, 'jor': 9, 'sor': 10, 'amg1r5': 11, 'umf': 12, 'gmres': 13} 
 # preconditioner2number = {'none': 0, 'jacobi': 1, 'ilu': 100}
-matrixStorage2number = {'full': 1, 'sparse': 2, 'symSparse': 3, 'unsymSparse': 4} 
+#matrixStorage2number = {'full': 1, 'sparse': 2, 'symSparse': 3, 'unsymSparse': 4} 
 #  3 : for precond incomplete Cholesky
 #  4 : for precond incomplete LDU
 
 examplesName = 'testCase'
 
-testingLevel = '1'
 
 
 # num input (for all processes):
@@ -28,6 +27,6 @@ tollerance_linear = '1.e-14'
 tollerance_nonlinear = '10.' 
 
 
-matrixStorage = 'sparse'
+#matrixStorage = 'sparse'
 numberOfGaussPoints = '2'
 

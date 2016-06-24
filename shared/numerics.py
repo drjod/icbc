@@ -42,7 +42,8 @@ class Global:
 
     def __init__( self ):
 
-        self._processes.clear()
+        del self._processes[:]
+
 
     def __del__(self):  
 

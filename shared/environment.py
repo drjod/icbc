@@ -64,8 +64,8 @@ class Environment:
                 utilities.message( type='INFO', text='Set operation type ' + operationType )
             if not operation:
                 utilities.message( type='INFO', text='Set operation ' + operation )           
-            if not state:
-                utilities.message( type='INFO', text='Set state ' + state )                            
+            #if not state:
+            #    utilities.message( type='INFO', text='Set state ' + state )
             if not simulationData:
                 __simulationData = simulationData
                 utilities.message( type='INFO', text='Simulation data set' )  
@@ -145,7 +145,7 @@ class Environment:
         elif operationType == 'p':  # plotting  
             operation_inst = operation.Plotting( self.__subject_inst )                           
         else:    
-            utilities.message( type='ERROR', notSupported=selectedOperationType )  
+            utilities.message( type='ERROR', notSupported=operationType )
         if self.__reselectFlag == False:
             selectedOperation = operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
             if selectedOperation is not 's': # s stands for reselect

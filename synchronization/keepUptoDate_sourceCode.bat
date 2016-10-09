@@ -4,7 +4,7 @@
 ::
 :: set the following parameters previsouly:
 :: localComputer, set remoteComputer, code, branch, login, pwd, hostName
-:: a file winscp_keepUpToDate.txt will be generated - you can delete that then
+:: a file winscp_keepUpToDate.txt will be generated in temporary folder - not automatically deleted
 
 echo.
 echo __()_()________________________________________________________________________
@@ -14,21 +14,22 @@ echo _________________________________ ON %remoteComputer% _____________________
 echo.
 :::::::::::::::
 
+set WINSCP=C:\"Program Files (x86)"\WinSCP\WinSCP.com
 set tempFolder=C:\Windows\Temp
+
 set winscpScript=%tempFolder%\winscp_keepUpToDate_%code%_%branch%_%remoteComputer%.txt
 
 
 echo option batch abort > %winscpScript%
 echo option confirm off >> %winscpScript%
 echo open sftp://%login%:%pwd%@%hostName%/ >> %winscpScript%
-echo keepuptodate F:\testingEnvironment\%localComputer%\%code%\%branch%\sources /home/%login%/testingEnvironment/%remoteComputer%/%code%/%branch%/sources >> %winscpScript%
+echo keepuptodate %localRoot%\%localComputer%\%code%\%branch%\sources %remoteRoot%/%remoteComputer%/%code%/%branch%/sources >> %winscpScript%
 
 
-set WINSCP=C:\"Program Files (x86)"\WinSCP\WinSCP.com
 call %WINSCP% /script=%winscpScript%
 
 : del F:\tools\winscp\winscp_keepUpToDate.txt
-: it does not delete
+: removed since it does not delete
 
 : pause
 

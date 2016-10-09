@@ -1,19 +1,13 @@
-import subprocess
-import shutil
-import configurationShared
-import fileinput
-import item
-import subject
-import platform, utilities
-import tarfile
-import shutil
-import simulationData
-import imp
-import sys, os, glob
+import subject, item, simulationData
+import utilities, configurationShared
+import platform, subprocess, shutil, tarfile, fileinput
+import imp, sys, os, glob, time
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import configurationCustomized
 import gateToCluster
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
+
+
 
 
 #################################################################
@@ -24,12 +18,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
 
 class Operation:
 
-    _selectedOperation = ' '
-    _selectedOperationType = ' '   
-    _item = ' '
+    _selectedOperation = None
+    _selectedOperationType = None   
+    _item = None
     _operationList = [] 
 
-    _simulationData = ''    # put to Simulation below
+    _simulationData = None   # put to Simulation below
 
     
     #################################################################
@@ -39,6 +33,7 @@ class Operation:
     def __init__( self, subject ):
         self._subject = subject
         self._gateFlag = False
+
     #################################################################
     #  Operation: destructor
     #
@@ -48,6 +43,8 @@ class Operation:
     # getter             
     def getSelectedOperation( self ):                  
         return self._selectedOperation
+    def getSelectedOperationType( self ):                  
+        return self._selectedOperationType
 
                        
     #################################################################
@@ -64,7 +61,10 @@ class Operation:
                        
     def selectOperation( self, preselectedOperation ):
     
-        if preselectedOperation == ' ':
+        print( '\n-----------------------------------------------------------------\n' ) 
+        print('Test subject ' + self._subject.getCode() + ' ' + self._subject.getBranch())
+        print('             on ' +  self._subject.getComputer() )
+        if not preselectedOperation:
             print( '\nSelect operation:\n' )        
             for operation in self._operationList:
                 print( operation )                           
@@ -74,20 +74,30 @@ class Operation:
         return self._selectedOperation          
                
     #################################################################
-    #  Operation: 
-    #
+    #  Operation.run(): 
+    #      direct to cluster or load data files (if necessary) and do operation
     #
 
     def run( self, item, simulationData ):
 
         self._simulationData = simulationData
+   
         if self._subject.getLocation() == 'remote' and configurationCustomized.location == 'local' and not self._selectedOperationType == 'p':
             
             gateToCluster.operate( self._subject, item, 
-                                  self._selectedOperationType, self._selectedOperation, self._simulationData
-                                  ) 
+                                    self._selectedOperationType, self._selectedOperation, self._simulationData ) 
         else:   
-            self.operate( item )                
+            if configurationCustomized.location == 'remote':
+                # file transfer
+                if simulationData.getReadFileFlags()._numerics  == True: 
+                    simulationData.importNumDataFiles( item.getConfiguration() )
+                    simulationData.getNumDataFromModules( item.getConfiguration() )
+                if simulationData.getReadFileFlags()._processing  == True: 
+                    simulationData.importProcessingDataFiles( item.getConfiguration() )
+                    simulationData.getProcessingDataFromModule( item.getConfiguration() )
+            self.operate( item )   
+
+            
                         
 #################################################################
 #  class: Building
@@ -107,8 +117,10 @@ class Building(Operation):
         self._selectedOperationType = 'b'
 
         self._operationList[:]=[]                                    
-        self._operationList.append( '    (c)ompile' )                  
-        self._operationList.append( '    (u)pdate release file' )      
+        self._operationList.append( '    (b)uild' )                  
+        self._operationList.append( '    (u)pdate' )   
+        self._operationList.append( '    (c)lear' )     
+        self._operationList.append( '    (w)ait' )                  
         self._operationList.append( '    re(s)elect' )                     
             
         Operation.__init__( self, subject )
@@ -123,12 +135,16 @@ class Building(Operation):
         
         self._item = build 
         
-        if self._selectedOperation == 'c':
-            self.compileRelease()  
+        if self._selectedOperation == 'b':
+            self.buildRelease()  
         elif self._selectedOperation == 'u':
-            self.updateRelease()                                                                             
+            self.updateRelease()  
+        elif self._selectedOperation == 'c':
+            self.clearFolder()     
+        elif self._selectedOperation == 'w':
+            self.wait()                                                                                                   
         else:
-            utilities.message( type='ERROR', notSupported='Operation ' + self.__selectedOperation )                          
+            utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation )                          
   
     #################################################################
     #  Building: run
@@ -136,19 +152,12 @@ class Building(Operation):
     #      run one of the selected test items with selected code
     #
                                    
-    def compileRelease( self ): 
-        utilities.message( type='INFO', text='Compiling ' + self._item.getConfiguration()  )
+    def buildRelease( self ): 
+        utilities.message( type='INFO', text='Building ' + self._item.getConfiguration()  )
         try:
-            if platform.system() == 'Windows':                    
-                subprocess.check_call( self._subject.getCompilationCommand( self._item ) )   
-            elif platform.system() == 'Linux':
-                subprocess.Popen(self._subject.getCompilationCommand( self._item ), shell=True)   
-            else:
-                utilities.message( type='ERROR', notSupported=platform.system() )  
+            subprocess.Popen( self._subject.getBuildCommand( self._item ), shell=True )   
         except:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )            
-
-
             
     #################################################################
     #  Building: updateRelease
@@ -169,7 +178,31 @@ class Building(Operation):
         else:
             utilities.message( type='ERROR', text='Binary does not exist - nothing done' )                         
            
-                               
+    #################################################################
+    #  Building: clearFolder
+    #  Task:
+    #      Deleate release binaries
+    #
+                                   
+    def clearFolder( self ):   
+
+        utilities.message( type='INFO', text='Removing release ' + platform.system() + ' ' + self._item.getConfiguration() )   
+        try:
+            os.remove(self._subject.getExecutable( self._item ))
+        except OSError:
+            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
+
+    #################################################################
+    #  Building: Wait
+    #  Task:
+    #      Wait until release exists
+    #
+                                   
+    def wait( self ):   
+        utilities.message( type='INFO', text='Waiting for release ' + platform.system() + ' ' + self._item.getConfiguration() )  
+        waitForFile(self._subject.getExecutable( self._item ))
+
+                   
 #################################################################
 #  class: Testing
 #  Task:
@@ -182,19 +215,24 @@ class Simulating(Operation):
     #  Simulating: constructor
     #  Task:
     #     testing operations that can be local or remote (e.g. writing files, run code)
-           
+    #     adapt simulationDate.setReadFileFlags according to letters r, n, .... for selected operation
+    #
+             
     def __init__( self, subject ):
 
         self._selectedOperationType = 's'
 
         self._operationList[:]=[] 
         self._operationList.append( '    (r)un ' + subject.getCode() )
-        self._operationList.append( '    (i)mport files from repository (gate)' )
-        self._operationList.append( '    e(x)port files to repository (gate)' )
-        self._operationList.append( '    (w)rite files' )
-        self._operationList.append( '    (m)esh partition' )
-        self._operationList.append( '    (c)lean folder from results' )
-        self._operationList.append( '    pac(k) results' )            
+        self._operationList.append( '    write (n)um' )
+        self._operationList.append( '    (c)lear folder from results' )
+        self._operationList.append( '    (w)ait' )
+        if subject.getLocation() == 'remote':
+            self._operationList.append( '    (i)mport files from repository (gate)' )
+            self._operationList.append( '    e(x)port files to repository (gate)' )
+            self._operationList.append( '    wri(t)e pbs' )
+            self._operationList.append( '    (m)esh partition' )
+            self._operationList.append( '    (p)ack results' )                 
         self._operationList.append( '    re(s)elect' )
         
         
@@ -212,56 +250,49 @@ class Simulating(Operation):
         self._item = sim
                                                                       
         if self._selectedOperation == 'r':
-            self.runTest()  
-        elif self._selectedOperation == 'i':
-            self.importFromRepository()
-        elif self._selectedOperation == 'I':
-            self._gateFlag = True
-            self.importFromRepository()
-        elif self._selectedOperation == 'x':
-            self.exportToRepository()
-        elif self._selectedOperation == 'X':
-            self._gateFlag = True
-            self.exportToRepository()
-        elif self._selectedOperation == 'w':
-            self.writeFiles()               
-        elif self._selectedOperation == 'm':
-            self.meshPartition()  
+            self.runItem()  
+        elif self._selectedOperation == 'n':
+            self.writeNum()               
         elif self._selectedOperation == 'c':
-            self.cleanFolder() 
-        elif self._selectedOperation == 'k':
-            self.packResults()                                                                               
+            self.clearFolder()             
+        elif self._selectedOperation == 'i' and self._subject.getLocation() == 'remote':
+            self.importFromRepository()
+        elif self._selectedOperation == 'I' and self._subject.getLocation() == 'remote':
+            self._gateFlag = True
+            self.importFromRepository()
+        elif self._selectedOperation == 'x' and self._subject.getLocation() == 'remote':
+            self.exportToRepository()
+        elif self._selectedOperation == 'X' and self._subject.getLocation() == 'remote':
+            self._gateFlag = True
+            self.exportToRepository()
+        elif self._selectedOperation == 't' and self._subject.getLocation() == 'remote':
+            self.writePbs()  
+        elif self._selectedOperation == 'm' and self._subject.getLocation() == 'remote':
+            self.meshPartition()  
+        elif self._selectedOperation == 'p' and self._subject.getLocation() == 'remote':
+            self.packResults()   
+        elif self._selectedOperation == 'w':
+            self.wait() 
+        elif self._selectedOperation == '0':       
+            utilities.message( type='INFO', text='No Operation' )                                                                         
         else:
             utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation ) 
        
     #################################################################
-    #  Simulating: runTest
+    #  Simulating: runItem
     #  Task:
     #      run code
     #
                                    
-    def runTest( self ): 
+    def runItem( self ): 
         
         utilities.message( type='INFO', text='Running ' + self._item.getNameString() )
- 
+        
         if os.path.exists ( self._item.getDirectory() ):                           
-            if platform.system() == 'Windows':        
-                with open ( self._item.getDirectory() + 'out.txt', 'wb' ) as f:
-                    try:
-                        subprocess.check_call( self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName, stdout=f )   
-                    except:
-                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )
-            elif platform.system() == 'Linux':
-                if os.path.isfile( self._item.getDirectory() + 'run.pbs' ): 
-                    try:
-                        subprocess.Popen('qsub ' + self._item.getDirectory() + 'run.pbs', shell=True)
-                    except:
-                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
-                else:
-                    utilities.message( type='ERROR', text='Pbs missing' )                         
-            else:
-                utilities.message( type='ERROR', notSupported=platform.system() )  
-              
+            try:
+                subprocess.call( self._subject.getItemExecutionCommand( self._item ), shell=True)
+            except:
+                utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )    
         else:
             utilities.message( type='ERROR', text='Directory missing' )
         
@@ -278,24 +309,57 @@ class Simulating(Operation):
 
         utilities.message( type='INFO', text='Importing ' + self._item.getNameString() )              
         if self._gateFlag == True:
-            utilities.message( type='INFO', text='From gate' )     
+            utilities.message( type='INFO', text='    From gate' )     
             sourceDirectory = self._subject.getGateDirectory()
         else:
-            utilities.message( type='INFO', text='From repository' )
+            utilities.message( type='INFO', text='    From repository' )
             sourceDirectory = self._item.getDirectoryRepository() 
      
         # make test folder if it does not exist  
         testList = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
                        'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
         utilities.generateFolder( self._subject.getDirectory(), testList )
+
+        endingList = []
+        if self._subject.getLocation() == 'remote':                     # no input on remote cluster
+            endingList = list(configurationShared.inputFileEndings)
+        else:                                                         # but on local computer
+            selectedEndingGroup = input( '(e)nding, (n)ame or (a)ll\n' )
+        
+            # set variable(s) to  
+            if str( selectedEndingGroup ) == 'e':
+                selectedEnding = input( '\n' )
+                endingList.append(selectedEnding)
+            elif str( selectedEndingGroup ) == 'a':
+                endingList = list(configurationShared.inputFileEndings)
+            elif str( selectedEndingGroup ) == 'n':
+                name = input( '\n' )
+            
+
         # import
-        if  os.path.exists ( sourceDirectory ):                                 
-            for ending in configurationShared.inputFileEndings:  
+        if  os.path.exists ( sourceDirectory ):           
+            if self._gateFlag == True:
+                # dos2unix
+                utilities.message( type='INFO', text='    Convert file(s) to unix' )                      
+            for ending in endingList:  
                 fileName = sourceDirectory + configurationShared.examplesName + '.' + ending       
                 if os.path.isfile( fileName ) and os.access(fileName, os.R_OK):   
                     if self._gateFlag == True:
+                        # dos2unix
                         utilities.dos2unix( fileName )
-                    shutil.copy( fileName, self._item.getDirectory() )    
+                    shutil.copy( fileName, self._item.getDirectory() )   
+                    
+            for file in os.listdir( sourceDirectory ):  # to copy additional files, e.g. for external chemical solver
+                fileName = sourceDirectory + file
+                for ending in configurationShared.additionalFileEndings: 
+                    if file.endswith( '.' + ending ) and not fileName == sourceDirectory + configurationShared.examplesName + '.out':
+                        if self._gateFlag == True:
+                            # dos2unix
+                            if not file.endswith( '.exe' ):
+                                utilities.dos2unix( fileName )
+                        utilities.message( type='INFO', text='    Importing additional file ' + file ) 
+                        shutil.copy( fileName , self._item.getDirectory() ) 
+                                             
         else:
             utilities.message( type='ERROR', text='Repository directory missing' )
                     
@@ -325,70 +389,50 @@ class Simulating(Operation):
                 fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending                   
                 if os.path.isfile(fileName) and os.access(fileName, os.R_OK):   
                     shutil.copy( fileName, destinationDirectory )
+
+            for file in os.listdir( self._item.getDirectory() ):  # to copy additional files, e.g. for external chemical solver
+                fileName = self._item.getDirectory() + file
+                for ending in configurationShared.additionalFileEndings: 
+                    if file.endswith( '.' + ending ):
+                        utilities.message( type='INFO', text='    Exporting additional file ' + file )
+                        shutil.copy( fileName , destinationDirectory ) 
         else:
             utilities.message( type='ERROR', text='Directory missing' )
 
     #################################################################
-    #  Simulating: writeFiles
+    #  Simulating: writeNum
     #  Task:
-    #      generate *.pbs and *.num
+    #      generate *.num
     #
                                    
-    def writeFiles( self ): 
-
-        utilities.message( type='INFO', text='Generate files ' + self._item.getNameString() )
+    def writeNum( self ): 
+        
+        utilities.message( type='INFO', text='Write *.num ' + self._item.getNameString() )
         
         if os.path.exists ( self._item.getDirectory() ):   
-            if platform.system() == 'Linux':
-
-                utilities.message( type='INFO', text='    PBS' )
-                if  self._simulationData.getProcessing() == 'sequential':            
-                    ncpus = '1'              
-                    command = ''
-                    place = 'group=host'
-                else:  # parallel
-                    ncpus = self._simulationData.getNumberOfCPUs()
-                    command = 'mpirun -r rsh -machinefile $PBS_NODEFILE -n ' + ncpus + ' '
-                    place = 'scatter'
-
-                try:
-                    f = open( self._item.getDirectory() + 'run.pbs', 'w' )
-                except OSError as err:
-                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
-                else:
-                    f.write( '#!/bin/bash\n' )
-                    f.write( '#PBS -o ' + self._subject.getDirectory() + 'screenout.txt\n' )
-                    f.write( '#PBS -j oe\n' )  
-                    f.write( '#PBS -r n\n' )
-                    f.write( '#PBS -l walltime=2:00:00\n' )
-                    f.write( '#PBS -l select=1:ncpus=' + ncpus + ':mem=3gb\n' )
-                    f.write( '#PBS -l place=' + place + '\n' )
-                    f.write( '#PBS -q angus\n' )
-                    f.write( '#PBS -N test\n' )
-                    f.write( '\n' )
-                    f.write( 'cd $PBS_O_WORKDIR\n' )
-                    f.write( '\n' )
-                    f.write( '. /usr/share/Modules/init/bash\n' ) 
-                    f.write( '\n' )
-                    f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/bin/compilervars.sh  intel64\n' )
-                    f.write( '. /cluster/Software/intel14/composer_xe_2015.2.164/mkl/bin/intel64/mklvars_intel64.sh\n' )
-                    f.write( '. /cluster/Software/intel14/impi/5.0.3.048/intel64/bin/mpivars.sh\n' )
-                    f.write( '\n' ) 
-                    f.write( 'time ' + command + self._subject.getExecutable( self._item ) + ' ' + self._item.getDirectory() + configurationShared.examplesName + '\n' )
-                    f.write( '\n' ) 
-                    f.write( 'qstat -f $PBS_JOBID\n' )
-                    f.write( 'exit\n' )                                                                                                 
-                    f.close()
-                            
-            ##############################################
-            utilities.message( type='INFO', text='    NUM' )
-
-            self._simulationData.writeNumerics( self._item.getDirectory() )
-
+            self._simulationData.writeNum( self._item.getDirectory() )
         else:
             utilities.message( type='ERROR', text='Directory missing' ) 
 
-    
+  
+    #################################################################
+    #  Simulating: writePbs
+    #  Task:
+    #      generate run.pbs
+    #
+                                   
+    def writePbs( self ): 
+        
+        utilities.message( type='INFO', text='Write run.pbs ' + self._item.getNameString() )
+
+        if os.path.exists ( self._item.getDirectory() ):   
+            self._simulationData.writePbs( self._item.getDirectory(), self._subject.getExecutable( self._item ), self._item.getType() )
+        else:
+            utilities.message( type='ERROR', text='Directory missing' ) 
+                    
+   
+            
+                          
     #################################################################
     #  Simulating: Mesh partition
     #  Task:
@@ -398,53 +442,37 @@ class Simulating(Operation):
         
         utilities.message( type='INFO', text='Mesh partition ' + self._item.getNameString() )
 
-        partitionScript = configurationCustomized.rootDirectory + utilities.adaptPath( 'testingEnvironment\\scripts\\' ) + 'partition.sh'
-
-        if os.path.exists ( self._item.getDirectory() ):          
-            os.chdir(self._item.getDirectory())
-            myMeshfile = self._item.getDirectory() + configurationShared.examplesName + '.msh'
-            if os.path.isfile( myMeshfile ):     
-               try:       
-                   if self._simulationData.getProcessing() == 'mpi_elements': # for OGS_FEM_MPI
-                       subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -n -binary ' +  self._item.getDirectory(), shell=True )    
-                   if self._simulationData.getProcessing() == 'mpi_nodes':    # for OGS_FEM_PETSC
-                       subprocess.Popen( partitionScript + ' ' + self._simulationData.getNumberOfCPUs() + ' -e -asci ' +  self._item.getDirectory(), shell=True )                                                
-               except:
-                   utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
-            else:
-                utilities.message( type='ERROR', text='Mesh file missing' )              
+        if os.path.exists ( self._item.getDirectory() ):   
+            self._simulationData.partitionMesh( self._item.getDirectory() )
         else:
             utilities.message( type='ERROR', text='Directory missing' ) 
 
     #################################################################
-    #  Simulating: cleanFolder
+    #  Simulating: clearFolder
     #  Task:
-    #      delete *.tec, *.txt, *.asc, and results.tar on remote computer       
-    # 
+    #      delete *.tec, *.txt, *.plt, *.vtk and results.tar       
+    #      (remote folder for remote computer)
                                    
-    def cleanFolder( self ):   
+    def clearFolder( self ):   
 
-        utilities.message( type='INFO', text='Clean folder ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Clear simulation folder ' + self._item.getNameString() )
         #
         if os.path.exists ( self._item.getDirectory() ):
+            
             for file in os.listdir( self._item.getDirectory() ):
                 for ending in configurationShared.outputFileEndings: 
                     if file.endswith( '.' + ending ):
-                        os.remove( self._item.getDirectory() + file ) 
-                
+                        utilities.removeFile( self._item.getDirectory() + file ) 
+                                        
                 myRemoteTarFile = self._item.getDirectory() + 'results.tar' 
                 if os.path.isfile( myRemoteTarFile ): 
-                    os.remove( myRemoteTarFile )
-
+                    utilities.removeFile( myRemoteTarFile )
+           
+            utilities.removeFile( self._item.getDirectory() + configurationCustomized.outputFile )
         else:
             utilities.message( type='ERROR', text='Directory missing' )           
-        #if configurationCustomized.location == 'remote':
-        #    for file in os.listdir( self._item.getLocalDirectory() ):
-        #        for ending in configurationShared.outputFileEndings: 
-        #            if file.endswith( '.' + ending ):
-        #                os.remove( self._item.getLocalDirectory() + file ) 
-                                             
-  
+
+                                               
     #################################################################
     #
     # Simulating: packResults
@@ -453,9 +481,9 @@ class Simulating(Operation):
 
     def packResults( self ):   
          
-        utilities.message( type='INFO', text='Pack results ' + self._item.getNameString() )
-
         if self._subject.getLocation() == 'remote':
+            utilities.message( type='INFO', text='Pack results ' + self._item.getNameString() )
+
             if os.path.exists ( self._item.getDirectory() ):
                 myTarfile = self._item.getDirectory() + 'results.tar'  
                 if os.path.isfile( myTarfile ):
@@ -477,6 +505,25 @@ class Simulating(Operation):
         else:
             utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )            
             
+    #################################################################
+    #  Simulating: Wait
+    #  Task:
+    #      Wait until outputFile exists
+    #
+                                   
+    def wait( self ):   
+
+        utilities.message( type='INFO', text='Waiting for output file ' + self._item.getNameString() )
+        #
+        waitForFile(self._item.getDirectory() + configurationCustomized.outputFile)
+
+
+           
+#################################################################
+#  icbc class Plotting    
+#
+        
+
 class Plotting(Operation):
 
     
@@ -492,12 +539,14 @@ class Plotting(Operation):
         self._selectedOperationType = 'p'
 
         self._operationList[:]=[] 
-        self._operationList.append( '    (g)et results' )
+        if subject.getLocation() == 'remote':
+            self._operationList.append( '    (g)et results' )
         self._operationList.append( '    (p)replot' )
         self._operationList.append( '    generate (j)pg' )  
-        self._operationList.append( '    replace (n)ans' )                    
+        self._operationList.append( '    replace (n)ans and inds' )
+        self._operationList.append( '    (c)lear folder' )      
+        self._operationList.append( '    (w)ait' )                        
         self._operationList.append( '    re(s)elect' )
-        
         
         Operation.__init__( self, subject )
         
@@ -519,7 +568,11 @@ class Plotting(Operation):
         elif self._selectedOperation == 'j':
             self.generateJpg()  
         elif self._selectedOperation == 'n':
-            self.replaceNans()                                                                                           
+            self.replaceNansAndInds()   
+        elif self._selectedOperation == 'c':
+            self.clearFolder()         
+        elif self._selectedOperation == 'w':
+            self.wait()                                                                                                              
         else:
             utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation )             
             
@@ -533,14 +586,14 @@ class Plotting(Operation):
                                    
     def getResults( self ):   
  
-        utilities.message( type='INFO', text='Get results ' + self._item.getNameString() )
-
-        mod = __import__( self._subject.getComputer() )   
-        # make repository folder if it does not exist                
-        repositoryList = [ 'testingEnvironment', self._subject.getComputer(), self._subject.getCode(), self._subject.getBranch(), 'examples', 'files', self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]                   
-        utilities.generateFolder( configurationCustomized.rootDirectory, repositoryList )
-           
         if self._subject.getLocation() == 'remote':
+            utilities.message( type='INFO', text='Get results ' + self._item.getNameString() )
+
+            mod = __import__( self._subject.getComputer() )   
+            # make repository folder if it does not exist                
+            repositoryList = [ 'testingEnvironment', self._subject.getComputer(), self._subject.getCode(), self._subject.getBranch(), 'examples', 'files', self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]                   
+            utilities.generateFolder( configurationCustomized.rootDirectory, repositoryList )
+            
             if os.path.exists ( self._item.getDirectory() ):      
                 # clear local directory
                 files = glob.glob( self._item.getDirectory() + '*' )
@@ -591,14 +644,14 @@ class Plotting(Operation):
             utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )
                                             
     #################################################################
-    #  Plotting: replaceNans
+    #  Plotting: replaceNansAndInds
     #  Task:
-    #      replace each nan by 999 in all tec files 
+    #      replace each nan by 999 and remove each IND in all tec files 
     
                                    
-    def replaceNans( self ):    
+    def replaceNansAndInds( self ):    
      
-        utilities.message( type='INFO', text='Replace nans ' + self._item.getNameString() )
+        utilities.message( type='INFO', text='Replace nans and inds' + self._item.getNameString() )
      
         if os.path.exists ( self._item.getDirectory() ):                               
             os.chdir(self._item.getDirectory()) 
@@ -613,23 +666,20 @@ class Plotting(Operation):
                     else:
                         for line in infile: 
                             line = line.replace( 'nan', '999' )
+                            line = line.replace( '#IND', '' )
                             outfile.write(line) 
                         infile.close() 
                         outfile.close()         
                         shutil.move('new_' + file, file)                
         else:
             utilities.message( type='ERROR', text='Directory missing' )                                        
-    #            #with fileinput.FileInput( self._item.getLocalDirectory() + file, inplace=True ) as fileToSearchIn:
-    #            #    for line in fileToSearchIn:
-    #            #        print( line.replace( 'nan', '999' ))
 
     #################################################################
     #  Plotting: preplot
     #  Task:
     #      call preplot to generate *.plt's          
     #
-          
-
+  
     def preplot( self ): 
     
         utilities.message( type='INFO', text='Preplot ' + self._item.getNameString() )
@@ -638,19 +688,9 @@ class Plotting(Operation):
             os.chdir(self._item.getDirectory()) 
             for file in os.listdir( self._item.getDirectory() ): 
                 if file.endswith( '.tec' ):
-                    utilities.message( type='INFO', text='File: ' + file )   
-                    # replace nans
-                    #infile = open(file,'r') 
-                    #outfile = open( 'new_' + file, 'w') 
-                    #for line in infile: 
-                    #    line = line.replace( 'nan', '999' )
-                    #    outfile.write(line) 
-                    #infile.close() 
-                    #outfile.close()         
-                    #shutil.move('new_' + file, file)                     
-                     
+                    utilities.message( type='INFO', text='File: ' + file )                                          
                     try:            
-                        subprocess.check_call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file ) 
+                        subprocess.call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file, shell=True ) 
                     except:
                         utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )                
      
@@ -687,20 +727,78 @@ class Plotting(Operation):
                 f.write( '$!EXPORT\n' )
                 f.write( 'EXPORTREGION = ALLFRAMES\n' )
                 f.close()
-
+                print (configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr')
                 try:
-                    subprocess.check_call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr' ) 
+                    subprocess.call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr', shell=True ) 
                 except:
-                    print('error')
-                    # utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
+                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
 
-                os.remove( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
+                utilities.removeFile( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
   
         else:
             utilities.message( type='ERROR', text='Directory missing' )    
             
             
+    #################################################################
+    #  Plotting: clearFolder
+    #  Task:
+    #      delete *.tec, *.txt, *.asc, *plt and results.tar       
+    #      (local folder for remote computer)
+                                   
+    def clearFolder( self ):   
 
+        utilities.message( type='INFO', text='Clear plotting folder ' + self._item.getNameString() )
+        #
+        utilities.removeFile( self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg" )
 
+        if os.path.exists ( self._item.getDirectory() ):
+            for file in os.listdir( self._item.getDirectory() ):
+                for ending in configurationShared.outputFileEndings: 
+                    if file.endswith( '.' + ending ):
+                        if self._subject.getLocation() == 'remote' or not (ending =='tec'):    # do not delete tec if local
+                            utilities.removeFile( self._item.getDirectory() + file ) 
+                                      
+                #myLocalTarFile = self._item.getDirectory() + 'results.tar'  # done in getResults()
+                #if os.path.isfile( myLocalTarFile ): 
+                #    os.remove( myLocalTarFile )
+
+        else:
+            utilities.message( type='ERROR', text='Directory missing' )           
+        #if configurationCustomized.location == 'remote':
+        #    for file in os.listdir( self._item.getLocalDirectory() ):
+        #        for ending in configurationShared.outputFileEndings: 
+        #            if file.endswith( '.' + ending ):
+        #                os.remove( self._item.getLocalDirectory() + file ) 
+
+    #################################################################
+    #  Plotting: Wait
+    #  Task:
+    #      Wait until jpg file exists
+    #
+                                   
+    def wait( self ):   
+
+        utilities.message( type='INFO', text='Waiting for jpg file ' + self._item.getType() )
+        #
+        waitForFile(self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg" )
+
+ #################################################################
+ #  Wait
+ #  Task:                                             
+ #      Used by members to wait until a file exists
+ #      prints a dot each second when waiting
+
+def waitForFile( fileName ):
+
+    sys.stdout.flush()
+    start = time.time()
+
+    i=1
+    while (not os.path.exists( fileName )):
+        if ( time.time()-start > i):
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            i=i+1
+            
 
           

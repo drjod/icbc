@@ -15,14 +15,14 @@ import configurationShared
 #      notSupported (string): prints '*** is not supported' (option to text)   
 #
 
-def message ( type='ERROR', text='', notSupported='' ):
+def message ( type= 'ERROR', text= None, notSupported= None ):
 
     if configurationShared.verbosity > 0:
-        if notSupported is not '':
-            message = notSupported + ' is not supported'
-        else:    
+        if not notSupported:
             message = text    
-          
+        else:
+            message = notSupported + ' is not supported'
+                  
         if type == 'INFO':
             intext = ''
         else:
@@ -85,9 +85,23 @@ def generateFolder( root, folderList ):
      
     path = root  
     for folder in folderList:   
-        path =  adaptPath( path + '\\' + folder   )
+        path =  adaptPath( path + folder + '\\'  )
         
         try:
             os.stat( path )
         except:
             os.mkdir( path ) 
+
+#################################################################
+#  Remove file
+#  Task:
+#     Remove file if exists 
+#        
+
+def removeFile( fileName):
+
+    try:
+        os.remove(fileName)
+        message( type='INFO', text='Removing ' + fileName )
+    except OSError:
+        pass        

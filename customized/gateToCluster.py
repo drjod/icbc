@@ -9,13 +9,31 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import configurationCustomized
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
 
+#################
+#
+# Restriction:
+#     python 3.3 on cluster (TODO: make object to get such data from database and hold them)
+
 def operate( subject, item, operationType, operation, simulationData ):
     
     mod = __import__( subject.getComputer() )    
-    if ( operationType == 's' ):
-        temporaryShellScript =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + operationType + '_' + operation + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh' )
-    else:
-        temporaryShellScript = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\remoteRun' + '_' + operationType + '_' +  operation + '_' + item.getConfiguration() + '.sh' )
+
+    try:
+        if simulationData.getReadFileFlags()._numerics == True:  
+            subprocess.call( configurationCustomized.winscp + ' /script=' + configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadNumericsData_' + item.getConfiguration() + '.txt', 
+                            shell=True)# stdout=f )
+            print('\n')
+        if simulationData.getReadFileFlags()._processing  == True:
+            subprocess.call( configurationCustomized.winscp + ' /script=' + configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadProcessingData_' + item.getConfiguration() + '.txt', 
+                            shell=True)# stdout=f )
+            print('\n')
+    except:
+        utilities.message( type='ERROR', text='Winscp call for data upload failed' ) 
+
+    if ( operationType == 's' ): # example
+        temporaryShellScript =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' + operationType + '_' + operation + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh' ) 
+    else: # building depends only on configuration (plotting is always local)
+        temporaryShellScript = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' + operationType + '_' +  operation + '_' + item.getConfiguration() + '.sh' )
 
     try:
         f = open( temporaryShellScript, 'w' )
@@ -30,11 +48,11 @@ def operate( subject, item, operationType, operation, simulationData ):
             f.write( 'No No  ' + item.getConfiguration() + ' ' )
         else:
             f.write( item.getType() + ' ' + item.getCase() + ' ' + item.getConfiguration() + ' ' )
-        f.write( operationType + ' ' + operation + ' ' + str( configurationCustomized.testingDepth ) + ' ' ) 
-        if operationType == 's': # simulation
-            f.write( simulationData.getFlowProcess() + ' ' + simulationData.getMassProcessFlag() + ' ' + simulationData.getHeatProcessFlag() + ' ' + simulationData.getCoupledFlag() + ' ' + simulationData.getProcessing() + ' ' + simulationData.getNumberOfCPUs() + ' ' + simulationData.getLumpingFlag() + ' ' + simulationData.getNonlinearFlag() )      
-        else:
-            f.write( 'No No No No No No No No ')
+        f.write( operationType + ' ' + operation ) 
+        #if operationType == 's': # simulation
+        #    f.write( simulationData.getFlowProcess() + ' ' + simulationData.getMassProcessFlag() + ' ' + simulationData.getHeatProcessFlag() + ' ' + simulationData.getCoupledFlag() + ' ' + simulationData.getProcessing() + ' ' + simulationData.getNumberOfCPUs() + ' ' + simulationData.getLumpingFlag() + ' ' + simulationData.getNonlinearFlag())      
+        #else:
+        #    f.write( 'No No No No No No No No')
         f.close()
       
     try:

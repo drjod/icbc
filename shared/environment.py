@@ -1,16 +1,8 @@
-import operation
-import shutil
-import configurationShared
-import item
-import subject
-import utilities
-import sys, os
+import utilities, configurationShared
+import operation, subject, item, simulationData
+import shutil, sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import setting
-import configurationCustomized
-import simulationData
-
-
+import setting, configurationCustomized
 
 
 ##############################################
@@ -23,7 +15,8 @@ import simulationData
 class Environment:  
   
     __reselectFlag = False
-    __currentOperation = '' # used for reselect (operation)
+    __currentOperation = None # used for reselect (operation)
+
     ##############################################
     #  Environment: constructor
     #  Task:
@@ -31,50 +24,49 @@ class Environment:
     #    passes preselected variables
     #  
     
-    def __init__( self, superuser = ' ', computer = ' ', user = ' ', code = ' ', branch = ' ', 
-                  typeList = [' '], caseList = [[' ']], configurationList = [' '], 
-                  operationType = ' ',     # [b,t]
-                  operation = ' ', 
-                  testingDepth = ' ',
-                  flowProcess = ' ', massProcessFlag = ' ', heatProcessFlag = ' ',
-                  coupledFlag = ' ', processing = ' ', numberOfCPUs = ' ' , lumpingFlag = ' ', nonlinearFlag = ' ',								  
+    def __init__( self, superuser = None, computer = None, user = None, code = None, branch = None, 
+                  typeList = [None], caseList = [[None]], configurationList = [None], 
+                  operationType = None,     # [b,s,p]
+                  operation = None,   # one-character string
+                  testMode = '0', testLevel = '0',			  
                   mySQL_user='root', mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
-                  
+
+        self.__testing = setting.testing( testMode, testLevel )
+    
         mySQL_struct = setting.mySQL ( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
         self.__subject_inst = subject.Subject( superuser, computer, user, code, branch  )                                                              
         self.__setting_inst = setting.Setting ( typeList, caseList, configurationList, 
                                                 operationType, operation, 
-                                                testingDepth, 
+                                                self.__testing, 
                                                 mySQL_struct )
-        self.__simulationData = simulationData.SimulationData( flowProcess, massProcessFlag, heatProcessFlag, coupledFlag, processing, numberOfCPUs, lumpingFlag, nonlinearFlag)
-        
+
         if int( configurationCustomized.verbosity ) > 1:
             # print message for already set variables
-            if computer is not ' ':
+            if not computer:
                 utilities.message( type='INFO', text='Set computer ' + computer )
-            if user is not ' ':
+            if not user:
                 utilities.message( type='INFO', text='Set user ' + user )
-            if code is not ' ':
+            if not code:
                 utilities.message( type='INFO', text='Set code ' + code )
-            if branch is not ' ':
+            if not branch:
                 utilities.message( type='INFO', text='Set branch ' + branch )
-            if typeList[0] is not ' ':
+            if not typeList[0]:
                 for i in range(0, len( typeList )):
                     utilities.message( type='INFO', text='Set type ' + typeList[i] )
-            if caseList[0][0] is not ' ':
+            if not caseList[0][0]:
                 for i in range(0, len( caseList )):
                     for j in range(0, len( caseList[i] )):
                         utilities.message( type='INFO', text='Set case ' + caseList[i][j] )
-            if configurationList[0] is not ' ':
+            if not configurationList[0]:
                 for i in range(0, len( configurationList )):
                     utilities.message( type='INFO', text='Set configuration ' + configurationList[i] )
-            if operationType is not ' ':
+            if not operationType:
                 utilities.message( type='INFO', text='Set operation type ' + operationType )
-            if operation is not ' ':
+            if not operation:
                 utilities.message( type='INFO', text='Set operation ' + operation )           
-            if testingDepth is not ' ':
-                utilities.message( type='INFO', text='Set testing depth ' + testingDepth )                            
-            if simulationData is not ' ':
+            if not state:
+                utilities.message( type='INFO', text='Set state ' + state )                            
+            if not simulationData:
                 __simulationData = simulationData
                 utilities.message( type='INFO', text='Simulation data set' )  
 
@@ -88,89 +80,146 @@ class Environment:
     #  Environment: run  
     #  Task:
     #      select tested subject and item constituents (user input or preset)
-    #      generate instance Operation (configure, select and execute operation)
+    #      generate operation instance (configure, select and execute operation)
+    #      database calls are done (to get items lists) if on local computer
+    #      loop over items lists to call operation potentially (if operation is called for item, depends on test mode)
     #
                             
     def run( self ): 
         #selects
+    
+        if configurationCustomized.location == 'local':
+            self.__setting_inst.connectToMySQL()   
         self.__subject_inst.select( self.__setting_inst )  
-
+        
         selectedOperationType = self.__setting_inst.selectOperationType()              
-        if selectedOperationType == 'b': # building
+        operation_inst = self.setCurrentOperation( selectedOperationType ) # currentOperation is environment member (selectedOperation could be reselect)
+        
+        if operation_inst.getSelectedOperation() == 's': # reselect
+            self.__setting_inst.reselect( self.__subject_inst  ) # decide what to reselect
+            self.__reselectFlag = True # than no operation executed
+        else:   
+            if configurationCustomized.location == 'local':         
+                self.__setting_inst.SetItemsLists( selectedOperationType, self.__currentOperation,self.__subject_inst.getComputer() )
+            if self.__reselectFlag == True:
+                self.__reselectFlag = False # do no operation, rather repeat run with empty string for entity to reselect
+            elif self.__setting_inst.getItemConstituents().typeList == None or self.__setting_inst.getItemConstituents().caseList == None or self.__setting_inst.getItemConstituents().configurationList == None:
+                utilities.message( type='ERROR', text='Selection of test items failed - No operation' )
+            else:
+                typeList_counter = 0  
+                configuration = None   
+     
+                for type in self.__setting_inst.getItemConstituents().typeList:                   
+                    for case in self.__setting_inst.getItemConstituents().caseList[typeList_counter]:
+                        for configuration in self.__setting_inst.getItemConstituents().configurationList:
+                            
+                            if self.checkIfItemInvolved( case ) == '1':
+                                self.goForItemRun( operation_inst, type, case, configuration )
+
+                    if len( self.__setting_inst.getItemConstituents().caseList ) > 1:       
+                        typeList_counter = typeList_counter + 1
+                    # else do not increment to avoid segmentation fault (case list is not used)
+
+                #print( '\n_________________________________________________________________' )                
+            del operation_inst
+        
+        if configurationCustomized.location == 'local':
+            self.__setting_inst.disconnectFromMySQL()  # to reconnect each run in case of table update
+        
+        if not self.__setting_inst.getPreselectedOperation():   
+            self.run()   # repeat if operation was not preselected (test mode or remote)
+             
+    #################################################################
+    #  Environment: setCurrentOperation
+    #  Task:
+    #     generates intance operartion for environment and returns it
+    #     sets currentOperation (member variable of environement) if nor reselect chosen 
+    #
+
+    def setCurrentOperation( self, operationType ):
+
+        if operationType == 'b': # building
             operation_inst = operation.Building( self.__subject_inst )              
-        elif selectedOperationType == 's':  # simulating
+        elif operationType == 's':  # simulating
             operation_inst = operation.Simulating( self.__subject_inst ) 
-        elif selectedOperationType == 'p':  # plotting  
+        elif operationType == 'p':  # plotting  
             operation_inst = operation.Plotting( self.__subject_inst )                           
         else:    
             utilities.message( type='ERROR', notSupported=selectedOperationType )  
         if self.__reselectFlag == False:
             selectedOperation = operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
-            if not selectedOperation == 's':
-                self.__currentOperation = selectedOperation
-        if operation_inst.getSelectedOperation() == 's': 
-            self.__setting_inst.reselect( self.__subject_inst  )
-            self.__reselectFlag = True
-        else:   
-            if configurationCustomized.location == 'local':                        
-                # selects (type, case, configuration)
-                if selectedOperationType == 'b': # building (only configuration)
-                    self.__setting_inst.setTypeList( [' '] ) 
-                    self.__setting_inst.setCaseList( [[' ']] )                          
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
-                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) )                        
-                elif selectedOperationType == 's':  # simulating (all item constituents (type, case, configuration))
-                    self.__setting_inst.setTypeList( self.__setting_inst.selectItemConstituentGroup( groupType = 'types' ) ) 
-                    self.__setting_inst.setCaseList( self.__setting_inst.selectItemConstituentGroup( groupType = 'cases' ) )                                      
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
-                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) ) 
-                elif selectedOperationType == 'p':  # plotting
-                    self.__setting_inst.setTypeList( self.__setting_inst.selectItemConstituentGroup( groupType = 'types' ) )
-                    if self.__currentOperation == 'j': # generateJPGs (only type)
-                        self.__setting_inst.setCaseList( [[' ']] ) 
-                        self.__setting_inst.setConfigurationList( [' '] ) 
-                    else:   # all item constituents  (type, case, configuration)
-                        self.__setting_inst.setCaseList( self.__setting_inst.selectItemConstituentGroup( groupType = 'cases' ) )                                      
-                        self.__setting_inst.setConfigurationList( self.__setting_inst.selectItemConstituentGroup( groupType = 'configurations',
-                                                                                                                  computerOfSubject = self.__subject_inst.getComputer() ) )  
-            # loop over items 
-            if self.__reselectFlag == True:
-                self.__reselectFlag = False
-            else:
-                typeList_counter = 0  
-                configuration = ' '      
-                for type in self.__setting_inst.getItemConstituents().typeList:                   
-                    for case in self.__setting_inst.getItemConstituents().caseList[typeList_counter]:
-                        for configuration in self.__setting_inst.getItemConstituents().configurationList:
+            if selectedOperation is not 's': # s stands for reselect
+                self.__currentOperation = selectedOperation # reselect not choosen
 
-                            if selectedOperationType == 'b': # building 
-                                item_inst = item.Build( self.__subject_inst, configuration )
-                            elif selectedOperationType == 's': # simulating
-                                item_inst = item.Sim( self.__subject_inst, type, case, configuration )
-                            elif selectedOperationType == 'p': # plotting
-                                item_inst = item.Plot( self.__subject_inst, type, case, configuration )      
-                            else:    
-                                utilities.message( type='ERROR', notSupported=selectedOperationType )                                                             
+        return operation_inst
 
-                            if configurationCustomized.location == 'local': 
-                                # do mysql queries 
-                                if selectedOperationType == 's':  
-                                    # get data to write *.num, *.pbs or partition mesh
-                                    self.__simulationData = self.__setting_inst.setSimulationData( self.__simulationData, type, case, configuration )                         
+    #################################################################
+    #  Environment: checkIfItemInvolved
+    #  Task:
+    #     check testMode, state, testLevel 
+    #     used for simulation, plotting  operation type (case item exists)
+    #     (all items (i.e. configurations) involved in building operation type)
+    #
+                            
+    def checkIfItemInvolved( self,  case ): 
 
-                            operation_inst.run( item_inst, self.__simulationData ) 
+        executeFlag = '1'
+         
+        if configurationCustomized.location == 'local' and case: 
+            if self.__testing.mode == '0': 
+                # no test mode - select everything by typing on console 
+                #                and than the items in the loop (in environment run) is involved
+                pass
+            elif self.__testing.mode == '1': 
+                # via browser
+                executeFlag = self.__setting_inst.getColumnForCase( case, 'state' )    # database query  
+            elif self.__testing.mode == '2':
+                # jenkins
+                if int(self.__testing.level) < int(self.__setting_inst.getColumnForCase( case, 'test_level' )): 
+                    executeFlag = '0'    
+            else:    
+                utilities.message( type='ERROR', notSupported=self.__testing.mode )                                               
+               
+        return executeFlag
+                                  
 
-                    del item_inst   
-                    if len( self.__setting_inst.getItemConstituents().caseList ) > 1:       
-                        typeList_counter = typeList_counter + 1
-                    # else do not increment to avoid segmentation fault (case list is not used)
+    #################################################################
+    #  Environment: goForItem Run
+    #  Task:
+    #     generate item instance
+    #     generate simulationData - write files (for numerics, processing) 
+    #     and then call operation run function  
+    #
+                            
+    def goForItemRun( self,  operation_inst, type, case, configuration ): 
 
-                print( '\n_________________________________________________________________' )                
-            del operation_inst
-        
-            
-          
-        if self.__setting_inst.getPreselectedOperation() == ' ':   
-            self.run()   
-             
-
+        selectedOperationType = operation_inst.getSelectedOperationType()
+                                      
+        if selectedOperationType == 'b': # building 
+            item_inst = item.Build( self.__subject_inst, configuration )
+        elif selectedOperationType == 's': # simulating
+            item_inst = item.Sim( self.__subject_inst, type, case, configuration )
+        elif selectedOperationType == 'p': # plotting
+            item_inst = item.Plot( self.__subject_inst, type, case, configuration )      
+        else:    
+            utilities.message( type='ERROR', notSupported=operation_inst.getSelectedOperationType() )
+            return 0
+                                                                                             
+        simData = simulationData.SimulationData( selectedOperationType, operation_inst.getSelectedOperation() )
+        if configurationCustomized.location == 'local': 
+            #      do mysql queries 
+            if simData.getReadFileFlags()._numerics  == True: 
+                simData = self.__setting_inst.setNumData( simData, type, case, configuration )  
+                if self.__subject_inst.getLocation() == 'remote':  
+                    # file transfer              
+                    simData.writeNumData( configuration )
+            if simData.getReadFileFlags()._processing  == True: 
+                simData = self.__setting_inst.setProcessingData( simData, type, case, configuration )
+                if self.__subject_inst.getLocation() == 'remote':  
+                    # file transfer 
+                    simData.writeProcessingData( configuration )
+                                
+        operation_inst.run( item_inst, simData ) 
+                                 
+        del simData                         
+        del item_inst   

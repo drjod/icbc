@@ -1,5 +1,5 @@
 import mysql.connector
-import os
+import os, sys
 import utilities
 
 
@@ -94,12 +94,12 @@ class GateToMySQL:
             
     def getIdFromName(self, table, name ):
     
-        if name == '':
+        if not name :   # empty string
             return ''  # no name given
         else:    
             cursor = self.__cnx.cursor( buffered=True ) 
-            try:
-                cursor.execute( 'SELECT t.id FROM ' + table + ' t WHERE t.name=%s',(name, ))
+            try:            
+                cursor.execute( 'SELECT t.id FROM ' + table + ' t WHERE t.name=%s' ,(name,))
             except:
                 utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )                
             row = cursor.fetchone()
@@ -189,11 +189,12 @@ class GateToMySQL:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
-        if row is not None:
-            return ( str ( row[0] ) )
-        else:
+        if not row:
             utilities.message( type='ERROR', text='Column entry of ' + str ( column_name ) + ' not found for id ' +  + str ( item_id ) )        
             return '-1' # exception
+        else:
+            return ( str ( row[0] ) )
+    
             
     ##############################################
     #  GateToMySQL: getRootDirectory
@@ -209,32 +210,33 @@ class GateToMySQL:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
-        if row is not None:
-            return ( str ( row[0] ) )
-        else:
+        if not row:
             utilities.message( type='ERROR', text='Path not found for computer id ' + str ( computer_id ) + ' - user id ' +  str ( user_id ) )
             return '-1' # exception
+        else:
+            return ( str ( row[0] ) )
      
                     
     ##############################################
-    #  GateToMySQL: getTestingDepth
+    #  GateToMySQL: getState
     #  
     # 
     
-    def getTestingDepth( self, type_id, case_id ):
+    def getState( self, type_id, case_id ):
         # set cursor
         cursor = self.__cnx.cursor( buffered=True ) 
         try:
-            cursor.execute( 'SELECT e.testingDepth FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
+            cursor.execute( 'SELECT e.state FROM examples e WHERE e.type_id=' + str ( type_id ) + ' AND e.case_id=' + str ( case_id ) )
         except:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )  
         #  
         row = cursor.fetchone()
-        if row is not None:
-            return ( str ( row[0] ) )
+        if not row:
+            utilities.message( type='ERROR', text='state not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
+            return '1000' # exception - no operation for high number  
         else:
-            utilities.message( type='ERROR', text='Testing depth not found for example ' + str ( type_id ) + ' ' + str ( case_id ) )
-            return '1000' # exception - no operation for high number    
+            return ( str ( row[0] ) )
+   
         
   
     ##############################################
@@ -252,10 +254,11 @@ class GateToMySQL:
             utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
         #  
         row = cursor.fetchone()
-        if row is not None:
-            return ( str ( row[0] ) )
-        else:
+        if not row:
             utilities.message( type='ERROR', text='User id not found for superuser ' + str ( superuser ) + ' on ' +  str ( computer ) )
             return '-1' # exception
+        else:
+            return ( str ( row[0] ) )
+
             
         

@@ -2,7 +2,6 @@ import subject
 import utilities 
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-# import setting
 import configurationCustomized
 
 ##############################################
@@ -39,7 +38,7 @@ class Build(Item):
     def __init__( self, subject, configuration ):
 
         Item.__init__( self, subject, configuration,
-                           subject.adaptPath( subject.getDirectory() + 'Build_' + configuration + '\\' )  
+                           utilities.adaptPath( subject.getDirectory() + 'Build_' + configuration + '\\' )  
                          )   
                                                
    
@@ -56,6 +55,7 @@ class Test(Item):
     
         self.__type = type
         self.__case = case  
+
         # utilities.message( type='INFO', text='item ' + self.getNameString() ) 
         Item.__init__( self, subject, configuration, directory )
 
@@ -96,8 +96,14 @@ class Plot(Test):
            
     def __init__( self, subject, type, case, configuration ):   
           
-        localDirectory =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\' )
-        self.__directorySelectedComputer = utilities.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + type + '\\' + case + '\\' + configuration  + '\\', subject.getOperatingSystem() )
+        example = type + '\\' 
+        if case:
+            example = example + case + '\\' 
+        if configuration:
+            example = example + configuration  + '\\'
+
+        localDirectory =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + example )
+        self.__directorySelectedComputer = utilities.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + example, subject.getOperatingSystem() )
  
         Test.__init__( self, subject, type, case, configuration, localDirectory ) 
 

@@ -1,11 +1,17 @@
 @echo off
 
-::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-:: Provide the password for ssh with:
-:: set pwd=****
-:: in extra file ..\pwd\%remoteComputer%.bat 
-:: (with the setting below the filename is rzcluster.bat)
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::
+:::: THIS SCRIPT SETS VARIABLES FOR SYNCHRONIZATION SCRIPT 
+:::: keepUptoDate_sourceCode.bat
+::
+::   Adapt DECLARATIONS to use it 
+::   Password variable pwd is set via extra file
+::
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::: DECLARATIONS
+
 
 set localComputer=amak
 set remoteComputer=rzcluster
@@ -14,6 +20,17 @@ set branch=ogs_kb1
 set login=sungw389
 set hostname=rzcluster.rz.uni-kiel.de
 
-call F:\testingEnvironment\scripts\icbc\pwds\%remoteComputer%.bat
+set localRoot=F:\testingEnvironment
+set remoteRoot=/home/%login%/testingEnvironment
 
-call F:\testingEnvironment\scripts\icbc\synchronization\keepUpToDate_sourceCode.bat 
+
+
+
+:: GET PASSWORD
+call %localRoot%\scripts\icbc\pwds\%remoteComputer%.bat
+
+
+::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:: SYNCHRONIZE
+call %localRoot%\scripts\icbc\synchronization\keepUpToDate_sourceCode.bat 
+

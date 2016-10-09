@@ -2,6 +2,9 @@ import subject, item, simulationData
 import utilities, configurationShared
 import platform, subprocess, shutil, tarfile, fileinput
 import imp, sys, os, glob, time
+import difflib
+from shutil import copyfile
+from filecmp import cmp
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
 import configurationCustomized
 import gateToCluster
@@ -227,6 +230,8 @@ class Simulating(Operation):
         self._operationList.append( '    write (n)um' )
         self._operationList.append( '    (c)lear folder from results' )
         self._operationList.append( '    (w)ait' )
+        self._operationList.append( '    s(t)ore results as reference' )
+        self._operationList.append( '    c(o)mpare results with reference' )
         if subject.getLocation() == 'remote':
             self._operationList.append( '    (i)mport files from repository (gate)' )
             self._operationList.append( '    e(x)port files to repository (gate)' )
@@ -254,7 +259,11 @@ class Simulating(Operation):
         elif self._selectedOperation == 'n':
             self.writeNum()               
         elif self._selectedOperation == 'c':
-            self.clearFolder()             
+            self.clearFolder()
+        elif self._selectedOperation == 't':
+            self.storeResultsAsReference()
+        elif self._selectedOperation == 'o':
+            self.compareResultsWithReference()
         elif self._selectedOperation == 'i' and self._subject.getLocation() == 'remote':
             self.importFromRepository()
         elif self._selectedOperation == 'I' and self._subject.getLocation() == 'remote':
@@ -517,8 +526,76 @@ class Simulating(Operation):
         #
         waitForFile(self._item.getDirectory() + configurationCustomized.outputFile)
 
+    #################################################################
+    #  Simulating: storeAsReference
+    #  Task:
+    #      copy results into reference folder
+    #      (generates folder for references if it does not exist)
+    #      each computer, case, branch has own reference folder
 
-           
+    def storeResultsAsReference(self):
+
+        utilities.message(type='INFO', text='Store results as reference ' + self._item.getNameString())
+
+        referenceDirectory = utilities.adaptPath( self._subject.getDirectory() + "references\\" + self._item.getType() + "\\" + self._item.getCase() + "\\" +self._item.getConfiguration() + "\\" )
+        if not os.path.exists(referenceDirectory):
+            os.makedirs(referenceDirectory)
+
+
+        if os.path.exists(self._item.getDirectory()):
+            for extension in configurationShared.outputFileEndings:
+                for file in os.listdir(self._item.getDirectory()):
+                    if file.endswith('.' + extension):
+                        copyfile(self._item.getDirectory() + file , referenceDirectory + file)
+
+        else:
+            utilities.message(type='ERROR', text='Directory missing')
+
+    #################################################################
+    #  Simulating: compareResultsWithReference
+    #  Task:
+    #      compare results with results in reference folder for regression tests
+    #
+
+    def compareResultsWithReference(self):
+
+        utilities.message(type='INFO', text='Compare result files with references ' + self._item.getNameString())
+
+        referenceDirectory = utilities.adaptPath(
+            self._subject.getDirectory() + "references\\" + self._item.getType() + "\\" + self._item.getCase() + "\\" + self._item.getConfiguration() + "\\")
+
+        if not os.path.exists(referenceDirectory):
+            utilities.message(type='ERROR', text='Directory with reference files missing')
+            return
+
+        if os.path.exists(self._item.getDirectory()):
+
+            open(referenceDirectory + 'deviations.log', 'w').close()  # clear file content
+
+            for file in os.listdir(referenceDirectory):
+                if not file == configurationCustomized.outputFile and not file == 'deviations.log' :
+                    equal = cmp(self._item.getDirectory() + file, referenceDirectory + file)
+                    if not equal:
+                        utilities.message(type='INFO', text= 'Deviating file: ' + file)
+                        with open(utilities.adaptPath(self._subject.getDirectory() + 'references\\deviatingFiles.log'), 'a') as f:
+                            f.write(self._item.getDirectory() + file + '\n')
+
+                        with open(referenceDirectory + 'deviations.log', 'a') as f, open(self._item.getDirectory() + file, 'r') as f1, open(referenceDirectory + file, 'r') as f2:
+                            f.write('------------------------------------------------------------------------------\n')
+                            f.write(file + '\n')
+                            diff = difflib.ndiff(f1.readlines(), f2.readlines())
+                            for line in diff:
+                                if line.startswith('-'):
+                                    f.write(line)
+                                elif line.startswith('+'):
+                                    f.write('\t\t' + line)
+                            #for i, line in enumerate(diff):
+                            #    if line.startswith(' '):
+                            #        continue
+                            #    f.write('Line {}: {}'.format(i, line))
+        else:
+            utilities.message(type='ERROR', text='Directory missing')
+
 #################################################################
 #  icbc class Plotting    
 #

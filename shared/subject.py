@@ -21,7 +21,7 @@ class Subject:
     __location = None
     __rootDirectory = None
     __plotDirectory = None
-    __gateDirectory = None
+    __gateDirectory = None  # to transfer files between local and remote
 
     ##################################################################
     #  Subject: constructor
@@ -101,14 +101,16 @@ class Subject:
             self.__rootDirectory = setting_inst.getRootDirectory( self.__computer, self.__user ) 
             self.__location = setting_inst.getLocation( self.__computer )
             self.__operatingSystem = setting_inst.getOperatingSystem( self.__computer )
-            self.__directory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-            self.__gateDirectory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' ) 
+            #self.__directory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+            #self.__gateDirectory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' )
             self.__plotDirectory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\examples\\plots\\' )  
             self.__hostname = setting_inst.getHostname( self.__computer )
         else:
             self.__location = 'remote'
-            self.__directory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-            self.__gateDirectory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' )                                                              
+
+        self.__directory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
+        self.__gateDirectory = utilities.adaptPath(configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' )
+
         #utilities.message( type='INFO', text=self.__directory )
 
 

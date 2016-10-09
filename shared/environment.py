@@ -90,15 +90,21 @@ class Environment:
     
         if configurationCustomized.location == 'local':
             self.__setting_inst.connectToMySQL()   
-        self.__subject_inst.select( self.__setting_inst )  
-        
+        self.__subject_inst.select( self.__setting_inst )
+
+
         selectedOperationType = self.__setting_inst.selectOperationType()              
         operation_inst = self.setCurrentOperation( selectedOperationType ) # currentOperation is environment member (selectedOperation could be reselect)
         
         if operation_inst.getSelectedOperation() == 's': # reselect
             self.__setting_inst.reselect( self.__subject_inst  ) # decide what to reselect
             self.__reselectFlag = True # than no operation executed
-        else:   
+        else:
+
+            if selectedOperationType == 's' and self.__currentOperation == 'o': # to compare results with references is selected
+                open(utilities.adaptPath(self.__subject_inst.getDirectory() + "references\\deviatingFiles.log"),
+                     'w').close()  # clear file content - for regression testing
+
             if configurationCustomized.location == 'local':         
                 self.__setting_inst.SetItemsLists( selectedOperationType, self.__currentOperation,self.__subject_inst.getComputer() )
             if self.__reselectFlag == True:

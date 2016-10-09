@@ -1,1 +1,4 @@
 pwds/
+temp/
+customized/__pycache__/
+shared/__pycache__/

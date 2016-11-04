@@ -1,117 +1,102 @@
 import subject
-import utilities 
+from utilities import adapt_path, adapt_path_computer_selected
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import configurationCustomized
+from configurationCustomized import rootDirectory
 
-##############################################
-# class Item 
-# Task:
-#    Parent of Build, Sim, Plot
-#    hosts directory, subject, configuration for specific test case or item if building operation
-#
 
-class Item:  
-
-    def __init__( self, subject, configuration, directory ):     
-        self._subject = subject
-        self._configuration = configuration
-        self._directory = directory
+class Item:
+    """
+    Parent of Build, Sim, Plot
+    hosts directory, subject, configuration for specific test case or item if building operation
+    """
+    def __init__(self, subject=None, configuration=None, directory=None):
+        if subject is not None and configuration is not None and directory is not None:
+            self._subject = subject
+            self._configuration = configuration
+            self._directory = directory
  
-    def __del__( self ):
-        del self._subject   
-    # getter              
-    def getSubject( self ):
-        return self._subject 
-    def getConfiguration( self ):
-        return self._configuration                                        
-    def getDirectory( self ):
-        return self._directory 
+    def __del__(self):
+        del self._subject
 
-#################################################################
-#  class Build
-#  Task:
-#      Used in building operations
-        
-class Build(Item):        
- 
-    def __init__( self, subject, configuration ):
+    @property
+    def configuration(self):
+        return self._configuration
 
-        Item.__init__( self, subject, configuration,
-                           utilities.adaptPath( subject.getDirectory() + 'Build_' + configuration + '\\' )  
-                         )   
-                                               
-   
+    @property
+    def directory(self):
+        return self._directory
 
 
-#################################################################
-#  class Test
-#  Task:
-#     Parent of Sim and Plot
+class Build(Item):
+    """
+    Used in building operations
+    """
+    def __init__(self, subject, configuration):
+        Item.__init__(self, subject, configuration,
+                           adapt_path(subject.directory + 'Build_' + configuration + '\\'))
+
 
 class Test(Item):
+    """
+    Parent of Sim and Plot
+    """
+    def __init__(self, subject, item_type, item_case, item_configuration, directory):
+        self.__type = item_type
+        self.__case = item_case
 
-    def __init__( self, subject, type, case, configuration, directory ):
-    
-        self.__type = type
-        self.__case = case  
+        Item.__init__(self, subject, item_configuration, directory)
 
-        # utilities.message( type='INFO', text='item ' + self.getNameString() ) 
-        Item.__init__( self, subject, configuration, directory )
+    @property
+    def type(self):
+        return self.__type
 
-    def getNameString( self ): 
-        return self.__type + ' ' + self.__case + ' ' + self._configuration   
-    def getType( self ):                                                    
-        return self.__type       
-    def getCase( self ):          
-        return self.__case 
+    @property
+    def case(self):
+        return self.__case
 
-#################################################################
-#  class Sim
-#  Task:
-#     Used in simulation operations
-                                            
+    def name(self):
+        return self.__type + ' ' + self.__case + ' ' + self._configuration
+
+
 class Sim(Test):
-
-    def __init__( self, subject, type, case, configuration ):
-          
-        self.__directoryRepository = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\'+ subject.getComputer() \
-                                                        + '\\repository\\' + type + '\\' + case + '\\' )           
+    """
+    Used in simulation operations
+    """
+    def __init__(self, subject, item_type, item_case, item_configuration):
+        self.__directory_repository = adapt_path(rootDirectory +
+                                                 'testingEnvironment\\' + subject.computer +
+                                                 '\\repository\\' + item_type + '\\' + item_case + '\\')
      
-        Test.__init__( self, subject, type, case, configuration,
-                       utilities.adaptPath( subject.getDirectory() + 'examples\\files\\' \
-                                          + type + '\\' + case + '\\' + configuration + '\\' ) # test case directory
-                     )
-    # getter    
-    def getDirectoryRepository( self ):
-        return self.__directoryRepository   
+        Test.__init__(self, subject, item_type, item_case, item_configuration,
+                      adapt_path(subject.directory + 'examples\\files\\' + item_type + '\\' +
+                                 item_case + '\\' + item_configuration + '\\'))  # test case directory
+
+    @property
+    def directory_repository(self):
+        return self.__directory_repository
                                               
-        
-#################################################################
-#  class Plot
-#  Task:
-#     Used in plotting operations
-                                            
+
 class Plot(Test):    
-           
-    def __init__( self, subject, type, case, configuration ):   
-          
-        example = type + '\\' 
-        if case:
-            example = example + case + '\\' 
-        if configuration:
-            example = example + configuration  + '\\'
+    """
+    Used in plotting operations
+    """
+    def __init__(self, subject, item_type, item_case, item_configuration):
+        example = item_type + '\\'
+        if item_case:
+            example = example + item_case + '\\'
+        if item_configuration:
+            example = example + item_configuration + '\\'
 
-        localDirectory =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + subject.getComputer() + '\\' + subject.getCode() + '\\' + subject.getBranch()  + '\\examples\\files\\' + example )
-        self.__directorySelectedComputer = utilities.adaptPathSelectedComputer( subject.getDirectory() + 'examples\\files\\' + example, subject.getOperatingSystem() )
+        directory_local = adapt_path(rootDirectory + 'testingEnvironment\\' +
+                                     subject.computer + '\\' + subject.code + '\\' +
+                                     subject.branch + '\\examples\\files\\' + example)
+        self.__directory_computer_selected = adapt_path_computer_selected(subject.directory +
+                                                                          'examples\\files\\' +
+                                                                          example, subject.operating_system)
  
-        Test.__init__( self, subject, type, case, configuration, localDirectory ) 
+        Test.__init__(self, subject, item_type, item_case, item_configuration, directory_local)
 
-    def getDirectorySelectedComputer( self ):
-        return self.__directorySelectedComputer
-
-
-                   
-    
-
-           
+    @property
+    def directory_computer_selected(self):
+        return self.__directory_computer_selected

@@ -1,6 +1,6 @@
 
 
-verbosity=1     # 0: no messages , 1: messages
+verbosity = 1     # 0: no messages , 1: messages
 
 inputFileEndings = ['bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st', 'tim', 'pqc', 'krc']
 outputFileEndings = ['tec', 'txt', 'plt', 'vtk', 'asc']

@@ -15,7 +15,7 @@ _branch=str(sys.argv[4])
 
 operationTypeList = ['building', 'simulating']  #, 'plotting']  
 
-operationList = [['clear','build','wait'], ['clear','run',]] # 'wait', 'pack'], ['clear','get','preplot','jpg','wait']]  
+operationList = [['clear','build','wait'], ['clear','run','ompare_c']] # 'wait', 'pack'], ['clear','get','preplot','jpg','wait']]  
          
 
 i=0

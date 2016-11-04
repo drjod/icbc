@@ -1,2 +1,2 @@
 
-set pwd=*****
+set pwd=fuwyek90

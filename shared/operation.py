@@ -535,7 +535,7 @@ class Simulating(Operation):
 
     def storeResultsAsReference(self):
 
-        utilities.message(type='INFO', text='Store results as reference ' + self._item.getNameString())
+        utilities.message(type='INFO', text='Store result as reference ' + self._item.getNameString())
 
         referenceDirectory = utilities.adaptPath( self._subject.getDirectory() + "references\\" + self._item.getType() + "\\" + self._item.getCase() + "\\" +self._item.getConfiguration() + "\\" )
         if not os.path.exists(referenceDirectory):
@@ -559,7 +559,7 @@ class Simulating(Operation):
 
     def compareResultsWithReference(self):
 
-        utilities.message(type='INFO', text='Compare result files with references ' + self._item.getNameString())
+        utilities.message(type='INFO', text='Compare result files with reference ' + self._item.getNameString())
 
         referenceDirectory = utilities.adaptPath(
             self._subject.getDirectory() + "references\\" + self._item.getType() + "\\" + self._item.getCase() + "\\" + self._item.getConfiguration() + "\\")

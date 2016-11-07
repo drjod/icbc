@@ -1,798 +1,640 @@
-import subject, item, simulationData
-import utilities, configurationShared
-import platform, subprocess, shutil, tarfile, fileinput
-import imp, sys, os, glob, time
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import configurationCustomized
-import gateToCluster
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
+from sys import stdout, path as syspath
+from os import path, mkdir, makedirs, listdir, chdir, remove, stat, access, R_OK
+from platform import system
+from subprocess import Popen, call
+from glob import glob
+from time import time
+from shutil import copyfile, copy, move
+syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
+syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+from configurationCustomized import location, rootDirectory, outputFile, preplot, tecplot
+from gateToCluster import operate as operate_on_cluster
+from item import Item
+from simulationData import SimulationData
+from utilities import message, generate_folder, dos2unix, unix2dos, remove_file, clear_file, compare_files
+from utilities import append_to_file, adapt_path
+from utilities import record_regression_of_file, download_file_with_winscp, unpack_tar_file, copy_input_files
+from utilities import pack_tar_file, write_tecplot_macro_for_jpg, select_from_options
+from configurationShared import inputFileEndings, outputFileEndings, additionalInputFileEndings, examplesName
 
-
-
-
-#################################################################
-#  class: Operation
-#  Task:
-#      
-# 
 
 class Operation:
+    """
+    parent class of Building, Plotting, Simulating
+    """
+    _operation_dict = dict()  # depends on self._selected_operation_type
+    _selected_operation = str()
+    _selected_operation_type = str()
+    _item = Item()  # Build, Sim, or Plot
+    _simulation_data = SimulationData()   # put to Simulation below
 
-    _selectedOperation = None
-    _selectedOperationType = None   
-    _item = None
-    _operationList = [] 
-
-    _simulationData = None   # put to Simulation below
-
-    
-    #################################################################
-    #  Operation: constructor
-    #
-               
-    def __init__( self, subject ):
+    def __init__(self, subject):
+        """
+        :param subject: (class Subject)
+        """
         self._subject = subject
-        self._gateFlag = False
 
-    #################################################################
-    #  Operation: destructor
-    #
-    
-    def __del__( self ):
-        pass 
-    # getter             
-    def getSelectedOperation( self ):                  
-        return self._selectedOperation
+    def __del__(self):
+        pass
 
-                       
-    #################################################################
-    #  Operation: selectOperation
-    #  Task:
-    #      user input if operation has not been already selected (preselectedOperation !=' ') 
-    #  Arguments:
-    #      preselectedOperation (string)
-    #  Requirements:
-    #      _operationList (strings) 
-    #  Returns    
-    #      selectedOperation (string)
-    #
-                       
-    def selectOperation( self, preselectedOperation ):
-    
-        print( '\n-----------------------------------------------------------------\n' ) 
-        print('Test subject ' + self._subject.getCode() + ' ' + self._subject.getBranch())
-        print('             on ' +  self._subject.getComputer() )
-        if not preselectedOperation:
-            print( '\nSelect operation:\n' )        
-            for operation in self._operationList:
-                print( operation )                           
-            self._selectedOperation = input( '\n' )
-        else:
-            self._selectedOperation = preselectedOperation    
-        return self._selectedOperation          
-               
-    #################################################################
-    #  Operation.run(): 
-    #      direct to cluster or load data files (if necessary) and do operation
-    #
+    @property
+    def selected_operation(self):
+        return self._selected_operation
 
-    def run( self, item, simulationData, state, testMode ):
+    @property
+    def selected_operation_type(self):
+        return self._selected_operation_type
 
-        self._simulationData = simulationData
-        if not testMode or state == '1': # state matters only in test mode when running simulations
-            if self._subject.getLocation() == 'remote' and configurationCustomized.location == 'local' and not self._selectedOperationType == 'p':
-            
-                gateToCluster.operate( self._subject, item, 
-                                       self._selectedOperationType, self._selectedOperation, self._simulationData ) 
-            else:   
-                if configurationCustomized.location == 'remote':
-                    # file transfer
-                    if simulationData.getReadFileFlags()._numerics  == True: 
-                        simulationData.importNumDataFiles( item.getConfiguration() )
-                        simulationData.getNumDataFromModules( item.getConfiguration() )
-                    if simulationData.getReadFileFlags()._processing  == True: 
-                        simulationData.importProcessingDataFiles( item.getConfiguration() )
-                        simulationData.getProcessingDataFromModule( item.getConfiguration() )
-                self.operate( item )   
+    def select_operation(self, selected_operation):
+        """
+        set self._selected_operation if not already selected via previos loop or constructor of Environment
+        Required:
+            self._operation_dict (dict)
+        :param selected_operation: (string, None if operation not already selected)
+        :return:
+        """
+        print('\n-----------------------------------------------------------------\n') 
+        print('Test subject ' + self._subject.code + ' ' + self._subject.branch)
+        print('             on ' + self._subject.computer)
 
-            
-                        
-#################################################################
-#  class: Building
-#  Task:
-#     
-#
+        if not selected_operation:
+            self._selected_operation = select_from_options(self._operation_dict, 'Select operation')
+
+    def run(self, item, simulation_data):
+        """
+        direct to cluster or load data files (if necessary) and do operation
+        :param item: (class Item (Build, Sim, Plot))
+        :param simulation_data: (class SimulationData)
+        :return:
+        """
+        self._simulation_data = simulation_data
+        self._item = item
+   
+        if self._subject.location == 'remote' and location == 'local' \
+                and self._selected_operation_type != 'p':  # plotting operations are executed on local computer
+            operate_on_cluster(self._subject, item,
+                               self._selected_operation_type, self._selected_operation, self._simulation_data)
+        else:   
+            if location == 'remote':
+                # reload modules with data for numerics and parallelization
+                if simulation_data.read_file_flags.numerics:
+                    simulation_data.import_num_data_files(item.configuration)
+                    simulation_data.get_num_data_from_modules(item.configuration)
+                if simulation_data.read_file_flags.processing:
+                    simulation_data.import_processing_data_files(item.configuration)
+                    simulation_data.get_processing_data_from_module(item.configuration)
+
+            self.operate()  # call member of chield class
+
 
 class Building(Operation):
+    """
 
-            
-    #################################################################
-    #  Building: constructor
-    #
-           
-    def __init__( self, subject ):
+    """
+    def __init__(self, subject):
+        """
+        :param subject: (class Subject)
+        """
+        self._selected_operation_type = 'b'
 
-        self._selectedOperationType = 'b'
+        self._operation_dict = {'b': '(b)uild', 'u': '(u)pdate', 'c': '(c)lear', 'w': '(w)ait', 's': 're(s)elect'}
+        Operation.__init__(self, subject)
 
-        self._operationList[:]=[]                                    
-        self._operationList.append( '    (b)uild' )                  
-        self._operationList.append( '    (u)pdate' )   
-        self._operationList.append( '    (c)lear' )     
-        self._operationList.append( '    (w)ait' )                  
-        self._operationList.append( '    re(s)elect' )                     
-            
-        Operation.__init__( self, subject )
-        
-    #################################################################
-    #  Building: operate
-    #  Task:
-    #      configure build and call operation for this build
-    #
-                                     
-    def operate( self, build ):
-        
-        self._item = build 
-        
-        if self._selectedOperation == 'b':
-            self.buildRelease()  
-        elif self._selectedOperation == 'u':
-            self.updateRelease()  
-        elif self._selectedOperation == 'c':
-            self.clearFolder()     
-        elif self._selectedOperation == 'w':
+    def operate(self):
+        """
+        configure build and call operation for this build
+        :return:
+        """
+
+        if self._selected_operation == 'b':
+            self.build()
+        elif self._selected_operation == 'u':
+            self.update_release()  
+        elif self._selected_operation == 'c':
+            self.clear_folder()     
+        elif self._selected_operation == 'w':
             self.wait()                                                                                                   
         else:
-            utilities.message( type='ERROR', notSupported='Operation ' + self.__selectedOperation )                          
-  
-    #################################################################
-    #  Building: run
-    #  Task:
-    #      run one of the selected test items with selected code
-    #
-                                   
-    def buildRelease( self ): 
-        utilities.message( type='INFO', text='Building ' + self._item.getConfiguration()  )
+            message(mode='ERROR', not_supported='Operation ' + self._selected_operation)
+
+    def build(self):
+        """
+        call subprocess to build new release
+        :return:
+        """
+        message(mode='INFO', text='Building ' + self._item.configuration)
         try:
-            subprocess.Popen( self._subject.getBuildCommand( self._item ), shell=True )   
+            Popen(self._subject.get_build_command(self._item), shell=True)
+        except Exception as e:
+            message(mode='ERROR', text="*****")
+
+    def update_release(self):
+        """
+        copy built files in special folder and rename them for release
+        generate new release folder if it does not exist
+        :return:
+        """
+        message(mode='INFO', text='Updating release ' + system() + ' ' + self._item.configuration)
+        try:
+            stat(self._subject.directory + 'releases')
         except:
-            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )            
-            
-    #################################################################
-    #  Building: updateRelease
-    #  Task:
-    #      copy and rename windows binaries
-    #
-                                   
-    def updateRelease( self ):   
-        try: 
-            os.stat(self._subject.getDirectory() + 'releases' )
-        except:
-            os.mkdir(self._subject.getDirectory() + 'releases' ) 
-        
-        utilities.message( type='INFO', text='Updating release ' + platform.system() + ' ' + self._item.getConfiguration() )   
-      
-        if os.path.isfile( self._subject.getExecutable( self._item ) ) and os.access( self._subject.getExecutable( self._item ), os.R_OK ): 
-            shutil.copy( self._subject.getExecutable( self._item ), self._subject.getExecutableForRelease( self._item ) )  
+            mkdir(self._subject.directory + 'releases')
+            message(mode='INFO', text='    made release folder')
+
+        built_file = self._subject.get_built_file(self._item)
+        if path.isfile(built_file) and access(built_file, R_OK):
+            copy(built_file, self._subject.get_built_file_for_release(self._item))
         else:
-            utilities.message( type='ERROR', text='Binary does not exist - nothing done' )                         
-           
-    #################################################################
-    #  Building: clearFolder
-    #  Task:
-    #      Deleate release binaries
-    #
-                                   
-    def clearFolder( self ):   
-        utilities.message( type='INFO', text='Removing release ' + platform.system() + ' ' + self._item.getConfiguration() )   
+            message(mode='ERROR', text='Release does not exist - nothing done')
+
+    def clear_folder(self):   
+        """
+        delete built files (from folder where they are after compilation)
+        :return:
+        """
+        message(mode='INFO', text='Removing release ' + system() + ' ' + self._item.configuration)
         try:
-            os.remove(self._subject.getExecutable( self._item ))
-        except OSError:
-            utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )
+            remove(self._subject.get_built_file(self._item))
+        except Exception as e:
+            message(mode='ERROR', text="*****")
 
-    #################################################################
-    #  Building: Wait
-    #  Task:
-    #      Wait until release exists
-    #
-                                   
-    def wait( self ):   
-        utilities.message( type='INFO', text='Waiting for release ' + platform.system() + ' ' + self._item.getConfiguration() )  
-        waitForFile(self._subject.getExecutable( self._item ))
+    def wait(self):
+        """
+        wait until release exists
+        :return:
+        """
+        message(mode='INFO', text='Waiting for release ' + system() + ' ' + self._item.configuration)
+        wait_for_file(self._subject.get_built_file(self._item))
 
-                   
-#################################################################
-#  class: Testing
-#  Task:
-#      configure and execute operations 
-#
 
 class Simulating(Operation):
- 
-    #################################################################
-    #  Simulating: constructor
-    #  Task:
-    #     testing operations that can be local or remote (e.g. writing files, run code)
-           
-    def __init__( self, subject ):
+    """
+    configure and execute operations
+    """
+    def __init__(self, subject):
+        """
+        holds testing operations that can be local or remote (e.g. writing files, run code)
+        adapt simulationDate.setReadFileFlags according to letters r, n, .... for selected operation for file uploads
+        :param subject:
+        """
+        self._selected_operation_type = 's'
 
-        self._selectedOperationType = 's'
+        self._operation_dict = {'r': '(r)un', 'n': 'write (n)um', 'c': '(c)lear folder from results', 'w': '(w)ait',
+                                't': 's(t)ore results as reference', 'o': 'c(o)mpare results with reference'}
+        if subject.location == 'remote':
+            option_dict_amendments = {'i': '(i)mport files from repository (gate)',
+                                      'x': 'e(x)port files to repository (gate)', 't': 'wri(t)e pbs',
+                                      'm': '(m)esh partition', 'p': '(p)ack results'}
+            self._operation_dict.update(option_dict_amendments)
+        option_dict_amendments = {'s': 're(s)elect'}
+        self._operation_dict.update(option_dict_amendments)
 
-        self._operationList[:]=[] 
-        self._operationList.append( '    (r)un ' + subject.getCode() )
-        self._operationList.append( '    write (n)um' )
-        self._operationList.append( '    (c)lear folder from results' )
-        self._operationList.append( '    (w)ait' )
-        if subject.getLocation() == 'remote':
-            self._operationList.append( '    (i)mport files from repository (gate)' )
-            self._operationList.append( '    e(x)port files to repository (gate)' )
-            self._operationList.append( '    wri(t)e pbs' )
-            self._operationList.append( '    (m)esh partition' )
-            self._operationList.append( '    (p)ack results' )                 
-        self._operationList.append( '    re(s)elect' )
-        
-        
-        Operation.__init__( self, subject )
-        
-             
-    #################################################################
-    #  Simulating: operate
-    #  Task:
-    #      link to operation
-    #
-                                     
-    def operate( self, sim ):
-    
-        self._item = sim
-                                                                      
-        if self._selectedOperation == 'r':
-            self.runTest()  
-        elif self._selectedOperation == 'n':
-            self.writeNum()               
-        elif self._selectedOperation == 'c':
-            self.clearFolder()             
-        elif self._selectedOperation == 'i' and self._subject.getLocation() == 'remote':
-            self.importFromRepository()
-        elif self._selectedOperation == 'I' and self._subject.getLocation() == 'remote':
-            self._gateFlag = True
-            self.importFromRepository()
-        elif self._selectedOperation == 'x' and self._subject.getLocation() == 'remote':
-            self.exportToRepository()
-        elif self._selectedOperation == 'X' and self._subject.getLocation() == 'remote':
-            self._gateFlag = True
-            self.exportToRepository()
-        elif self._selectedOperation == 't' and self._subject.getLocation() == 'remote':
-            self.writePbs()  
-        elif self._selectedOperation == 'm' and self._subject.getLocation() == 'remote':
-            self.meshPartition()  
-        elif self._selectedOperation == 'p' and self._subject.getLocation() == 'remote':
-            self.packResults()   
-        elif self._selectedOperation == 'w':
-            self.wait() 
-        elif self._selectedOperation == '0':       
-            utilities.message( type='INFO', text='No Operation' )                                                                         
+        Operation.__init__(self, subject)
+
+    def operate(self):
+        """
+        link to selected operation
+        :return:
+        """
+        if self._selected_operation == 'r':
+            self.run_item()  
+        elif self._selected_operation == 'n':
+            self.write_num()               
+        elif self._selected_operation == 'c':
+            self.clear_folder()
+        elif self._selected_operation == 't':
+            self.store_results_as_reference()
+        elif self._selected_operation == 'o':
+            self.compare_results_with_reference()
+        elif self._selected_operation == 'i' and self._subject.location == 'remote':
+            self.import_from_repository()
+        elif self._selected_operation == 'I' and self._subject.location == 'remote':
+            self.import_from_repository(gate_flag=True)
+        elif self._selected_operation == 'x' and self._subject.location == 'remote':
+            self.export_to_repository()
+        elif self._selected_operation == 'X' and self._subject.location == 'remote':
+            self.export_to_repository(gate_flag=True)
+        elif self._selected_operation == 't' and self._subject.location == 'remote':
+            self.write_pbs()  
+        elif self._selected_operation == 'm' and self._subject.location == 'remote':
+            self.partition_mesh()  
+        elif self._selected_operation == 'p' and self._subject.location == 'remote':
+            self.pack_results()   
+        elif self._selected_operation == 'w':
+            self.wait()
+        elif self._selected_operation == '0':
+            message(mode='INFO', text='No Operation')                                                                         
         else:
-            utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation ) 
-       
-    #################################################################
-    #  Simulating: runTest
-    #  Task:
-    #      run code
-    #
-                                   
-    def runTest( self ): 
+            message(mode='ERROR', not_supported='Operation ' + self._selected_operation)
+
+    def run_item(self):
+        """
+        call subprocess to run code for test item
+        :return:
+        """
+        message(mode='INFO', text='Running ' + self._item.name())
         
-        utilities.message( type='INFO', text='Running ' + self._item.getNameString() )
-        if os.path.exists ( self._item.getDirectory() ):                           
+        if path.exists(self._item.directory):
             try:
-                subprocess.call( self._subject.getTestCaseExecutionCommand( self._item ), shell=True)
-            except:
-                utilities.message( type='ERROR', text='%s' % sys.exc_info()[0]  )    
+                call(self._subject.get_execution_command(self._item), shell=True)
+            except Exception as e:
+                message(mode='ERROR', text="*****")
         else:
-            utilities.message( type='ERROR', text='Directory missing' )
-        
-                      
-    #################################################################
-    #  Simulating: importFromRepository
-    #  Task:
-    #      copy input files from source directory into folder for test runs
-    #      folder is generated if it is missing
-    #      I: source is gate (for file transfer between computer)     
-    #      i: source is repository (for file transfer between branches)
-                                   
-    def importFromRepository( self ):      
+            message(mode='ERROR', text='Directory missing')
 
-        utilities.message( type='INFO', text='Importing ' + self._item.getNameString() )              
-        if self._gateFlag == True:
-            utilities.message( type='INFO', text='    From gate' )     
-            sourceDirectory = self._subject.getGateDirectory()
+    def import_from_repository(self, gate_flag=False):
+        """
+        copy input files from source directory into folder for test runs
+        folder is generated if it is missing
+        I: source is gate (for file transfer between computer)
+        i: source is repository (e.g. for file transfer between branches)
+        :return:
+        """
+        message(mode='INFO', text='Importing ' + self._item.name())              
+        if gate_flag:
+            message(mode='INFO', text='    From gate')     
+            directory_source = self._subject.directory_gate
         else:
-            utilities.message( type='INFO', text='    From repository' )
-            sourceDirectory = self._item.getDirectoryRepository() 
-     
-        # make test folder if it does not exist  
-        testList = [ # 'testingEnvironment', self._subject.getName(), self._subject.getCode(), self._subject.getBranch(), 
-                       'examples', 'files' , self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]         
-        utilities.generateFolder( self._subject.getDirectory(), testList )
+            message(mode='INFO', text='    From repository')
+            directory_source = self._item.directory_repository
 
-        endingList = []
-        if self._subject.getLocation() == 'remote':                     # no input on remote cluster
-            endingList = list(configurationShared.inputFileEndings)
-        else:                                                         # but on local computer
-            selectedEndingGroup = input( '(e)nding, (n)ame or (a)ll\n' )
-        
-            # set variable(s) to  
-            if str( selectedEndingGroup ) == 'e':
-                selectedEnding = input( '\n' )
-                endingList.append(selectedEnding)
-            elif str( selectedEndingGroup ) == 'a':
-                endingList = list(configurationShared.inputFileEndings)
-            elif str( selectedEndingGroup ) == 'n':
-                name = input( '\n' )
-            
+        # make folder for test item if it does not already exist
+        test_list = [  # 'testingEnvironment', self._subject.getName(), self._subject.code, self._subject.branch,
+                    'examples', 'files', self._item.type, self._item.case, self._item.configuration]
+        generate_folder(self._subject.directory, test_list)
 
-        # import
-        if  os.path.exists ( sourceDirectory ):           
-            if self._gateFlag == True:
-                # dos2unix
-                utilities.message( type='INFO', text='    Convert file(s) to unix' )                      
-            for ending in endingList:  
-                fileName = sourceDirectory + configurationShared.examplesName + '.' + ending       
-                if os.path.isfile( fileName ) and os.access(fileName, os.R_OK):   
-                    if self._gateFlag == True:
-                        # dos2unix
-                        utilities.dos2unix( fileName )
-                    shutil.copy( fileName, self._item.getDirectory() )   
-                    
-            for file in os.listdir( sourceDirectory ):  # to copy additional files, e.g. for external chemical solver
-                fileName = sourceDirectory + file
-                for ending in configurationShared.additionalFileEndings: 
-                    if file.endswith( '.' + ending ) and not fileName == sourceDirectory + configurationShared.examplesName + '.out':
-                        if self._gateFlag == True:
-                            # dos2unix
-                            if not file.endswith( '.exe' ):
-                                utilities.dos2unix( fileName )
-                        utilities.message( type='INFO', text='    Importing additional file ' + file ) 
-                        shutil.copy( fileName , self._item.getDirectory() ) 
-                                             
+        copy_input_files(directory_source, self._item.directory)
+
+    def export_to_repository(self, gate_flag=False):
+        """
+        copy input files into destination folder
+        X: destination is gate (for file transfer between computer)
+        x: destination is repository (e.g. for file transfer between branches)
+        destination folder generated if it is missing
+        :return:
+        """
+        message(mode='INFO', text='Exporting ' + self._item.name())   
+        if gate_flag:
+            message(mode='INFO', text='Into gate')
+            directory_destination = self._subject.directory_gate
         else:
-            utilities.message( type='ERROR', text='Repository directory missing' )
-                    
-    #################################################################
-    #  Simulating: exportToRepository
-    #  Task:
-    #      copy input files into destination folder       
-    #      X: destination is gate (for file transfer between computer)     
-    #      x: destination is repository (for file transfer between branches)
-    #      destination folder generated if it is missing
-                                           
-    def exportToRepository( self ):   
-
-        utilities.message( type='INFO', text='Exporting ' + self._item.getNameString() )   
-        if self._gateFlag == True:
-            utilities.message( type='INFO', text='Into gate' )
-            destinationDirectory = self._subject.getGateDirectory()
-        else:
-            utilities.message( type='INFO', text='Into repository' )
-            destinationDirectory = self._item.getDirectoryRepository() 
+            message(mode='INFO', text='Into repository')
+            directory_destination = self._item.directory_repository
         # make repository folder if it does not exist                
-        repositoryList = [ 'testingEnvironment', self._subject.getComputer(), 'repository', self._item.getType(), self._item.getCase() ]                   
-        utilities.generateFolder ( configurationCustomized.rootDirectory, repositoryList )
-        # export  
-        if os.path.exists ( self._item.getDirectory() ):                  
-            for ending in configurationShared.inputFileEndings:      
-                fileName = self._item.getDirectory() + configurationShared.examplesName + '.' + ending                   
-                if os.path.isfile(fileName) and os.access(fileName, os.R_OK):   
-                    shutil.copy( fileName, destinationDirectory )
+        repository_list = ['testingEnvironment', self._subject.computer, 'repository', self._item.type, self._item.case]
+        generate_folder(rootDirectory, repository_list)
 
-            for file in os.listdir( self._item.getDirectory() ):  # to copy additional files, e.g. for external chemical solver
-                fileName = self._item.getDirectory() + file
-                for ending in configurationShared.additionalFileEndings: 
-                    if file.endswith( '.' + ending ):
-                        utilities.message( type='INFO', text='    Exporting additional file ' + file )
-                        shutil.copy( fileName , destinationDirectory ) 
-        else:
-            utilities.message( type='ERROR', text='Directory missing' )
+        copy_input_files(self._item.directory, directory_destination)
 
-    #################################################################
-    #  Simulating: writeNum
-    #  Task:
-    #      generate *.num
-    #
-                                   
-    def writeNum( self ): 
-
-        utilities.message( type='INFO', text='Write *.num ' + self._item.getNameString() )
+    def write_num(self):
+        """
+        call member of SimulationData to write file *.num
+        :return:
+        """
+        message(mode='INFO', text='Write *.num ' + self._item.name())
         
-        if os.path.exists ( self._item.getDirectory() ):   
-            self._simulationData.writeNum( self._item.getDirectory() )
+        if path.exists(self._item.directory):
+            self._simulation_data.write_num(self._item.directory)
         else:
-            utilities.message( type='ERROR', text='Directory missing' ) 
+            message(mode='ERROR', text='Directory missing')
 
-  
-    #################################################################
-    #  Simulating: writePbs
-    #  Task:
-    #      generate run.pbs
-    #
-                                   
-    def writePbs( self ): 
-        
-        utilities.message( type='INFO', text='Write run.pbs ' + self._item.getNameString() )
+    def write_pbs(self): 
+        """
+        call member of SimulationData to write file run.pbs
+        :return:
+        """
+        message(mode='INFO', text='Write run.pbs ' + self._item.name())
 
-        if os.path.exists ( self._item.getDirectory() ):   
-            self._simulationData.writePbs( self._item.getDirectory(), self._subject.getExecutable( self._item ), self._item.getType() )
+        if path.exists(self._item.directory):
+            self._simulation_data.write_pbs(self._item.directory,
+                                            self._subject.get_built_file(self._item), self._item.type)
         else:
-            utilities.message( type='ERROR', text='Directory missing' ) 
-                    
-   
-            
-                          
-    #################################################################
-    #  Simulating: Mesh partition
-    #  Task:
-    #      call partition shell script
+            message(mode='ERROR', text='Directory missing') 
 
-    def meshPartition( self ): 
-        
-        utilities.message( type='INFO', text='Mesh partition ' + self._item.getNameString() )
+    def partition_mesh(self): 
+        """
+        call member of SimulationData to partition shell script
+        :return:
+        """
+        message(mode='INFO', text='Mesh partition ' + self._item.name())
 
-        if os.path.exists ( self._item.getDirectory() ):   
-            self._simulationData.partitionMesh( self._item.getDirectory() )
+        if path.exists(self._item.directory):
+            self._simulation_data.partition_mesh(self._item.directory)
         else:
-            utilities.message( type='ERROR', text='Directory missing' ) 
+            message(mode='ERROR', text='Directory missing')
 
-    #################################################################
-    #  Simulating: clearFolder
-    #  Task:
-    #      delete *.tec, *.txt, *.plt, *.vtk and results.tar       
-    #      (remote folder for remote computer)
-                                   
-    def clearFolder( self ):   
-
-        utilities.message( type='INFO', text='Clear simulation folder ' + self._item.getNameString() )
+    def clear_folder(self):   
+        """
+        delete files
+            1. configurationShared.outputFileEndings (*.tec, *.txt, *.plt, *.vtk)
+            2. results.tar
+            3. configurationShared.outputFile
+        (remote folder for remote computer)
+        :return:
+        """
+        message(mode='INFO', text='Clear simulation folder ' + self._item.name())
         #
-        if os.path.exists ( self._item.getDirectory() ):
+        if path.exists(self._item.directory):
             
-            for file in os.listdir( self._item.getDirectory() ):
-                for ending in configurationShared.outputFileEndings: 
-                    if file.endswith( '.' + ending ):
-                        utilities.removeFile( self._item.getDirectory() + file ) 
+            for file in listdir(self._item.directory):
+                for ending in outputFileEndings: 
+                    if file.endswith('.' + ending):
+                        remove_file(self._item.directory + file) 
                                         
-                myRemoteTarFile = self._item.getDirectory() + 'results.tar' 
-                if os.path.isfile( myRemoteTarFile ): 
-                    utilities.removeFile( myRemoteTarFile )
-           
-            utilities.removeFile( self._item.getDirectory() + configurationCustomized.outputFile )
+            tarfile_remote = self._item.directory + 'results.tar'
+            if path.isfile(tarfile_remote):
+                remove_file(tarfile_remote)
+
+            output_file = self._item.directory + outputFile
+            if path.isfile(output_file):
+                remove_file(output_file)
         else:
-            utilities.message( type='ERROR', text='Directory missing' )           
+            message(mode='ERROR', text='Directory missing')           
 
-                                               
-    #################################################################
-    #
-    # Simulating: packResults
-    # Task:
-    #    pack results on remote computer into tar file to download them later on
+    def pack_results(self):   
+        """
+        pack results on remote computer into tar file to download them later on
+        :return:
+        """
+        if self._subject.location == 'remote':
+            message(mode='INFO', text='Pack results ' + self._item.name())
 
-    def packResults( self ):   
-         
-        if self._subject.getLocation() == 'remote':
-            utilities.message( type='INFO', text='Pack results ' + self._item.getNameString() )
-
-            if os.path.exists ( self._item.getDirectory() ):
-                myTarfile = self._item.getDirectory() + 'results.tar'  
-                if os.path.isfile( myTarfile ):
-                    os.remove( myTarfile )
-
-                os.chdir(self._item.getDirectory())
-                try:
-                    tar = tarfile.open( myTarfile, 'w')
-                except:
-                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )
-                else:
-                    for extension in configurationShared.outputFileEndings:   
-                        for file in os.listdir( self._item.getDirectory()  ):
-                            if file.endswith('.' + extension):
-                                tar.add( file )    
-                    tar.close()
+            if path.exists(self._item.directory):
+                pack_tar_file(self._item.directory)
             else:     
-                utilities.message( type='ERROR', text='Directory missing' )
+                message(mode='ERROR', text='Directory missing')
         else:
-            utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )            
-            
-    #################################################################
-    #  Simulating: Wait
-    #  Task:
-    #      Wait until outputFile exists
-    #
-                                   
-    def wait( self ):   
+            message(mode='INFO', text=self._subject.computer + ' is local - Nothing done')
 
-        utilities.message( type='INFO', text='Waiting for output file ' + self._item.getNameString() )
+    def wait(self):   
+        """
+        Wait until configurationShared.outputFile exists
+        :return:
+        """
+        message(mode='INFO', text='Waiting for output file ' + self._item.name())
         #
-        waitForFile(self._item.getDirectory() + configurationCustomized.outputFile)
+        wait_for_file(self._item.directory + outputFile)
 
+    def store_results_as_reference(self):
+        """
+        copy results (these are files with endings configurationShared.outputFileEndings)
+        into reference folder
+        (generates folder for references if it does not exist)
+        each computer, case, branch has own reference folder
+        :return:
+        """
+        message(mode='INFO', text='Store results as reference ' + self._item.name())
 
-           
-#################################################################
-#  icbc class Plotting    
-#
-        
+        directory_reference = adapt_path(self._subject.directory + "references\\" + self._item.type +
+                                         "\\" + self._item.case + "\\" + self._item.configuration + "\\")
+        if not path.exists(directory_reference):
+            makedirs(directory_reference)
+
+        if path.exists(self._item.directory):
+            for extension in outputFileEndings:
+                for file in listdir(self._item.directory):
+                    if file.endswith('.' + extension):
+                        copyfile(self._item.directory + file, directory_reference + file)
+        else:
+            message(mode='ERROR', text='Directory missing')
+
+    def compare_results_with_reference(self):
+        """
+        compare results with results in reference folder for regression tests
+        if file disagrees, add file name to self._subject.directory + 'references\\deviatingFiles.log'
+        then call record_differences_between_files(), which writes deviations themselves into
+        directory_reference + 'deviations.log'
+        configurationCustomized.outputFile are not compared
+        :return:
+        """
+        message(mode='INFO', text='Compare result files with references ' + self._item.name())
+
+        directory_reference = adapt_path(self._subject.directory + "references\\" + self._item.type + "\\" +
+                                         self._item.case + "\\" + self._item.configuration + "\\")
+
+        if path.exists(directory_reference):
+            if path.exists(self._item.directory):
+                # clear file that will contain regressions (differences between files)
+                clear_file(directory_reference + 'deviations.log')
+
+                for file_name in listdir(directory_reference):
+                    if file_name != outputFile and file_name != 'deviations.log':
+                        # file to check
+
+                        result_comparison_flag = compare_files(self._item.directory + file_name,
+                                                               directory_reference + file_name)
+                        if not result_comparison_flag:
+                            # file contents disagree
+                            message(mode='INFO', text='Deviating file: ' + file_name)
+                            append_to_file(self._subject.directory + 'references\\deviatingFiles.log',
+                                           self._item.directory + file_name + '\n')
+                            record_regression_of_file(file_name, self._item.directory, directory_reference,
+                                                      'deviations.log', output_flag=False)
+            else:
+                message(mode='ERROR', text='Directory missing')
+        else:
+            message(mode='ERROR', text='Directory with reference files missing')
+
 
 class Plotting(Operation):
+    """
+    testing operations on local computer (concerning simulations that can be local or remote)
+    e.g. downloading results, plotting)
+    """
 
-    
-    #################################################################
-    #  Plotting: constructor
-    #  Task: 
-    #      testing operations on local computer (concerning simulations that can be local or remote) 
-    #      (e.g. downloading results, plotting )     
-    #
-            
-    def __init__( self, subject ):
+    def __init__(self, subject):
+        """
 
-        self._selectedOperationType = 'p'
+        :param subject:
+        """
+        self._selected_operation_type = 'p'
 
-        self._operationList[:]=[] 
-        if subject.getLocation() == 'remote':
-            self._operationList.append( '    (g)et results' )
-        self._operationList.append( '    (p)replot' )
-        self._operationList.append( '    generate (j)pg' )  
-        self._operationList.append( '    replace (n)ans and inds' )
-        self._operationList.append( '    (c)lear folder' )      
-        self._operationList.append( '    (w)ait' )                        
-        self._operationList.append( '    re(s)elect' )
-        
-        Operation.__init__( self, subject )
-        
-             
-    #################################################################
-    #  Plotting: operate
-    #  Task:
-    #      link to operation
-    #
-                                     
-    def operate( self, plot ):
-    
-        self._item = plot
-                                                                      
-        if self._selectedOperation == 'g':
-            self.getResults()   
-        elif self._selectedOperation == 'p':
-            self.preplot()  
-        elif self._selectedOperation == 'j':
-            self.generateJpg()  
-        elif self._selectedOperation == 'n':
-            self.replaceNansAndInds()   
-        elif self._selectedOperation == 'c':
-            self.clearFolder()         
-        elif self._selectedOperation == 'w':
-            self.wait()                                                                                                              
+        self._operation_dict = {'p': '(p)replot', 'j': 'generate (j)pg', 'n': 'replace (n)ans and inds',
+                                'c': '(c)lear folder', 'w': '(w)ait', 's': 're(s)elect'}
+        if subject.location == 'remote':
+            option_dict_amendments = {'g': '(g)et results'}
+            self._operation_dict.update(option_dict_amendments)
+
+        Operation.__init__(self, subject)
+
+    def operate(self):
+        """
+        link to specific operation
+        :return:
+        """
+        if self._selected_operation == 'g':
+            self.get_results()
+        elif self._selected_operation == 'p':
+            self.preplot()
+        elif self._selected_operation == 'j':
+            self.generate_jpg()
+        elif self._selected_operation == 'n':
+            self.replace_nans_and_inds()
+        elif self._selected_operation == 'c':
+            self.clear_folder()
+        elif self._selected_operation == 'w':
+            self.wait()
         else:
-            utilities.message( type='ERROR', notSupported='Operation ' + self._selectedOperation )             
-            
-            
-                                                          
-    #################################################################
-    #  Plotting: getResults
-    #  Task:
-    #      download and unpack tar file from remote to local computer, than convert files into dos-format  
-    #
-                                   
-    def getResults( self ):   
- 
-        if self._subject.getLocation() == 'remote':
-            utilities.message( type='INFO', text='Get results ' + self._item.getNameString() )
+            message(mode='ERROR', not_supported='Operation ' + self._selected_operation)
 
-            mod = __import__( self._subject.getComputer() )   
-            # make repository folder if it does not exist                
-            repositoryList = [ 'testingEnvironment', self._subject.getComputer(), self._subject.getCode(), self._subject.getBranch(), 'examples', 'files', self._item.getType(), self._item.getCase(), self._item.getConfiguration() ]                   
-            utilities.generateFolder( configurationCustomized.rootDirectory, repositoryList )
-            
-            if os.path.exists ( self._item.getDirectory() ):      
+    def get_results(self):
+        """
+        download and unpack tar file from remote to local computer,
+        if local computer is windows, convert files into dos-format
+        :return:
+        """
+        if self._subject.location == 'remote':
+            message(mode='INFO', text='Get results ' + self._item.name())
+
+            mod = __import__(self._subject.computer)
+            # make repository folder if it does not exist
+            repository_list = ['testingEnvironment', self._subject.computer, self._subject.code,
+                               self._subject.branch, 'examples', 'files', self._item.type,
+                               self._item.case, self._item.configuration]
+            generate_folder(rootDirectory, repository_list)
+
+            if path.exists(self._item.directory):
                 # clear local directory
-                files = glob.glob( self._item.getDirectory() + '*' )
+                files = glob(self._item.directory + '*')
                 for file in files:
-                    os.remove(file)
-                # download with winscp     
-                utilities.message( type='INFO', text='    Download' )
-                myWinscpFile = utilities.adaptPath( configurationCustomized.rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt' ) 
-                myTarfile = self._item.getDirectorySelectedComputer() + 'results.tar'      
-                try:
-                    f = open( myWinscpFile, 'w' ) 
-                except OSError as err:
-                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
-                else:
-                    f.write( 'option batch abort \n' )
-                    f.write( 'option confirm off \n' )
-                    f.write( 'open sftp://' + self._subject.getUser() + ':' + mod.pwd + '@' + self._subject.getHostname() + '/ \n' )
-                    f.write( 'get ' + myTarfile + ' ' + self._item.getDirectory() + ' \n' )     
-                    f.write( 'exit' )            
-                    f.close()
+                    remove(file)
 
-                try:
-                    subprocess.check_call( configurationCustomized.winscp + ' /script=' + myWinscpFile )    
-                except:
-                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )      
-                # unpack
-                print(' ')
-                utilities.message( type='INFO', text='    Unpack' )
-                myLocalTarFile = self._item.getDirectory() + 'results.tar' 
-                if os.path.isfile( myLocalTarFile ): 
-                    os.chdir( self._item.getDirectory() )  
-                    try:           
-                        tar = tarfile.open( myLocalTarFile )
-                    except:
-                        utilities.message( type='ERROR', text='Tar call failed' )   
-                    else:    
-                        tar.extractall()
-                        tar.close()  
-                        os.remove( myLocalTarFile )
-                       
-                # unix2dos
-                utilities.message( type='INFO', text='    Convert to dos' )
-                for file in os.listdir( self._item.getDirectory() ): 
-                    utilities.unix2dos( file )
+                download_file_with_winscp(
+                    rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt',
+                    self._item.directory_computer_selected + 'results.tar' + ' ' + self._item.directory,
+                    self._subject.user, self._subject.hostname, mod.pwd)
+
+                unpack_tar_file(self._item.directory)  # tar file on local computer
+
+                if system() == 'Windows':
+                    message(mode='INFO', text='    Convert to dos')
+                    for file in listdir(self._item.directory):
+                        unix2dos(file, output_flag=False)
             else:
-                utilities.message( type='ERROR', text='Directory missing' )
+                message(mode='ERROR', text='Directory missing')
         else:
-            utilities.message( type='INFO', text=self._subject.getComputer() + ' is local - Nothing done' )
-                                            
-    #################################################################
-    #  Plotting: replaceNansAndInds
-    #  Task:
-    #      replace each nan by 999 and remove each IND in all tec files 
-    
-                                   
-    def replaceNansAndInds( self ):    
-     
-        utilities.message( type='INFO', text='Replace nans and inds' + self._item.getNameString() )
-     
-        if os.path.exists ( self._item.getDirectory() ):                               
-            os.chdir(self._item.getDirectory()) 
-            for file in os.listdir( self._item.getDirectory() ): 
-                if file.endswith( '.tec' ):
-                    utilities.message( type='INFO', text='File: ' + file )  
+            message(mode='INFO', text=self._subject.computer + ' is local - Nothing done')
+
+    def replace_nans_and_inds(self):
+        """
+        replace each nan by 999 and remove each IND in all tec files
+        :return:
+        """
+        message(mode='INFO', text='Replace nans and inds ' + self._item.name())
+
+        if path.exists(self._item.directory):
+            chdir(self._item.directory)
+            for file in listdir(self._item.directory):
+                if file.endswith('.tec'):
+                    message(mode='INFO', text='File: ' + file)
                     try:
-                        infile = open(file,'r') 
-                        outfile = open( 'new_' + file, 'w') 
-                    except OSError as err:
-                        utilities.message( type='ERROR', text='OS error: {0}'.format(err) )
+                        infile = open(file, 'r')
+                        outfile = open('new_' + file, 'w')
+                    except Exception as e:
+                        message(mode='ERROR', text="*****")
                     else:
-                        for line in infile: 
-                            line = line.replace( 'nan', '999' )
-                            line = line.replace( '#IND', '' )
-                            outfile.write(line) 
-                        infile.close() 
-                        outfile.close()         
-                        shutil.move('new_' + file, file)                
+                        for line in infile:
+                            line = line.replace('nan', '999')
+                            line = line.replace('#IND', '')
+                            outfile.write(line)
+                        infile.close()
+                        outfile.close()
+                        move('new_' + file, file)
         else:
-            utilities.message( type='ERROR', text='Directory missing' )                                        
+            message(mode='ERROR', text='Directory missing')
 
-    #################################################################
-    #  Plotting: preplot
-    #  Task:
-    #      call preplot to generate *.plt's          
-    #
-  
-    def preplot( self ): 
-    
-        utilities.message( type='INFO', text='Preplot ' + self._item.getNameString() )
+    def preplot(self):
+        """
+        call preplot via subprocess to generate *.plt's
+        :return:
+        """
+        message(mode='INFO', text='Preplot ' + self._item.name())
 
-        if os.path.exists ( self._item.getDirectory() ): 
-            os.chdir(self._item.getDirectory()) 
-            for file in os.listdir( self._item.getDirectory() ): 
-                if file.endswith( '.tec' ):
-                    utilities.message( type='INFO', text='File: ' + file )                                          
-                    try:            
-                        subprocess.call(configurationCustomized.preplot + ' ' + self._item.getDirectory() + file, shell=True ) 
-                    except:
-                        utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] )                
-     
+        if path.exists(self._item.directory):
+            chdir(self._item.directory)
+            for file in listdir(self._item.directory):
+                if file.endswith('.tec'):
+                    message(mode='INFO', text='File: ' + file)
+                    try:
+                        call(preplot + ' ' + self._item.directory + file, shell=True)
+                    except Exception as e:
+                        message(mode='ERROR', text="*****")
         else:
-            utilities.message( type='ERROR', text='Directory missing' ) 
-             
-    #################################################################
-    #  Plotting: generateJpgs
-    #  Task:
-    #      generate JPG with tecplot           
-    #
-                                   
+            message(mode='ERROR', text='Directory missing')
 
-    def generateJpg( self ):         
+    def generate_jpg(self):
+        """
+        generate JPG with tecplot
+            1. generate tecplot macro
+            2. call tecplot via subprocess
+            3. remove tecplot macro
+        :return:
+        """
+        message(mode='INFO', text='Generate Jpg ' + self._item.type)
 
-        utilities.message( type='INFO', text='Generate Jpg ' + self._item.getType() )
-   
-        if os.path.exists ( self._subject.getPlotDirectory() ): 
+        if path.exists(self._subject.directory_plot):
+            write_tecplot_macro_for_jpg(self._subject.directory_plot, self._item.type)
 
-            layout = self._subject.getPlotDirectory()  + self._item.getType() + '.lay'
-              
-            os.chdir( self._subject.getPlotDirectory() )
+            layout = self._subject.directory_plot + self._item.type + '.lay'
             try:
-                f = open( self._subject.getPlotDirectory() + '_genJPG.mcr', 'w' )
-            except OSError as err:
-                    utilities.message( type='ERROR', text='OS error: {0}'.format(err) )
-            else:
-                f.write( '#!MC 1300\n' )
-                f.write( '#-----------------------------------------------------------------------\n' )
-                f.write( '$!EXPORTSETUP EXPORTFORMAT = JPEG\n' )
-                f.write( '$!EXPORTSETUP IMAGEWIDTH = 1500\n' )
-                f.write( '#-----------------------------------------------------------------------\n' )
-                f.write( "$!EXPORTSETUP EXPORTFNAME = \'" + self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg\'\n" )
-                f.write( '$!EXPORT\n' )
-                f.write( 'EXPORTREGION = ALLFRAMES\n' )
-                f.close()
-                print (configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr')
-                try:
-                    subprocess.call( configurationCustomized.tecplot + ' ' + layout + ' -b -p ' + self._subject.getPlotDirectory() + '_genJPG.mcr', shell=True ) 
-                except:
-                    utilities.message( type='ERROR', text='%s' % sys.exc_info()[0] ) 
-
-                utilities.removeFile( self._subject.getPlotDirectory() + '_genJPG.mcr' )           
-  
+                call(tecplot + ' ' + layout + ' -b -p ' + self._subject.directory_plot + '_genJPG.mcr', shell=True)
+            except Exception as e:
+                message(mode='ERROR', text="*****")
+            remove_file(self._subject.directory_plot + '_genJPG.mcr')
         else:
-            utilities.message( type='ERROR', text='Directory missing' )    
-            
-            
-    #################################################################
-    #  Plotting: clearFolder
-    #  Task:
-    #      delete *.tec, *.txt, *.asc, *plt and results.tar       
-    #      (local folder for remote computer)
-                                   
-    def clearFolder( self ):   
+            message(mode='ERROR', text='Directory missing')
 
-        utilities.message( type='INFO', text='Clear plotting folder ' + self._item.getNameString() )
+    def clear_folder(self):   
+        """
+        delete *.tec, *.txt, *.asc, *plt and results.tar (local folder for remote computer)
+        :return:
+        """
+        message(mode='INFO', text='Clear plotting folder ' + self._item.name())
         #
-        utilities.removeFile( self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg" )
+        remove_file(self._subject.directory_plot + "results_" + self._item.type + ".jpg")
 
-        if os.path.exists ( self._item.getDirectory() ):
-            for file in os.listdir( self._item.getDirectory() ):
-                for ending in configurationShared.outputFileEndings: 
-                    if file.endswith( '.' + ending ):
-                        if self._subject.getLocation() == 'remote' or not (ending =='tec'):    # do not delete tec if local
-                            utilities.removeFile( self._item.getDirectory() + file ) 
-                                      
-                #myLocalTarFile = self._item.getDirectory() + 'results.tar'  # done in getResults()
-                #if os.path.isfile( myLocalTarFile ): 
-                #    os.remove( myLocalTarFile )
+        if path.exists(self._item.directory):
+            for file in listdir(self._item.directory):
+                for ending in outputFileEndings:
+                    if file.endswith('.' + ending):
+                        if self._subject.location == 'remote' or ending != 'tec':
+                            # do not delete tec if local
+                            remove_file(self._item.directory + file)
+
+                # myLocalTarFile = self._item.directory + 'results.tar'  # done in get_results()
+                # if path.isfile(myLocalTarFile):
+                #     remove(myLocalTarFile)
 
         else:
-            utilities.message( type='ERROR', text='Directory missing' )           
-        #if configurationCustomized.location == 'remote':
-        #    for file in os.listdir( self._item.getLocalDirectory() ):
-        #        for ending in configurationShared.outputFileEndings: 
-        #            if file.endswith( '.' + ending ):
-        #                os.remove( self._item.getLocalDirectory() + file ) 
+            message(mode='ERROR', text='Directory missing')
+        # if location == 'remote':
+        #    for file in listdir(self._item.getLocalDirectory()):
+        #        for ending in outputFileEndings:
+        #            if file.endswith('.' + ending):
+        #                remove(self._item.getLocalDirectory() + file)
 
-    #################################################################
-    #  Plotting: Wait
-    #  Task:
-    #      Wait until jpg file exists
-    #
-                                   
-    def wait( self ):   
+    def wait(self):
+        """
+        wait until jpg file is in folder
+        :return:
+        """
+        message(mode='INFO', text='Waiting for jpg file ' + self._item.type)
+        wait_for_file(self._subject.directory_plot + "results_" + self._item.type + ".jpg")
 
-        utilities.message( type='INFO', text='Waiting for jpg file ' + self._item.getType() )
-        #
-        waitForFile(self._subject.getPlotDirectory() + "results_" + self._item.getType() + ".jpg" )
 
- #################################################################
- #  Wait
- #  Task:                                             
- #      Used by members to wait until a file exists
- #      prints a dot each second when waiting
+def wait_for_file(file_name):
+    """
+    Used by members to wait until a file exists
+    prints a dot each second when waiting
+    :param file_name:
+    :return:
+    """
+    stdout.flush()
+    start = time()
 
-def waitForFile( fileName ):
-
-    sys.stdout.flush()
-    start = time.time()
-
-    i=1
-    while (not os.path.exists( fileName )):
-        if ( time.time()-start > i):
-            sys.stdout.write('.')
-            sys.stdout.flush()
-            i=i+1
-            
-
-          
+    i = 1
+    while not path.exists(file_name):
+        if time()-start > i:
+            stdout.write('.')
+            stdout.flush()
+            i += 1

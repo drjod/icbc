@@ -1,67 +1,84 @@
-######################################################################
-#
-# numerics class Processes
-# Task:
-#     contains flow process name and flag for mass and heat
-#     used in numerics class Global
-#
+class Processes:
+    """
+    contains flow process name and flag for mass and heat
+    used in numerics class Global
+    """
+    __flow = 'NO_FLOW'
+    __mass_flag = '0'  # becomes unity if MASS_TRANSPORT exists
+    __heat_flag = '0'  # becomes unity if HEAT_TRANSPORT exists
 
-class processes:
-    _flow = 'NO_FLOW'
-    _massFlag = '0'  # becomes unity if MASS_TRANSPORT exists 
-    _heatFlag = '0'  # becomes unity if HEAT_TRANSPORT exists 
-
-    def __init__( self ):
+    def __init__(self):
         pass
 
-    def set( self, flow, massFlag, heatFlag):
+    @property
+    def flow(self):
+        return self.__flow
 
-        self._flow = flow
-        self._massFlag = massFlag
-        self._heatFlag = heatFlag
+    @property
+    def mass_flag(self):
+        return self.__mass_flag
 
+    @property
+    def heat_flag(self):
+        return self.__heat_flag
 
-######################################################################
-#
-# numerics class Global
-# Task:
-#     stores numerics data from mySQL
-#     except the ones which depend on process
-#     used to write data files, which can be transfered to remote computer     
-#
+    def set(self, flow, mass_flag, heat_flag):
+        self.__flow = flow
+        self.__mass_flag = mass_flag
+        self.__heat_flag = heat_flag
+
 
 class Global:
+    """
+    stores numerics data from mySQL
+    except the ones which depend on process
+    used to write data files, which can be transfered to remote computer
+    """
+    __prcs = None
+    __processes = list()  # first element always flow, than mass and heat if exist
 
-    _prcs = '0'
-    _processes = []  # first element always flow, than mass and heat if exist
+    __coupled_flag = str()
+    __lumping_flag = str()  # only flow lumped
+    __non_linear_flag = str()  # only flow nonlinear
 
-    _coupledFlag = '0'
-    _lumpingFlag = '0'  # only flow lumped
-    _nonlinearFlag = '0'  # only flow nonlinear
+    def __init__(self):
+        del self.__processes[:]
 
+    def __del__(self):
+        del self.__processes[:]
 
-    def __init__( self ):
+    @property
+    def coupled_flag(self):
+        return self.__coupled_flag
 
-        del self._processes[:]
+    @property
+    def lumping_flag(self):
+        return self.__lumping_flag
 
+    @property
+    def non_linear_flag(self):
+        return self.__non_linear_flag
 
-    def __del__(self):  
+    @property
+    def prcs(self):
+        return self.__prcs
 
-        del self._processes[:]
+    @property
+    def processes(self):
+        return self.__processes
 
-    def set( self, prcs, coupledFlag, lumpingFlag, nonlinearFlag ):
-
-        self._prcs = prcs
+    def set(self, prcs, coupled_flag, lumping_flag, nonlinear_flag):
+        self.__prcs = prcs
  
-        self._processes.append('flow')
-        if prcs._massFlag == '1':
-            self._processes.append('mass')
-        if prcs._heatFlag == '1':
-            self._processes.append('heat')
+        self.__processes.append('flow')
+        if prcs.mass_flag == '1':
+            self.__processes.append('mass')
+        if prcs.heat_flag == '1':
+            self.__processes.append('heat')
 
-        self._coupledFlag = coupledFlag
-        self._lumpingFlag = lumpingFlag
-        self._nonlinearFlag = nonlinearFlag
+        self.__coupled_flag = coupled_flag
+        self.__lumping_flag = lumping_flag
+        self.__non_linear_flag = nonlinear_flag
 
 
 

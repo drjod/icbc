@@ -1,8 +1,8 @@
-import environment
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
-mod = __import__( 'mysql2' )
-
+from environment import Environment
+from os import path
+from sys import path as syspath
+syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+mod = __import__('mysql2')
 
 #################################################################
 #  icbc 0.2 by JOD
@@ -16,16 +16,7 @@ mod = __import__( 'mysql2' )
 #         in ..\pwds\rzcluster.py write pwd = '*****'
 #     etc.
 
-
-
-      
-environment = environment.Environment( superuser = 'jens',  
-                                       code = 'ogs', 
-                                       mySQL_password = mod.pwd )
+environment = Environment(superuser='jens',
+                          code='ogs',
+                          mysql_password=mod.pwd)
 environment.run()
-
- 
-
-
-
-

@@ -1,179 +1,230 @@
-import item
-import utilities, configurationShared
-import platform
-import sys, os 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import configurationCustomized
+from sys import path as syspath
+from os import path
+syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
+from utilities import message, adapt_path
+from configurationShared import examplesName
+from platform import system
+from configurationCustomized import location, rootDirectory, compiler, localBuild, localRun, outputFile
 
-#################################################################
-# icbc class Subject
-# Task:
-#     hosts data that depend on 
-#     1. platform (operating system, directories, user) 
-#     2. tested subject (code, branch, ...)   
-#     (TODO: split both parts and put later in folder customized)
-#
 
-class Subject:  
-     
-    __directory = None
-    __operatingSystem = None
-    __location = None
-    __rootDirectory = None
-    __plotDirectory = None
-    __gateDirectory = None
+class Subject:
+    """
+    hosts data that depend on
+    1. platform (operating system, directories, user)
+    2. tested subject (code, branch, ...)
+    (TODO: split both parts and put later in folder customized)
+    """
+    __directory = str()
+    __operating_system = str()
+    __location = str()
+    __rootDirectory = str()
+    __plotDirectory = str()
+    __gateDirectory = str()  # to transfer files between local and remote
 
-    ##################################################################
-    #  Subject: constructor
-    #
-    
-    def __init__( self, superuser, computer , user, code, branch ):
-        
+    def __init__(self, superuser, computer , user, code, branch):
+        """
+        :param superuser:
+        :param computer:
+        :param user:
+        :param code:
+        :param branch:
+        """
         self.__superuser = superuser
         self.__computer = computer
         self.__user = user
         self.__code = code
         self.__branch = branch
 
-    #################################################################
-    #  Subject: destructor
-    #
-    
-    def __del__( self ):
-        pass   
- 
-    #################################################################
-    #  Subject: getter
-    #                 
-                                    
-    def getComputer( self ):
-        return self.__computer    
-    def getUser( self ):
-        return self.__user  
-    def getCode( self ):
-        return self.__code  
-    def getBranch( self ):
+    def __del__(self):
+        pass
+
+    @property
+    def computer(self):
+        return self.__computer
+
+    @property
+    def user(self):
+        return self.__user
+
+    @property
+    def code(self):
+        return self.__code
+
+    @property
+    def branch(self):
         return self.__branch
-    def getLocation( self ):
-        return self.__location                      
-    def getDirectory( self ):
-        return self.__directory 
-    def getRootDirectory( self ):
+
+    @property
+    def location(self):
+        return self.__location
+
+    @property
+    def directory(self):
+        return self.__directory
+
+    @property
+    def directory_root(self):
         return self.__rootDirectory
-    def getPlotDirectory( self ):
+
+    @property
+    def directory_plot(self):
         return self.__plotDirectory
-    def getGateDirectory( self ):
+
+    @property
+    def directory_gate(self):
         return self.__gateDirectory
-    def getOperatingSystem( self ):
-        return self.__operatingSystem 
-    def getHostname( self ):
+
+    @property
+    def operating_system(self):
+        return self.__operating_system
+
+    @property
+    def hostname(self):
         return self.__hostname
-                
-    #################################################################
-    #  Subject: 
-    #  Setter - used in reselect
- 
-    def setComputer( self, computer ):
-        self.__computer = computer   
-    def setUser( self, user ):
-        self.__user = user          
-    def setCode( self, code ):
-        self.__code = code 
-    def setBranch( self, branch ):
-        self.__branch = branch
-                               
-    def select( self, setting_inst ):
-    
-        if not self.__computer:                                                                                 
-            self.__computer = setting_inst.setNames( 'computer' )[0]    # only one entry in list here and in the following 
-        if not self.__superuser:        
-            if not self.__user:                                                                                 
-                self.__user = setting_inst.setNames( 'user' )[0]    
+
+    @computer.setter
+    def computer(self, value):
+        self.__computer = value
+
+    @user.setter
+    def user(self, value):
+        self.__user = value
+
+    @code.setter
+    def code(self, value):
+        self.__code = value
+
+    @branch.setter
+    def branch(self, value):
+        self.__branch = value
+
+    def print_selected_variables(self):
+        """
+        print subject variables which have already been selected, meaning they hav not the value None
+        the variables are computer, user, code, branch
+        :return:
+        """
+        if self.__computer:
+            message(mode='INFO', text='Set computer ' + self.__computer)
+        if self.__user:
+            message(mode='INFO', text='Set user ' + self.__user)
+        if self.__code:
+            message(mode='INFO', text='Set code ' + self.__code)
+        if self.__branch:
+            message(mode='INFO', text='Set branch ' + self.__branch)
+
+    def select(self, setting_inst):
+        """
+
+        :param setting_inst:
+        :return:
+        """
+        if not self.__computer:
+            self.__computer = setting_inst.get_name_list('computer')[0]
+            # only one entry in list here and in the following
+        if not self.__superuser:
+            if not self.__user:
+                self.__user = setting_inst.get_name_list('user')[0]
         else:
-            self.__user = setting_inst.getUser( self.__superuser, self.__computer )
-                                 
-        if not self.__code:                                                                                 
-            self.__code = setting_inst.setNames( 'codes' )[0]        
-        if not self.__branch:                                                                                 
-            self.__branch = setting_inst.setNames( 'branches' )[0] 
+            self.__user = setting_inst.query_username(self.__superuser, self.__computer)
+
+        if not self.__code:
+            self.__code = setting_inst.get_name_list('codes')[0]
+        if not self.__branch:
+            self.__branch = setting_inst.get_name_list('branches')[0]
  
-        if configurationCustomized.location == 'local':
-            self.__rootDirectory = setting_inst.getRootDirectory( self.__computer, self.__user ) 
-            self.__location = setting_inst.getLocation( self.__computer )
-            self.__operatingSystem = setting_inst.getOperatingSystem( self.__computer )
-            self.__directory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-            self.__gateDirectory = utilities.adaptPath( self.__rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' ) 
-            self.__plotDirectory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\examples\\plots\\' )  
-            self.__hostname = setting_inst.getHostname( self.__computer )
+        if location == 'local':
+            self.__rootDirectory = setting_inst.query_directory_root(self.__computer, self.__user)
+            self.__location = setting_inst.query_location(self.__computer)
+            self.__operating_system = setting_inst.query_operating_system(self.__computer)
+            #self.__directory = adapt_path(self.__rootDirectory + 'testingEnvironment\\'
+            # + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\')
+            #self.__gateDirectory = adapt_path(self.__rootDirectory + 'testingEnvironment\\'
+            # + self.__computer + '\\gate\\')
+            self.__plotDirectory = adapt_path(rootDirectory + 'testingEnvironment\\' + self.__computer + '\\'
+                                             + self.__code + '\\' + self.__branch + '\\examples\\plots\\')
+            self.__hostname = setting_inst.query_hostname(self.__computer)
         else:
             self.__location = 'remote'
-            self.__directory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\' )
-            self.__gateDirectory = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\' )                                                              
-        #utilities.message( type='INFO', text=self.__directory )
 
+        self.__directory = adapt_path(rootDirectory + 'testingEnvironment\\'
+                                     + self.__computer + '\\' + self.__code + '\\' + self.__branch + '\\')
+        self.__gateDirectory = adapt_path(rootDirectory + 'testingEnvironment\\' + self.__computer + '\\gate\\')
 
-              
-    #################################################################
-    #  Subject: getExecutableForRelease
-    #  Task:
-    #      Store executables         
-                
-    def getExecutableForRelease( self, item ):
-           
-        if platform.system() == 'Windows':
-            return self.__directory + 'releases\\' + self.__code + '_' + self.__branch + '_' + platform.system() + '_' + item.getConfiguration() + '.exe'  
-        elif platform.system() == 'Linux':
-            return self.__directory + 'releases/' + self.__code + '_' + self.__branch + '_' + platform.system() + '_' + item.getConfiguration()
+        # message(mode='INFO', text=self.__directory)
+
+    def get_built_file_for_release(self, item):
+        """
+        give built file a name, e.g. ogs_kb1_Linux_OGS_FEM and return it with path
+        :param item: (class Item)
+        :return: (string) path and name of built file for release
+        """
+        if system() == 'Windows':
+            return self.__directory + 'releases\\' + self.__code + '_' + self.__branch + '_' \
+                   + system() + '_' + item.configuration + '.exe'
+        elif system() == 'Linux':
+            return self.__directory + 'releases/' + self.__code + '_' + self.__branch + '_' \
+                   + system() + '_' + item.configuration
         else:
-            utilities.message( type='ERROR', notSupported=platform.system() )
-                    
-    #################################################################
-    #  Subject: getExecutable
-    #  Task:
-    #        used to run code           
-                
-    def getExecutable( self, item ):
-        if platform.system() == 'Windows':
-            if self.__code == 'ogs': 
-                return self.__directory + 'Build_' + item.getConfiguration() + '\\' + '\\bin\\Release\\ogs.exe'
-            else:
-                utilities.message( type='ERROR', notSupported=self.__code) 
-        elif platform.system() == 'Linux':
+            message(mode='ERROR', not_supported=system())
+
+    def get_built_file(self, item):
+        """
+        get the built (.exe,...) to run test cases
+        it is in the folder, where it is created in the compilation process
+        only supports code ogs
+        :param item: (class Item)
+        :return: (string) path and name of built file
+        """
+        if system() == 'Windows':
             if self.__code == 'ogs':
-                return self.__directory + 'Build_Release_intel1502' + '/' + item.getConfiguration() + '/bin/ogs_' + item.getConfiguration()
+                return self.__directory + 'Build_' + item.configuration + '\\' + '\\bin\\Release\\ogs.exe'
             else:
-                utilities.message( type='ERROR', notSupported=self.__code)                        
+                message(mode='ERROR', not_supported=self.__code)
+        elif system() == 'Linux':
+            if self.__code == 'ogs':
+                return self.__directory + 'Build_Release_' + compiler + '/' \
+                       + item.configuration + '/bin/ogs_' + item.configuration
+            else:
+                message(mode='ERROR', not_supported=self.__code)
         else:
-            utilities.message( type='ERROR', notSupported=platform.system() )
-   
-            
-    #################################################################
-    #  Subject:
-    #  Task:
-    #      Sets build command according to platform 
-    #              
-               
-    def getBuildCommand( self, item ):
-    
-        if platform.system() == 'Windows':    
-            return configurationCustomized.localBuild + ' ' + self.__computer + ' ' + self.__code + ' ' + self.__branch + ' ' + item.getConfiguration()
-            # + ' ' + configurationCustomized.visualStudio
-        elif platform.system() == 'Linux':
-            return configurationCustomized.rootDirectory + 'testingEnvironment/scripts/' + 'compileInKiel.sh ' + self.getDirectory() + ' ' + item.getConfiguration() + ' Release'
-        else:
-            utilities.message( type='ERROR', notSupported=platform.system() )                                                                          
+            message(mode='ERROR', not_supported=system())
 
-    #################################################################
-    #  Subject:
-    #  Task:
-    #      Sets command to run test case according to platform 
-    #              
-               
-    def getTestCaseExecutionCommand( self, item ):
-    
-        if platform.system() == 'Windows':    
-            return configurationCustomized.localRun + ' ' + self.__computer + ' ' + self.__code + ' ' + self.__branch + ' ' + item.getType() + ' ' + item.getCase() + ' ' + item.getConfiguration() + ' ' + configurationShared.examplesName
-        elif platform.system() == 'Linux':
-            return 'qsub ' + item.getDirectory() + 'run.pbs'
+    def get_build_command(self, item):
+        """
+        on windows: build via visual studio
+        on linux: build via script compileInKiel.sh
+        :param item:
+        :return:
+        """
+        if system() == 'Windows':
+            return localBuild + ' ' + self.__computer + ' ' + self.__code + ' ' \
+                   + self.__branch + ' ' + item.configuration
+        elif system() == 'Linux':
+            return rootDirectory + 'testingEnvironment/scripts/' + 'compileInKiel.sh ' \
+                   + self.directory + ' ' + item.configuration + ' Release'
         else:
-            utilities.message( type='ERROR', notSupported=platform.system() )                           
+            message(mode='ERROR', not_supported=system())
+
+    def get_execution_command(self, item):
+        """
+        set command to run test case according to platform
+        :param item:
+        :return:
+        """
+        if location == 'local':
+            if system() == 'Windows':
+                return localRun + ' ' + self.__computer + ' ' + self.__code + ' ' + self.__branch + ' ' \
+                       + item.type + ' ' + item.case + ' ' + item.configuration + ' ' + examplesName
+            elif system() == 'Linux':
+                return self.__directory + 'Build_Release_' + compiler + '/' + item.configuration \
+                       + '/bin/ogs_' + item.configuration + ' ' + item.directory \
+                       + '/' + examplesName + ' > ' + item.directory + '/' + outputFile
+            else:
+                message(mode='ERROR', not_supported=system())
+                return -1
+        elif location == 'remote':
+            return 'qsub ' + item.directory + 'run.pbs'
+        else:
+            message(mode='ERROR', not_supported=location)
+            return -1

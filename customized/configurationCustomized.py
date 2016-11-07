@@ -1,14 +1,20 @@
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+from sys import path as syspath
+from os import path
+syspath.append(path.join(path.dirname(__file__), '..', 'shared'))
 
 outputFile = 'out.txt'
 location = 'local'
-rootDirectory = 'F:\\'
-computer = 'amak'
+rootDirectory = '/home/jens/'
+computer = 'ibiza'
+compiler = 'GNU'
 
-verbosity = 1
 
 testingDepth = 3
+walltime  = 0
+queue = 'no_queue'
+setCompilerVariables = ''
+setMklVariables = ''
+setMpiVariables = ''
 
 preplot = "\"C:\\Program Files\\Tecplot\\Tec360 2013R1\\bin\\preplot.exe\"" 
 tecplot = "\"C:\\Program Files\\Tecplot\\Tec360 2013R1\\bin\\tec360.exe\"" 

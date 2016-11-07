@@ -1,67 +1,98 @@
-import subprocess
-import fileinput
-import item
-import subject
-import platform, utilities
-import simulationData
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import configurationCustomized
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'pwds'))
+from os import remove, path, access, R_OK
+from sys import path as syspath
+from subprocess import call
+syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
+syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+from utilities import message, adapt_path
+from configurationCustomized import rootDirectory, winscp
 
-#################
-#
-# Restriction:
-#     python 3.3 on cluster (TODO: make object to get such data from database and hold them)
 
-def operate( subject, item, operationType, operation, simulationData ):
-    
-    mod = __import__( subject.getComputer() )    
+def operate(subject, item, operation_type, operation, simulation_data):
+    """
 
+    :param subject: (class Subject)
+    :param item: (class Item)
+    :param operation_type: (one-char string)
+    :param operation: (one-char string)
+    :param simulation_data: (string)
+    :return:
+    """
+
+    # the naming allows to upload several shell_scripts by separate icbc instances
+    if operation_type == 's':  # simulating
+        shell_script = adapt_path(rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' +
+                                  operation_type + '_' + operation + '_' + item.type + '_' +
+                                  item.case + '_' + item.configuration + '.sh')
+    else:  # building depends only on configuration (plotting is always local)
+        shell_script = adapt_path(rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' +
+                                  operation_type + '_' + operation + '_' + item.configuration + '.sh')
+
+    upload_files(item, simulation_data)
+    write_shell_script_for_remote_run(subject, item, operation_type, operation, shell_script)
+    execute_shell_script_on_remote_computer(subject, shell_script)
+
+
+def execute_shell_script_on_remote_computer(subject, shell_script):
+    """
+
+    :param subject: (class Subject)
+    :param shell_script: (string)
+    :return:
+    """
+    mod = __import__(subject.computer)
     try:
-        if simulationData.getReadFileFlags()._numerics == True:  
-            subprocess.call( configurationCustomized.winscp + ' /script=' + configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadNumericsData_' + item.getConfiguration() + '.txt', 
-                            shell=True)# stdout=f )
-            print('\n')
-        if simulationData.getReadFileFlags()._processing  == True:
-            subprocess.call( configurationCustomized.winscp + ' /script=' + configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadProcessingData_' + item.getConfiguration() + '.txt', 
-                            shell=True)# stdout=f )
-            print('\n')
-    except:
-        utilities.message( type='ERROR', text='Winscp call for data upload failed' ) 
+        call('plink ' + subject.user + '@' + subject.hostname + ' -pw ' + mod.pwd + ' -m ' + shell_script, shell=True)
+    except Exception as e:
+        message(mode='ERROR', text="*****")
 
-    if ( operationType == 's' ): # example
-        temporaryShellScript =  utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' + operationType + '_' + operation + '_' + item.getType() + '_' + item.getCase() + '_' + item.getConfiguration() + '.sh' ) 
-    else: # building depends only on configuration (plotting is always local)
-        temporaryShellScript = utilities.adaptPath( configurationCustomized.rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun' + '_' + operationType + '_' +  operation + '_' + item.getConfiguration() + '.sh' )
+    if path.isfile(shell_script) and access(shell_script, R_OK):
+        remove(shell_script)
 
+
+def write_shell_script_for_remote_run(subject, item, operation_type, operation, shell_script):
+    """
+
+    :param subject: (Subject)
+    :param item: (Item)
+    :param operation_type: (one-char string)
+    :param operation: (one-char string)
+    :param shell_script: (string)
+    :return:
+    """
     try:
-        f = open( temporaryShellScript, 'w' )
-    except OSError as err:
-        utilities.message( type='ERROR', text='OS error: {0}'.format(err) ) 
+        f = open(shell_script, 'w')
+    except Exception as e:
+        message(mode='ERROR', text="*****")
     else:
-        f.write( '#!/bin/sh\n' )
-        f.write( 'module load python3.3\n' )
-        f.write( 'python ' + subject.getRootDirectory() + 'testingEnvironment/scripts/icbc/customized/run_remote.py ' )
-        f.write( subject.getComputer() + ' ' + subject.getUser() + ' ' + subject.getCode() + ' ' + subject.getBranch() + ' ' )
-        if operationType == 'b': # building
-            f.write( 'No No  ' + item.getConfiguration() + ' ' )
+        f.write('#!/bin/sh\n')
+        f.write('module load python3.3\n')
+        f.write('python ' + subject.directory_root + 'testingEnvironment/scripts/icbc/customized/run_remote.py ')
+        f.write(subject.computer + ' ' + subject.user + ' ' + subject.code + ' ' + subject.branch + ' ')
+        if operation_type == 'b':  # building
+            f.write('No No  ' + item.configuration + ' ')
         else:
-            f.write( item.getType() + ' ' + item.getCase() + ' ' + item.getConfiguration() + ' ' )
-        f.write( operationType + ' ' + operation ) 
-        #if operationType == 's': # simulation
-        #    f.write( simulationData.getFlowProcess() + ' ' + simulationData.getMassProcessFlag() + ' ' + simulationData.getHeatProcessFlag() + ' ' + simulationData.getCoupledFlag() + ' ' + simulationData.getProcessing() + ' ' + simulationData.getNumberOfCPUs() + ' ' + simulationData.getLumpingFlag() + ' ' + simulationData.getNonlinearFlag())      
-        #else:
-        #    f.write( 'No No No No No No No No')
+            f.write(item.type + ' ' + item.case + ' ' + item.configuration + ' ')
+        f.write(operation_type + ' ' + operation)
         f.close()
-      
+
+
+def upload_files(item, simulation_data):
+    """
+    upload files with data for numerics and prallelization
+    :param item: (class Item)
+    :param simulation_data: (class Simulation Data)
+    :return:
+    """
     try:
-        subprocess.call( 'plink ' + subject.getUser() + '@' + subject.getHostname() + ' -pw ' + mod.pwd + ' -m ' + temporaryShellScript, shell=True)# stdout=f )
-    except:
-        utilities.message( type='ERROR', text='Plink call failed' )   
-
-    if os.path.isfile(temporaryShellScript) and os.access(temporaryShellScript, os.R_OK):   
-        os.remove( temporaryShellScript )
-    
-
-   
+        if simulation_data.read_file_flags.numerics:
+            call(winscp + ' /script=' + rootDirectory +
+                 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadNumericsData_' +
+                 item.configuration + '.txt', shell=True)
+            print('\n')
+        if simulation_data.read_file_flags.processing:
+            call(winscp + ' /script=' + rootDirectory +
+                 'testingEnvironment\\scripts\\icbc\\customized\\winscp_uploadProcessingData_' +
+                 item.configuration + '.txt', shell=True)
+            print('\n')
+    except Exception as e:
+        message(mode='ERROR', text="*****")

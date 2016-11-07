@@ -1,0 +1,5 @@
+option batch abort 
+option confirm off 
+open sftp://sungw389:******@rzcluster.rz.uni-kiel.de/ 
+put F:\testingEnvironment\scripts\icbc\temp\prc_ogs_fem_mkl.py /home/sungw389/testingEnvironment/scripts/icbc/temp/prc_ogs_fem_mkl.py
+exit

@@ -1,195 +1,249 @@
-import utilities, configurationShared
-import operation, subject, item, simulationData
-import shutil, sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
-import setting, configurationCustomized
+from os import path
+from sys import path as syspath
+syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
+from simulationData import SimulationData
+from subject import Subject
+from operation import Building, Simulating, Plotting
+from item import Build, Sim, Plot
+from utilities import message, adapt_path, clear_file
+from configurationCustomized import location
+from setting import Testing, MySQL, Setting
 
 
+class Environment:
+    """
+    main object of icbc:
+        hosts instance of classes subject, setting
+    """
 
+    def __init__(self, superuser=None, computer=None, user=None, code=None, branch=None,
+                 type_list=[None], case_list=[[None]], configuration_list=[None],
+                 operation_type=None, operation=None,
+                 test_mode='0', test_level='0',
+                 mysql_user='root', mysql_password='*****', mysql_host='localhost', mysql_schema='testing_environment'):
+        """
+        These parameters can be preselected:
+            belong to (test) Subject:
+                :param superuser: has accounts on separate computer
+                :param computer:
+                :param user:
+                :param code: belongs to source code tree
+                :param branch: belongs to source code tree
+            belong to (test) Item:
+                :param type_list: belongs to example tree
+                :param case_list: belongs to example tree
+                :param configuration_list: belongs to example tree
+            :param operation_type: one-character string [b: building,s: simulating,p: plotting]
+            :param operation: one-character string - meaning depends on operation_type
+            :param test_mode:
+            :param test_level:
+        Parameters to access database:
+            :param mysql_user:
+            :param mysql_password:
+            :param mysql_host:
+            :param mysql_schema:
+        """
+        self.__testing = Testing(test_mode, test_level)
 
-##############################################
-#  class: Environment
-#  Task:
-#      hosts instance of classes subject, setting
-#      member function run is main function  
-#      
+        mysql_inst = MySQL(mysql_user, mysql_password, mysql_host, mysql_schema)
+        self.__subject_inst = Subject(superuser, computer, user, code, branch)
+        self.__setting_inst = Setting(type_list, case_list, configuration_list,
+                                      operation_type, operation,
+                                      self.__testing, mysql_inst)
 
-class Environment:  
-  
-    __reselectFlag = False
-    __currentOperation = None # used for reselect (operation)
-    ##############################################
-    #  Environment: constructor
-    #  Task:
-    #    initialization subject, setting   
-    #    passes preselected variables
-    #  
-    
-    def __init__( self, superuser = None, computer = None, user = None, code = None, branch = None, 
-                  typeList = [None], caseList = [[None]], configurationList = [None], 
-                  operationType = None,     # [b,t,p]
-                  operation = None, 
-                  testMode = False,
-                  state = None,						  
-                  mySQL_user='root', mySQL_password='*****', mySQL_host='localhost', mySQL_schema='testing_environment' ):
-                  
-        mySQL_struct = setting.mySQL ( mySQL_user, mySQL_password, mySQL_host, mySQL_schema )
-        self.__subject_inst = subject.Subject( superuser, computer, user, code, branch  )                                                              
-        self.__setting_inst = setting.Setting ( typeList, caseList, configurationList, 
-                                                operationType, operation, 
-                                                testMode, 
-                                                mySQL_struct )
-        #self.__simulationData = simulationData.SimulationData()
-        self.__testMode = testMode
-        self.__state = state
+        self.__subject_inst.print_selected_variables()
+        self.__setting_inst.print_selected_variables()
+        print('\n-----------------------------------------------------------------')
 
-        if int( configurationCustomized.verbosity ) > 1:
-            # print message for already set variables
-            if not computer:
-                utilities.message( type='INFO', text='Set computer ' + computer )
-            if not user:
-                utilities.message( type='INFO', text='Set user ' + user )
-            if not code:
-                utilities.message( type='INFO', text='Set code ' + code )
-            if not branch:
-                utilities.message( type='INFO', text='Set branch ' + branch )
-            if not typeList[0]:
-                for i in range(0, len( typeList )):
-                    utilities.message( type='INFO', text='Set type ' + typeList[i] )
-            if not caseList[0][0]:
-                for i in range(0, len( caseList )):
-                    for j in range(0, len( caseList[i] )):
-                        utilities.message( type='INFO', text='Set case ' + caseList[i][j] )
-            if not configurationList[0]:
-                for i in range(0, len( configurationList )):
-                    utilities.message( type='INFO', text='Set configuration ' + configurationList[i] )
-            if not operationType:
-                utilities.message( type='INFO', text='Set operation type ' + operationType )
-            if not operation:
-                utilities.message( type='INFO', text='Set operation ' + operation )           
-            if not state:
-                utilities.message( type='INFO', text='Set state ' + state )                            
-            if not simulationData:
-                __simulationData = simulationData
-                utilities.message( type='INFO', text='Simulation data set' )  
-
-            print( '\n-----------------------------------------------------------------' )                        
-                              
-    def __del__( self ):   
-        del self.__subject_inst  
+    def __del__(self):
+        del self.__subject_inst
         del self.__setting_inst
-                         
-    #################################################################
-    #  Environment: run  
-    #  Task:
-    #      select tested subject and item constituents (user input or preset)
-    #      generate instance Operation (configure, select and execute operation)
-    #
-                            
-    def run( self ): 
-        #selects
-        
-        if configurationCustomized.location == 'local':
-            self.__setting_inst.connectToMySQL()   
-        self.__subject_inst.select( self.__setting_inst )  
 
-        selectedOperationType = self.__setting_inst.selectOperationType()              
-        if selectedOperationType == 'b': # building
-            operation_inst = operation.Building( self.__subject_inst )              
-        elif selectedOperationType == 's':  # simulating
-            operation_inst = operation.Simulating( self.__subject_inst ) 
-        elif selectedOperationType == 'p':  # plotting  
-            operation_inst = operation.Plotting( self.__subject_inst )                           
-        else:    
-            utilities.message( type='ERROR', notSupported=selectedOperationType )  
-        if self.__reselectFlag == False:
-            selectedOperation = operation_inst.selectOperation( self.__setting_inst.getPreselectedOperation() )
-            if selectedOperation is not 's':
-                self.__currentOperation = selectedOperation # reselect not choosen
-        if operation_inst.getSelectedOperation() == 's': 
-            self.__setting_inst.reselect( self.__subject_inst  )
-            self.__reselectFlag = True
-        else:   
-            if configurationCustomized.location == 'local':       
-                #self.__setting_inst.connectToMySQL()                 
-                # selects (type, case, configuration)
-                if selectedOperationType == 'b': # building (only configuration)
-                    self.__setting_inst.setTypeList( [None] ) 
-                    self.__setting_inst.setCaseList( [[None]] )                          
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.setItemConstituents( groupType = 'configurations',
-                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) )                        
-                elif selectedOperationType == 's':  # simulating (all item constituents (type, case, configuration))
-                    self.__setting_inst.setTypeList( self.__setting_inst.setItemConstituents( groupType = 'types' ) ) 
-                    self.__setting_inst.setCaseList( self.__setting_inst.setItemConstituents( groupType = 'cases' ) )                                      
-                    self.__setting_inst.setConfigurationList( self.__setting_inst.setItemConstituents( groupType = 'configurations',
-                                                                                                              computerOfSubject = self.__subject_inst.getComputer() ) ) 
-                elif selectedOperationType == 'p':  # plotting
-                    self.__setting_inst.setTypeList( self.__setting_inst.setItemConstituents( groupType = 'types' ) )
-                    if self.__currentOperation == 'j' or self.__currentOperation == 'w': # generate or wait for JPG (only type)
-                        self.__setting_inst.setCaseList( [[None]] ) 
-                        self.__setting_inst.setConfigurationList( [None] ) 
-                    else:   # all item constituents  (type, case, configuration)
-                        self.__setting_inst.setCaseList( self.__setting_inst.setItemConstituents( groupType = 'cases' ) )                                      
-                        self.__setting_inst.setConfigurationList( self.__setting_inst.setItemConstituents( groupType = 'configurations',
-                                                                                                                  computerOfSubject = self.__subject_inst.getComputer() ) )  
-            # loop over items 
-            if self.__reselectFlag == True:
-                self.__reselectFlag = False
-            elif self.__setting_inst.getItemConstituents().typeList == None or self.__setting_inst.getItemConstituents().caseList == None or self.__setting_inst.getItemConstituents().configurationList == None:
-                utilities.message( type='ERROR', text='Selection of test items failed - No operation' )
-            else:
-                typeList_counter = 0  
-                configuration = None      
-                for type in self.__setting_inst.getItemConstituents().typeList:                   
-                    for case in self.__setting_inst.getItemConstituents().caseList[typeList_counter]:
-                        for configuration in self.__setting_inst.getItemConstituents().configurationList:
-                            
-                            if not self.__state and case:  # (string empty) value must have been set if on remote computer
-                                self.__state = self.__setting_inst.getState( case )    # database query  
-                            else:
-                                self.__state = '1'   # is active
-                            
-                            if selectedOperationType == 'b': # building 
-                                item_inst = item.Build( self.__subject_inst, configuration )
-                            elif selectedOperationType == 's': # simulating
-                                item_inst = item.Sim( self.__subject_inst, type, case, configuration )
-                            elif selectedOperationType == 'p': # plotting
-                                item_inst = item.Plot( self.__subject_inst, type, case, configuration )      
-                            else:    
-                                utilities.message( type='ERROR', notSupported=selectedOperationType )                                                             
+    def run(self):
+        """
+        main function of icbc:
+            0. connect to and disconnect from data base if on local computer
+            1. set subject to test and test items (user input or preset by passing arguments with constructor)
+            2. generate operation instance (configure, select and execute operation)
+            3. if the script is executed on a local computer, database calls are done
+            4. loop over items _lists to call operation potentially 
+               (if operation is finally called for item depends on test mode)
+            recalls itself if reselect is chosen before loop
+            it also recalls itself at the end, if on local computer and testing mode is '0'
+        :return: 0
+        """
+        if location == 'local':
+            self.__setting_inst.connect_to_mysql()
 
-                            simData = simulationData.SimulationData( selectedOperationType, selectedOperation )
-                            if configurationCustomized.location == 'local': 
-                                if not self.__testMode or self.__state == '1':
-                                    #      do mysql queries 
-                                    if simData.getReadFileFlags()._numerics  == True: 
-                                        simData = self.__setting_inst.setNumData( simData, type, case, configuration )  
-                                        if self.__subject_inst.getLocation() == 'remote':  
-                                            # file transfer              
-                                            simData.writeNumData( configuration )
-                                    if simData.getReadFileFlags()._processing  == True: 
-                                        simData = self.__setting_inst.setProcessingData( simData, type, case, configuration )
-                                        if self.__subject_inst.getLocation() == 'remote':  
-                                             # file transfer 
-                                            simData.writeProcessingData( configuration )
-                            operation_inst.run( item_inst, simData, self.__state, self.__testMode ) 
-                            self.__state = None # since state depends on item
-                             
-                            del simData
-                            
+        operation_inst = self.select()  # rerun if reselect chosen
+        if self.configure() == 1 or operation_inst == 1:
+            self.run()  # error - than rerun
+        self.loop(operation_inst)
 
-                    del item_inst   
-                    if len( self.__setting_inst.getItemConstituents().caseList ) > 1:       
-                        typeList_counter = typeList_counter + 1
-                    # else do not increment to avoid segmentation fault (case list is not used)
+        del operation_inst
 
-                #print( '\n_________________________________________________________________' )                
+        if location == 'local':
+            self.__setting_inst.disconnect_from_mysql()  # to reconnect each run in case of table update
+            if self.__setting_inst.testing.mode == '0':  # control with shell
+                self.run()
+
+        return 0
+
+    def loop(self, operation_inst):
+        """
+        loop over type, case, and configuration lists
+        :param operation_inst:
+        :return:
+        """
+        type_list_counter = 0
+        for item_type in self.__setting_inst.item_constituents.type_list:
+            for item_case in self.__setting_inst.item_constituents.case_list[type_list_counter]:
+                for item_configuration in self.__setting_inst.item_constituents.configuration_list:
+
+                    if self.check_if_item_is_to_test(item_case) == '1':
+                        self.go_for_run_item(operation_inst, item_type, item_case, item_configuration)
+
+            if len(self.__setting_inst.item_constituents.case_list) > 1:
+                type_list_counter += 1
+
+    def configure(self):
+        """
+        1.  if operation is to compare results with references, clear log file with names of
+            deviating files from previous runs
+        2. check if list entries for test items exit
+        :return: 0 if success; 1 if lists for item not complete
+        """
+        if self.__setting_inst.operation_type == 's' and self.__setting_inst.operation == 'o':
+            # the selected operation is to compare results with references
+            clear_file(self.__subject_inst.directory + "references\\deviatingFiles.log")
+
+        # if list entries for test item incomplete,
+        # do no operation, rather repeat run with empty string for entity to reselect
+        if self.__setting_inst.item_constituents.type_list is None \
+                or self.__setting_inst.item_constituents.case_list is None \
+                or self.__setting_inst.item_constituents.configuration_list is None:
+            message(mode='ERROR', text='No test item - No operation')
+            return 1
+        return 0
+
+    def select(self):
+        """
+        select
+        1. operation type
+        2. operation
+        3. test items
+        if operation is to reselect, call self.run()
+        :return: (Operation(Building, Simulating, or Plotting)) operation instance
+        """
+        self.__subject_inst.select(self.__setting_inst)
+
+        selected_operation_type = self.__setting_inst.select_operation_type()
+        operation_inst = self.select_operation(selected_operation_type)
+
+        if operation_inst.selected_operation == 's':  # reselect
+            self.__setting_inst.reselect(self.__subject_inst)  # decide what to reselect
             del operation_inst
-        
-        if configurationCustomized.location == 'local':
-            self.__setting_inst.disconnectFromMySQL()  # to reconnect each run in case of table update
-        
-        if not self.__setting_inst.getPreselectedOperation():   
-            self.run()   
-             
+            self.run()
 
+        self.__setting_inst.select_items_to_test(selected_operation_type,
+                                                 self.__setting_inst.operation, self.__subject_inst.computer)
+        return operation_inst
+
+    def select_operation(self, operation_type):
+        """
+        generate operation instance, call select_operation where operation is chosen
+        :param operation_type: one-character string [b: building,s: simulating,p: plotting]
+        :return: operation instance Building, Simulating, Plotting; 1 if error
+        """
+        if operation_type == 'b':  # building
+            operation_inst = Building(self.__subject_inst)
+        elif operation_type == 's':  # simulating
+            operation_inst = Simulating(self.__subject_inst)
+        elif operation_type == 'p':  # plotting  
+            operation_inst = Plotting(self.__subject_inst)
+        else:    
+            message(mode='ERROR', not_supported=operation_type)
+            return 1
+
+        operation_inst.select_operation(self.__setting_inst.operation)
+
+        return operation_inst
+                            
+    def check_if_item_is_to_test(self, item_case):
+        """
+        check testMode, state, testLevel 
+        used for simulation, plotting  operation type (case item exists)
+        (all items (i.e. configurations) involved in building operation type)
+        :param item_case: (string or None)
+        :return: '0': not involved, '1' involved or ERROR
+        """
+        execute_flag = '1'
+
+        if location == 'local' and item_case:
+            if self.__testing.mode == '0':
+                # no test mode - select everything by typing on console 
+                #                and than the items in the loop (in environment run) is involved
+                execute_flag = '1'
+            elif self.__testing.mode == '1':
+                # via browser
+                execute_flag = self.__setting_inst.query_column_for_case(item_case, 'state')  # database query
+            elif self.__testing.mode == '2':
+                # via CI tool
+                if int(self.__testing.level) < int(self.__setting_inst.query_column_for_case(item_case, 'test_level')):
+                    execute_flag = '0'
+            else:
+                message(mode='ERROR', not_supported=self.__testing.mode)  # returns '1'
+
+        return execute_flag  # remote always '1'
+
+    def go_for_run_item(self, operation_inst, item_type, item_case, item_configuration):
+        """
+        generate item instance
+        generate simulationData - write files (for numerics, processing) 
+        and then call operation run function        
+        :param operation_inst: 
+        :param item_type:
+        :param item_case:
+        :param item_configuration:
+        :return: 
+        """
+        item_inst = self.generate_item_instance(operation_inst, item_type, item_case, item_configuration)
+        sim_data = SimulationData(operation_inst.selected_operation_type, operation_inst.selected_operation)
+
+        self.write_files_for_upload(sim_data, item_type, item_case, item_configuration)
+        operation_inst.run(item_inst, sim_data)
+
+        del sim_data, item_inst
+
+    def generate_item_instance(self, operation_inst, item_type, item_case, item_configuration):
+        """
+
+        :param operation_inst:
+        :param item_type:
+        :param item_case:
+        :param item_configuration:
+        :return: item instance (Build, Sim, Plot)
+        """
+        if operation_inst.selected_operation_type == 'b':  # building
+            return Build(self.__subject_inst, item_configuration)
+        elif operation_inst.selected_operation_type == 's':  # simulating
+            return Sim(self.__subject_inst, item_type, item_case, item_configuration)
+        elif operation_inst.selected_operation_type == 'p':  # plotting
+            return Plot(self.__subject_inst, item_type, item_case, item_configuration)
+        else:
+            message(mode='ERROR', not_supported=operation_inst.selected_operation_type)
+            return 1  # check this
+
+    def write_files_for_upload(self, sim_data, item_type, item_case, item_configuration):
+        if location == 'local':
+            # do mysql queries
+            if sim_data.read_file_flags.numerics:
+                sim_data = self.__setting_inst.set_numerics_data(sim_data, item_case, item_configuration)
+                if self.__subject_inst.location == 'remote':
+                    # file transfer
+                    sim_data.write_numerics_data(item_configuration)
+            if sim_data.read_file_flags.processing:
+                sim_data = self.__setting_inst.set_processing_data(sim_data, item_type, item_configuration)
+                if self.__subject_inst.location == 'remote':
+                    # file transfer
+                    sim_data.write_processing_data(item_configuration)

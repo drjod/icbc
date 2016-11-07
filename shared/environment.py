@@ -62,14 +62,9 @@ class Environment:
     def run(self):
         """
         main function of icbc:
-            0. connect to and disconnect from data base if on local computer
-            1. set subject to test and test items (user input or preset by passing arguments with constructor)
-            2. generate operation instance (configure, select and execute operation)
-            3. if the script is executed on a local computer, database calls are done
-            4. loop over items _lists to call operation potentially 
-               (if operation is finally called for item depends on test mode)
-            recalls itself if reselect is chosen before loop
-            it also recalls itself at the end, if on local computer and testing mode is '0'
+            1. connect to and disconnect from data base if on local computer
+            2. call select functions
+            3. call loop if selects successfull
         :return: 0
         """
         if location == 'local':
@@ -151,7 +146,8 @@ class Environment:
 
     def select_operation(self, operation_type):
         """
-        generate operation instance, call select_operation where operation is chosen
+        1. generate operation instance,
+        2. call select_operation where operation is chosen
         :param operation_type: one-character string [b: building,s: simulating,p: plotting]
         :return: operation instance Building, Simulating, Plotting; 1 if error
         """
@@ -198,14 +194,15 @@ class Environment:
 
     def go_for_run_item(self, operation_inst, item_type, item_case, item_configuration):
         """
-        generate item instance
-        generate simulationData - write files (for numerics, processing) 
-        and then call operation run function        
-        :param operation_inst: 
-        :param item_type:
-        :param item_case:
-        :param item_configuration:
-        :return: 
+        1. generate (and delete) item instance
+        2. generate (and delete) simulationData instance (set ReadFileFlags there)
+            and call write files (for numerics, processing)
+        3. call operation run function
+        :param operation_inst: (class Building, Simulating, or Plotting)
+        :param item_type: (string)
+        :param item_case: (string)
+        :param item_configuration: (string)
+        :return:
         """
         item_inst = self.generate_item_instance(operation_inst, item_type, item_case, item_configuration)
         sim_data = SimulationData(operation_inst.selected_operation_type, operation_inst.selected_operation)
@@ -217,12 +214,12 @@ class Environment:
 
     def generate_item_instance(self, operation_inst, item_type, item_case, item_configuration):
         """
-
+        generate Build, Sim or Plot according to chosen operation
         :param operation_inst:
         :param item_type:
         :param item_case:
         :param item_configuration:
-        :return: item instance (Build, Sim, Plot)
+        :return: child of Item instance (Build, Sim, Plot)
         """
         if operation_inst.selected_operation_type == 'b':  # building
             return Build(self.__subject_inst, item_configuration)
@@ -235,6 +232,14 @@ class Environment:
             return 1  # check this
 
     def write_files_for_upload(self, sim_data, item_type, item_case, item_configuration):
+        """
+        write files if on local computer and simulationData.ReadFileFlags are set
+        :param sim_data: (class SimulationData)
+        :param item_type: (string)
+        :param item_case: (string)
+        :param item_configuration: (string)
+        :return:
+        """
         if location == 'local':
             # do mysql queries
             if sim_data.read_file_flags.numerics:

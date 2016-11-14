@@ -1,19 +1,17 @@
 from sys import stdout, path as syspath
-from os import path, mkdir, makedirs, listdir, chdir, remove, stat, access, R_OK
+from os import path, listdir, chdir, access, R_OK
 from platform import system
 from subprocess import Popen, call
 from glob import glob
 from time import time
-from shutil import copyfile, copy, move
 syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
 syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
 from configurationCustomized import location, rootDirectory, outputFile, preplot, tecplot
-from gateToCluster import operate as operate_on_cluster
-from item import Item
+from gateToCluster import operate as operate_on_cluster, call_winscp
 from simulationData import SimulationData
 from utilities import message, generate_folder, dos2unix, unix2dos, remove_file, clear_file, compare_files
-from utilities import append_to_file, adapt_path
-from utilities import record_regression_of_file, download_file_with_winscp, unpack_tar_file, copy_input_files
+from utilities import append_to_file, adapt_path, copy_file, move_file
+from utilities import record_regression_of_file, unpack_tar_file, copy_input_files
 from utilities import pack_tar_file, write_tecplot_macro_for_jpg, select_from_options
 from configurationShared import inputFileEndings, outputFileEndings, additionalInputFileEndings, examplesName
 
@@ -25,8 +23,8 @@ class Operation:
     _operation_dict = dict()  # depends on self._selected_operation_type
     _selected_operation = str()
     _selected_operation_type = str()
-    _item = Item()  # Build, Sim, or Plot
-    _simulation_data = SimulationData()   # put to Simulation below
+    _item = None  # class Build, Sim, or Plot (Item)
+    _simulation_data = None  # class SimulationData
 
     def __init__(self, subject):
         """
@@ -47,7 +45,9 @@ class Operation:
 
     def select_operation(self, selected_operation):
         """
-        set self._selected_operation if not already selected via previos loop or constructor of Environment
+        set self._selected_operation
+        from user input if not already selected via previous loop or constructor of Environment
+        else from setting.operation (which is passed to here as function argument)
         Required:
             self._operation_dict (dict)
         :param selected_operation: (string, None if operation not already selected)
@@ -57,17 +57,44 @@ class Operation:
         print('Test subject ' + self._subject.code + ' ' + self._subject.branch)
         print('             on ' + self._subject.computer)
 
-        if not selected_operation:
+        if selected_operation:
+            self._selected_operation = selected_operation
+        else:
             self._selected_operation = select_from_options(self._operation_dict, 'Select operation')
 
-    def run(self, item, simulation_data):
+    def set_upload_file_flags(self):
+        self._simulation_data = SimulationData(self._selected_operation_type, self._selected_operation)
+
+    def write_files_for_upload(self, item_type, item_case, item_configuration, setting_inst, location_of_operation):
+        """
+        write files if on local computer and simulationData.ReadFileFlags are set
+        :param item_type: (string)
+        :param item_case: (string)
+        :param item_configuration: (string)
+        :param setting_inst: (class Settting)
+        :param location_of_operation: (string)
+        :return:
+        """
+        if location == 'local':
+            # do mysql queries
+            if self._simulation_data.read_file_flags.numerics:
+                setting_inst.set_numerics_data(self._simulation_data, item_case, item_configuration)
+                if location_of_operation == 'remote':
+                    # file transfer
+                    self._simulation_data.write_numerics_data_files()
+            if self._simulation_data.read_file_flags.processing:
+                setting_inst.set_processing_data(self._simulation_data, item_type, item_configuration)
+                if location_of_operation == 'remote':
+                    # file transfer
+                    self._simulation_data.write_processing_data_file()
+
+    def run(self, item):
         """
         direct to cluster or load data files (if necessary) and do operation
         :param item: (class Item (Build, Sim, Plot))
         :param simulation_data: (class SimulationData)
         :return:
         """
-        self._simulation_data = simulation_data
         self._item = item
    
         if self._subject.location == 'remote' and location == 'local' \
@@ -77,14 +104,12 @@ class Operation:
         else:   
             if location == 'remote':
                 # reload modules with data for numerics and parallelization
-                if simulation_data.read_file_flags.numerics:
-                    simulation_data.import_num_data_files(item.configuration)
-                    simulation_data.get_num_data_from_modules(item.configuration)
-                if simulation_data.read_file_flags.processing:
-                    simulation_data.import_processing_data_files(item.configuration)
-                    simulation_data.get_processing_data_from_module(item.configuration)
+                if self._simulation_data.read_file_flags.numerics:
+                    self._simulation_data.get_num_data_from_modules(self._subject.id_local_process)
+                if self._simulation_data.read_file_flags.processing:
+                    self._simulation_data.get_processing_data_from_module(self._subject.id_local_process)
 
-            self.operate()  # call member of chield class
+            self.operate()  # call member of child class
 
 
 class Building(Operation):
@@ -125,8 +150,8 @@ class Building(Operation):
         message(mode='INFO', text='Building ' + self._item.configuration)
         try:
             Popen(self._subject.get_build_command(self._item), shell=True)
-        except Exception as e:
-            message(mode='ERROR', text="*****")
+        except Exception as err:
+            message(mode='ERROR', text='{0}'.format(err))
 
     def update_release(self):
         """
@@ -135,28 +160,18 @@ class Building(Operation):
         :return:
         """
         message(mode='INFO', text='Updating release ' + system() + ' ' + self._item.configuration)
-        try:
-            stat(self._subject.directory + 'releases')
-        except:
-            mkdir(self._subject.directory + 'releases')
-            message(mode='INFO', text='    made release folder')
 
+        generate_folder(self._subject.directory + 'releases')
         built_file = self._subject.get_built_file(self._item)
-        if path.isfile(built_file) and access(built_file, R_OK):
-            copy(built_file, self._subject.get_built_file_for_release(self._item))
-        else:
-            message(mode='ERROR', text='Release does not exist - nothing done')
+        copy_file(built_file, self._subject.get_built_file_for_release(self._item))
 
-    def clear_folder(self):   
+    def clear_folder(self):
         """
         delete built files (from folder where they are after compilation)
         :return:
         """
         message(mode='INFO', text='Removing release ' + system() + ' ' + self._item.configuration)
-        try:
-            remove(self._subject.get_built_file(self._item))
-        except Exception as e:
-            message(mode='ERROR', text="*****")
+        remove_file(self._subject.get_built_file(self._item))
 
     def wait(self):
         """
@@ -233,12 +248,11 @@ class Simulating(Operation):
         :return:
         """
         message(mode='INFO', text='Running ' + self._item.name())
-        
         if path.exists(self._item.directory):
             try:
                 call(self._subject.get_execution_command(self._item), shell=True)
-            except Exception as e:
-                message(mode='ERROR', text="*****")
+            except Exception as err:
+                message(mode='ERROR', text='{0}'.format(err))
         else:
             message(mode='ERROR', text='Directory missing')
 
@@ -258,11 +272,7 @@ class Simulating(Operation):
             message(mode='INFO', text='    From repository')
             directory_source = self._item.directory_repository
 
-        # make folder for test item if it does not already exist
-        test_list = [  # 'testingEnvironment', self._subject.getName(), self._subject.code, self._subject.branch,
-                    'examples', 'files', self._item.type, self._item.case, self._item.configuration]
-        generate_folder(self._subject.directory, test_list)
-
+        generate_folder(self._item.directory)
         copy_input_files(directory_source, self._item.directory)
 
     def export_to_repository(self, gate_flag=False):
@@ -280,10 +290,8 @@ class Simulating(Operation):
         else:
             message(mode='INFO', text='Into repository')
             directory_destination = self._item.directory_repository
-        # make repository folder if it does not exist                
-        repository_list = ['testingEnvironment', self._subject.computer, 'repository', self._item.type, self._item.case]
-        generate_folder(rootDirectory, repository_list)
 
+        generate_folder(directory_destination)
         copy_input_files(self._item.directory, directory_destination)
 
     def write_num(self):
@@ -292,7 +300,6 @@ class Simulating(Operation):
         :return:
         """
         message(mode='INFO', text='Write *.num ' + self._item.name())
-        
         if path.exists(self._item.directory):
             self._simulation_data.write_num(self._item.directory)
         else:
@@ -387,14 +394,13 @@ class Simulating(Operation):
 
         directory_reference = adapt_path(self._subject.directory + "references\\" + self._item.type +
                                          "\\" + self._item.case + "\\" + self._item.configuration + "\\")
-        if not path.exists(directory_reference):
-            makedirs(directory_reference)
+        generate_folder(directory_reference)
 
         if path.exists(self._item.directory):
             for extension in outputFileEndings:
-                for file in listdir(self._item.directory):
-                    if file.endswith('.' + extension):
-                        copyfile(self._item.directory + file, directory_reference + file)
+                for file_name in listdir(self._item.directory):
+                    if file_name.endswith('.' + extension):
+                        copy_file(self._item.directory + file_name, directory_reference)
         else:
             message(mode='ERROR', text='Directory missing')
 
@@ -487,22 +493,16 @@ class Plotting(Operation):
             message(mode='INFO', text='Get results ' + self._item.name())
 
             mod = __import__(self._subject.computer)
-            # make repository folder if it does not exist
-            repository_list = ['testingEnvironment', self._subject.computer, self._subject.code,
-                               self._subject.branch, 'examples', 'files', self._item.type,
-                               self._item.case, self._item.configuration]
-            generate_folder(rootDirectory, repository_list)
+            generate_folder(self._item.directory)
 
             if path.exists(self._item.directory):
                 # clear local directory
                 files = glob(self._item.directory + '*')
                 for file in files:
-                    remove(file)
+                    remove_file(file)
 
-                download_file_with_winscp(
-                    rootDirectory + '\\testingEnvironment\\scripts\\icbc\\customized\\winscp_downloadResults.txt',
-                    self._item.directory_computer_selected + 'results.tar' + ' ' + self._item.directory,
-                    self._subject.user, self._subject.hostname, mod.pwd)
+                winscp_command = self._item.directory_computer_selected + 'results.tar' + ' ' + self._item.directory
+                call_winscp([winscp_command], self._subject.user, self._subject.hostname, mod.pwd, output_flag=True)
 
                 unpack_tar_file(self._item.directory)  # tar file on local computer
 
@@ -523,15 +523,14 @@ class Plotting(Operation):
         message(mode='INFO', text='Replace nans and inds ' + self._item.name())
 
         if path.exists(self._item.directory):
-            chdir(self._item.directory)
-            for file in listdir(self._item.directory):
-                if file.endswith('.tec'):
-                    message(mode='INFO', text='File: ' + file)
+            for file_name in listdir(self._item.directory):
+                if file_name.endswith('.tec'):
+                    message(mode='INFO', text='File: ' + file_name)
                     try:
-                        infile = open(file, 'r')
-                        outfile = open('new_' + file, 'w')
-                    except Exception as e:
-                        message(mode='ERROR', text="*****")
+                        infile = open(self._item.directory + file_name, 'r')
+                        outfile = open(self._item.directory + 'new_' + file_name, 'w')
+                    except Exception as err:
+                        message(mode='ERROR', text='{0}'.format(err))
                     else:
                         for line in infile:
                             line = line.replace('nan', '999')
@@ -539,7 +538,7 @@ class Plotting(Operation):
                             outfile.write(line)
                         infile.close()
                         outfile.close()
-                        move('new_' + file, file)
+                        move_file(self._item.directory + 'new_' + file_name, self._item.directory + file_name)
         else:
             message(mode='ERROR', text='Directory missing')
 
@@ -557,8 +556,8 @@ class Plotting(Operation):
                     message(mode='INFO', text='File: ' + file)
                     try:
                         call(preplot + ' ' + self._item.directory + file, shell=True)
-                    except Exception as e:
-                        message(mode='ERROR', text="*****")
+                    except Exception as err:
+                        message(mode='ERROR', text='{0}'.format(err))
         else:
             message(mode='ERROR', text='Directory missing')
 
@@ -578,8 +577,8 @@ class Plotting(Operation):
             layout = self._subject.directory_plot + self._item.type + '.lay'
             try:
                 call(tecplot + ' ' + layout + ' -b -p ' + self._subject.directory_plot + '_genJPG.mcr', shell=True)
-            except Exception as e:
-                message(mode='ERROR', text="*****")
+            except Exception as err:
+                message(mode='ERROR', text='{0}'.format(err))
             remove_file(self._subject.directory_plot + '_genJPG.mcr')
         else:
             message(mode='ERROR', text='Directory missing')

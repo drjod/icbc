@@ -1,13 +1,12 @@
 import sys
-from os import stat, chdir, mkdir, remove, path, listdir, access, R_OK
+from os import stat, chdir, makedirs, remove, path, listdir, access, R_OK
 from shutil import move, copy
 from tarfile import open as open_tar
 from difflib import ndiff
+from imp import reload
 from filecmp import cmp
 from platform import system
-from subprocess import check_call
 from configurationShared import examplesName, inputFileEndings, outputFileEndings, additionalInputFileEndings
-from configurationCustomized import winscp, rootDirectory
 
 
 def message(mode='ERROR', text=None, not_supported=None):
@@ -34,11 +33,11 @@ def message(mode='ERROR', text=None, not_supported=None):
     print(mode + in_function + ' - ' + print_message)
 
 
-
 def select_from_options(option_dict, message_text):
     """
     select by user input from dictionary with options
-    recalls itself in case of non-proper user input
+    recalls itself in case of non-proper user input (for simplicity, it checks only
+    if lower-case string is in dictionary)
     :param option_dict: {string: string, ...} key is value to type in to select
     :param message_text: (string) printed with the dictionary keys and values
     to ask user for input, e.g. 'Select option type'
@@ -50,12 +49,13 @@ def select_from_options(option_dict, message_text):
             print('    ' + option)
         option_selected = input('\n')
 
-        if option_selected in option_dict:
+        if option_selected.lower() in option_dict:
             break
         else:
             message(mode='ERROR', text='Operation type ' + str(option_selected) + ' does not exist. Try again.')
 
     return str(option_selected)
+
 
 def adapt_path(directory_path):
     """
@@ -87,20 +87,18 @@ def adapt_path_computer_selected(directory_path, operating_system):
         message(mode='ERROR', not_supported=operating_system)
 
 
-def generate_folder(root, level_list):
+def generate_folder(directory):
     """
-    generate directory folder if it does not already exists
-    :param root: (string)
-    :param level_list: (string list) level in folder hierarchy starting with root
+    makes dirs including subdirectories if they do not exist
+    :param directory: (string)
     :return:
     """
-    directory = root
-    for level in level_list:
-        directory = adapt_path(directory + level + '\\')
-        try:
-            stat(directory)
-        except:
-            mkdir(directory)
+    directory = adapt_path(directory)
+    try:
+        stat(directory)
+    except:
+        message(mode='INFO', text='    Generate folder ' + directory)
+        makedirs(directory)
 
 
 def unix2dos(file, output_flag=True):
@@ -117,8 +115,8 @@ def unix2dos(file, output_flag=True):
     try:
         infile = open(file, 'r')
         outfile = open('dos_' + file, 'w')  # write into new file with suffix dos_
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
     else:
         for line in infile:
             line = line.rstrip() + '\r\n'
@@ -142,8 +140,8 @@ def dos2unix(file, output_flag=True):
     try:
         text = open(file, 'rb').read().replace('\r\n', '\n')
         open(file, 'wb').write(text)
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
 
 
 def convert_file(file):
@@ -162,19 +160,47 @@ def convert_file(file):
         message(mode='ERROR', not_supported=system())
 
 
-def remove_file(file):
+def copy_file(file, destination):
+    """
+    copy file, rename it optionally
+    :param file: (string) name + path
+    :param destination: (string) destination directory or path with new file name
+    :return:
+    """
+    try:
+        copy(file, destination)
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
+
+
+def move_file(file, destination):
+    """
+    move file, rename it optionally
+    :param file: (string) name + path
+    :param destination: (string) destination directory or path with new file name
+    :return:
+    """
+    try:
+        move(file, destination)
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
+
+
+def remove_file(file, output_flag=True):
     """
     if file exists, remove it
     :param file: (string) path and file name
+    :param output_flag: (bool)
     :return:
     """
     file = adapt_path(file)
-    message(mode='INFO', text='    Removing ' + file)
+    if output_flag:
+        message(mode='INFO', text='    Removing ' + file)
 
     try:
         remove(file)
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
 
 
 def clear_file(file):
@@ -187,8 +213,8 @@ def clear_file(file):
 
     try:
         open(file, 'w').close()
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
 
 
 def compare_files(file1, file2):
@@ -209,8 +235,8 @@ def append_to_file(file, new_text):
 
     try:
         f = open(file, 'a')
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
     else:
         f.write(new_text)
 
@@ -252,42 +278,6 @@ def record_regression_of_file(file_affected_name, directory, directory_reference
                 #    f.write('Line {}: {}'.format(i, line))
 
 
-def download_file_with_winscp(file_winscp, tarfile_remote, user, hostname, password, output_flag=True):
-    """
-    write file for winscp and execute wiscp to download file from remote computer
-    :param file_winscp: (string)
-    :param tarfile_remote: (string)
-    :param user: (string)
-    :param hostname: (string)
-    :param password: (string)
-    :param output_flag: (bool)
-    :return: 0: success, 101: could not open OSError, 200: error when calling winscp
-    """
-    file_winscp = adapt_path(file_winscp)
-
-    if output_flag:
-        message(mode='INFO', text='    Download tar file')
-    try:
-        f = open(file_winscp, 'w')
-    except OSError as err:
-        message(mode='ERROR', text='OS error: {0}'.format(err))
-        return 101
-    else:
-        f.write('option batch abort \n')
-        f.write('option confirm off \n')
-        f.write('open sftp://' + user + ':' + password + '@' + hostname + '/ \n')
-        f.write('get ' + tarfile_remote + ' \n')
-        f.write('exit')
-        f.close()
-
-    try:
-        check_call(winscp + ' /script=' + file_winscp)
-    except Exception as e:
-        message(mode='ERROR', text="*****")
-        return 200
-    return 0
-
-
 def unpack_tar_file(directory):
     """
     extract files in results.tar which is in directory into this directory
@@ -303,8 +293,8 @@ def unpack_tar_file(directory):
         tar = open_tar(tar_file)
     except FileNotFoundError:
         message(mode='ERROR', text='No tar file')
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
     else:
         tar.extractall()
         tar.close()
@@ -326,8 +316,8 @@ def pack_tar_file(directory):
             remove(tar_file)
         chdir(directory)
         tar = open_tar(tar_file, 'w')
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
     else:
         for extension in outputFileEndings:
             for file in listdir(directory):
@@ -356,10 +346,7 @@ def copy_input_files(directory_source, directory_destination, output_flag=True):
                 convert_file(file_running)
                 if output_flag:
                     message(mode='INFO', text='    Copy file ' + examplesName + '.' + ending_running)
-                try:
-                    copy(file_running, directory_destination)
-                except Exception as e:
-                    message(mode='ERROR', text="*****")
+                copy_file(file_running, directory_destination)
 
         copy_additional_input_files(directory_source, directory_destination)
     else:
@@ -386,10 +373,7 @@ def copy_additional_input_files(directory_source, directory_destination, output_
                 convert_file(file_running)
                 if output_flag:
                     message(mode='INFO', text='    Copy file ' + file_name_running)
-                try:
-                    copy(file_running, directory_destination)
-                except Exception as e:
-                    message(mode='ERROR', text="*****")
+                copy_file(file_running, directory_destination)
 
 
 def write_tecplot_macro_for_jpg(directory, item_type):
@@ -404,8 +388,8 @@ def write_tecplot_macro_for_jpg(directory, item_type):
     chdir(directory)
     try:
         f = open(directory + '_genJPG.mcr', 'w')
-    except Exception as e:
-            message(mode='ERROR', text="*****")
+    except Exception as err:
+            message(mode='ERROR', text="{0}".format(err))
     else:
         f.write('#!MC 1300\n')
         f.write('#-----------------------------------------------------------------------\n')
@@ -419,14 +403,14 @@ def write_tecplot_macro_for_jpg(directory, item_type):
         f.close()
 
 
-def check_string_represents_non_negative_number_or_a(value):
+def check_string_represents_non_negative_number_or_potentially_valid__character(value):
     """
     check if value is single char 'a' or can be casted to integer and is larger than 0
     displays warning, if this is not the case
     :param value: (string): input to be checked
     :return: True : ok - False : exception
     """
-    if value == 'a':
+    if value == 'a' or value == 'r':  # for all or range (range in table)
         return True
 
     try:
@@ -439,3 +423,40 @@ def check_string_represents_non_negative_number_or_a(value):
         return True
     else:
         return False
+
+
+def str2bool(value_str):
+    """
+    converts string to bool
+    :return:
+    """
+    if value_str == '0':
+        return False
+    else:
+        return True
+
+
+def bool2str(value_bool):
+    """
+    converts string to bool
+    :return:
+    """
+    if value_bool:
+        return '1'
+    else:
+        return '0'
+
+
+def is_in_list(value, the_list):
+    """
+    checks if value is in list
+    :param value:
+    :param the_list:
+    :return: True if value is in list, else False
+    """
+    try:
+        help_var = the_list.index(value)
+    except:
+        return False
+    else:
+        return True

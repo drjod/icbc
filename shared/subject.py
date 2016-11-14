@@ -21,7 +21,7 @@ class Subject:
     __plotDirectory = str()
     __gateDirectory = str()  # to transfer files between local and remote
 
-    def __init__(self, superuser, computer , user, code, branch):
+    def __init__(self, superuser, computer , user, code, branch, id_local_process):
         """
         :param superuser:
         :param computer:
@@ -34,6 +34,7 @@ class Subject:
         self.__user = user
         self.__code = code
         self.__branch = branch
+        self.__id_local_process = id_local_process
 
     def __del__(self):
         pass
@@ -53,6 +54,10 @@ class Subject:
     @property
     def branch(self):
         return self.__branch
+
+    @property
+    def id_local_process(self):
+        return self.__id_local_process
 
     @property
     def location(self):

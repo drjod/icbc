@@ -16,6 +16,10 @@ class Processing:
     def mode(self):
         return self.__mode
 
-    def set(self, number_cpus, mode):
-        self.__number_cpus = number_cpus
-        self.__mode = mode
+    @number_cpus.setter
+    def number_cpus(self, value):
+        self.__number_cpus = value
+
+    @mode.setter
+    def mode(self, value):
+        self.__mode = value

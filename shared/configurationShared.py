@@ -1,8 +1,9 @@
 
 
-inputFileEndings = ['bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st', 'tim', 'pqc', 'krc']
-outputFileEndings = ['tec', 'txt', 'plt', 'vtk', 'asc']
-additionalInputFileEndings = ['exe', 'dat', 'sts']             # to export to or import from repository
+inputFileEndings = ('bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st',
+                    'tim', 'pqc', 'krc')
+outputFileEndings = ('tec', 'txt', 'plt', 'vtk', 'asc')
+additionalInputFileEndings = ('exe', 'dat', 'sts')  # to export to or import from repository
 
 
 
@@ -31,3 +32,4 @@ tollerance_nonlinear = '10.'
 #matrixStorage = 'sparse'
 numberOfGaussPoints = '2'
 
+configuration_set = ('OGS_FEM', 'OGS_FEM_SP', 'OGS_FEM_MKL', 'OGS_FEM_MPI', 'OGS_FEM_PETSC')

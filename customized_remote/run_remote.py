@@ -1,36 +1,26 @@
-import configurationCustomized
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+from sys import path as syspath, argv
+from os import path
+syspath.append(path.join(path.dirname(__file__), '..', 'shared'))
 import environment
-import platform, utilities
+from configurationCustomized import location
+from platform import node, system
+from utilities import message
 
-utilities.message( type='INFO', text='On ' + configurationCustomized.location + ' '  + platform.node() + ' ' + platform.system() )
+message(mode='INFO', text='On ' + location + ' ' + node() + ' ' + system())
 
-environment = environment.Environment(
-                                      computer = sys.argv[1],
-                                      user = sys.argv[2], 
-                                      code = sys.argv[3],
-                                      branch = sys.argv[4],
-                                      typeList= [sys.argv[5]], 
-                                      caseList= [[sys.argv[6]]], 
-                                      configurationList= [sys.argv[7]], 
-                                      operationType= sys.argv[8],  
-                                      operation = sys.argv[9], 
-									  testingDepth = sys.argv[10], 
-                                      level = sys.argv[11],									  
-                                      mySQL_user = ' ', 
-                                      mySQL_password = ' ',
-                                      mySQL_host = ' ',
-                                      mySQL_schema = ' '
-                                      )
+environment = environment.Environment(computer = argv[1],
+                                      user = argv[2],
+                                      code = argv[3],
+                                      branch = argv[4],
+									  id_local_process = argv[5],
+                                      type_list= [argv[6]],
+                                      case_list= [[argv[7]]],
+                                      configuration_list= [argv[8]],
+                                      operation_type= argv[9],
+                                      operation = argv[10],
+                                      mysql_user = str(),
+                                      mysql_password = str(),
+                                      mysql_host = str(),
+                                      mysql_schema = str())
                   
 environment.run()
-
-
-                  
-
- 
-
-
-
-

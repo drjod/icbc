@@ -1,5 +1,6 @@
-import mysql.connector
-from mysql.connector import errorcode
+#import mysql.connector
+#from mysql.connector import errorcode
+import pymysql
 from utilities import message
 
 
@@ -12,7 +13,7 @@ class GateToMySQL:
         self.__cnx = get_connection(mysql_inst)
 
     def __del__(self):
-        # close data base
+        # close database
         self.__cnx.close()
                
     def query_name_for_id(self, table, item_id):
@@ -26,12 +27,11 @@ class GateToMySQL:
         """
         if item_id == 'a': 
             return 'all ' + table  # console output
-                         
-        cursor = self.__cnx.cursor(buffered=True)
-        query(cursor, "SELECT * FROM " + table + " WHERE id=" + str(item_id))
-        row = cursor.fetchone()
-        if row is not None:
-            return str(row[1])
+
+        row_list = self.query("SELECT * FROM " + table + " WHERE id=" + str(item_id))
+        if row_list[0] is not None:
+            return str(row_list[0]['name'])
+            # each row_list entry is dictionary {..., 'id': (string), 'name' (string), ...}
         else:
             message(mode='ERROR', text='Name for id ' + str(item_id) + ' not found in table ' + str(table))
             return '-1'  # exception
@@ -48,19 +48,17 @@ class GateToMySQL:
         """
         if not name:   # empty string
             return ''  # no name given get_table_data_from_database
-        else:    
-            cursor = self.__cnx.cursor(buffered=True)
-            query(cursor,"SELECT t.id FROM " + table + " t WHERE t.name='" + str(name) + "'")
-            row = cursor.fetchone()
-            if row is not None:
-                return str(row[0])
+        else:
+            row_list = self.query("SELECT t.id FROM " + table + " t WHERE t.name='" + str(name) + "'")
+            if row_list[0] is not None:
+                return str(row_list[0]['id'])  # each row_list entry is dictionary {'id': (string)}
             else:
                 message(mode='ERROR', text='Column id for ' + str(name) + ' not found in table ' + str(table))
                 return '-1'  # exception
                        
     def query_id_name_pair_list(self, table, item_id, computer_id='-1', selected_type_id='-1'):
         """
-        query list of rows from table and extract id-name pairs as dictionaries of form {'id': ..., 'name' ...}
+        query list of rows from table and extract id-name pairs as dictionaries of form {..., 'id': ..., 'name' ...}
         each list entry is a dictionary
         options:
             1. all
@@ -73,27 +71,27 @@ class GateToMySQL:
         :param item_id: (string) entry in id column (primary key) (e.g. option 2.)
         :param computer_id: (string) for option 3
         :param selected_type_id: (string) for option 4
-        :return: list of dictionaries {'id': ..., 'name' ...} - '-1' if table not supported (exception)
+        :return: list of dictionaries {'id': (string), 'name' (string)} (order might change)
+                  - '-1' if table not supported (exception)
         """
-        # set cursor       
-        cursor = self.__cnx.cursor(buffered=True) 
         if item_id == 'a':
             if table == 'computer' or table == 'user' or table == 'codes' or table == 'branches' or table == 'types':
-                query(cursor, 'SELECT * FROM ' + table)
+                row_list = self.query("SELECT * FROM " + table)
             elif table == 'cases':  # specific type selected
-                query(cursor, "SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id=" +
-                      selected_type_id)
+                row_list = self.query("SELECT c.* FROM examples e, cases c WHERE e.case_id = c.id and e.type_id=" +
+                                      selected_type_id)
             elif table == 'configurations':  # depends on selected computer
-                query(cursor,
-                      "SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id=" +
-                      computer_id)
+                row_list = self.query(
+                    "SELECT c.* FROM modi m, configurations c WHERE m.configuration_id = c.id and m.computer_id=" +
+                    computer_id)
             else:
                 message(mode='ERROR', notSupported=table)
                 return '-1'  # exception
-        else:    
-            cursor.execute("SELECT * FROM ' + table + ' WHERE id=" + str(item_id))
+        else:
+            self.query("SELECT * FROM ' + table + ' WHERE id=" + str(item_id))
 
-        return extract_id_name_pairs(cursor)
+        return row_list
+        #return extract_id_name_pairs(row_list)
 
     def query_column_entry(self, table, item_id, column_name):
         """
@@ -103,16 +101,12 @@ class GateToMySQL:
         :param column_name: (string) name of column where entry is searched from
         :return: (string) column entry, '-1' if no entry found (exception)
         """
-        # set cursor
-        cursor = self.__cnx.cursor(buffered=True) 
-        query(cursor, "SELECT t." + column_name + " FROM " + table + " t WHERE t.id=" + str(item_id))
-        row = cursor.fetchone()
-        if not row:
-            message(mode='ERROR', text='Column entry of ' +
-                                       str(column_name) + ' not found for id ' + str(item_id))
+        row_list = self.query("SELECT t." + column_name + " FROM " + table + " t WHERE t.id=" + str(item_id))
+        if not row_list[0]:
+            message(mode='ERROR', text='Column entry of ' + str(column_name) + ' not found for id ' + str(item_id))
             return '-1'  # exception
         else:
-            return str(row[0])
+            return str(row_list[0][column_name])
 
     def query_directory_root(self, computer_id, user_id):
         """
@@ -121,17 +115,14 @@ class GateToMySQL:
         :param user_id: (string)
         :return: (string) root directory; '-1' if no root directory found (exception)
         """
-        # set cursor
-        cursor = self.__cnx.cursor(buffered=True) 
-        query(cursor, "SELECT p.root FROM paths p WHERE p.computer_id=" +
-              str(computer_id) + " AND p.user_id=" + str(user_id))
-        row = cursor.fetchone()
-        if not row:
+        row_list = self.query("SELECT p.root FROM paths p WHERE p.computer_id=" +
+                              str(computer_id) + " AND p.user_id=" + str(user_id))
+        if not row_list[0]:
             message(mode='ERROR', text='Path not found for computer id ' +
                                        str(computer_id) + ' - user id ' + str(user_id))
             return '-1'  # exception
         else:
-            return str(row[0])
+            return str(row_list[0]['root'])
 
     def query_userid(self, superuser_name, computer_name):
         """
@@ -140,45 +131,34 @@ class GateToMySQL:
         :param computer_name: (string)
         :return: (string) user id; '-1' if no user id found (exception)
         """
-        # set cursor
-        cursor = self.__cnx.cursor(buffered=True) 
-        query(cursor, "SELECT s.user_id FROM superuser s WHERE s.name='" + str(superuser_name) +
-              "' AND s.computer_id=" + self.query_id_for_name('computer', computer_name))
-        #  
-        row = cursor.fetchone()
-        if not row:
+        row_list = self.query("SELECT s.user_id FROM superuser s WHERE s.name='" + str(superuser_name) +
+                              "' AND s.computer_id=" + self.query_id_for_name('computer', computer_name))
+        if not row_list[0]:
             message(mode='ERROR', text='User id not found for superuser ' +
                                        str(superuser_name) + ' on ' + str(computer_name))
             return '-1'  # exception
         else:
-            return str(row[0])
+            return str(row_list[0]['user_id'])
 
-
-def extract_id_name_pairs(cursor):
-    """
-    extract dictionaries with id-name pairs from cursor
-    :param cursor:
-    :return: list of dictionaries with 'id-name pairs
-    """
-    id_name_pair_list = list()
-    row = cursor.fetchone()
-
-    while row is not None:
-        id_name_pair = {
-            'id': row[0],
-            'name': row[1]
-        }
-        id_name_pair_list.append(id_name_pair)
-        row = cursor.fetchone()
-
-    return id_name_pair_list
-
-
-def query(cursor, query_text):
-    try:
-        cursor.execute(query_text)
-    except Exception as e:
-        message(mode='ERROR', text="*****")
+    def query(self, query_text):
+        """
+        make db query for a given text
+        :param query_text: (string)
+        :return: list of dictionary with query results, [None] if exception
+        """
+        row_list = list()
+        try:
+            with self.__cnx.cursor() as cursor:
+                cursor.execute(query_text)
+            self.__cnx.commit()
+            row = cursor.fetchone()
+            while row is not None:
+                row_list.append(row)
+                row = cursor.fetchone()
+            return row_list
+        except Exception as err:
+            message(mode='ERROR', text="{0}".format(err))
+            return [None]
 
 
 def get_connection(mysql_inst):
@@ -189,15 +169,27 @@ def get_connection(mysql_inst):
     :return: database connection
     """
     try:
-        db_connection = mysql.connector.connect(user=mysql_inst.user, password=mysql_inst.password,
-                                                host=mysql_inst.host, database=mysql_inst.schema)
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            message(mode='ERROR', text='User name or password wrong')
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            message(mode='ERROR', text='Database does not exist')
-        else:
-            message(mode='ERROR', text=err)
+        db_connection = pymysql.connect(user=mysql_inst.user, password=mysql_inst.password,
+                                        host=mysql_inst.host, db=mysql_inst.schema,
+                                        cursorclass=pymysql.cursors.DictCursor)
+    except Exception as err:
+        message(mode='ERROR', text="{0}".format(err))
         exit(1)
     else:
         return db_connection
+
+
+# def extract_id_name_pairs(row_list):
+#     """
+#     extract dictionaries with id-name pairs from cursor
+#     :param row_list: each list entry is dictionary {'id': (string), 'name': (string),}
+#     :return: list of dictionaries with 'id-name pairs
+#     """
+#     id_name_pair_list = list()
+#     for row in row_list:
+#         id_name_pair = {
+#             'id': row['id'],
+#             'name': row['name']
+#         }
+#         id_name_pair_list.append(id_name_pair)
+#     return id_name_pair_list

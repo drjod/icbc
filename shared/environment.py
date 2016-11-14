@@ -1,7 +1,6 @@
 from os import path
 from sys import path as syspath
 syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
-from simulationData import SimulationData
 from subject import Subject
 from operation import Building, Simulating, Plotting
 from item import Build, Sim, Plot
@@ -15,8 +14,7 @@ class Environment:
     main object of icbc:
         hosts instance of classes subject, setting
     """
-
-    def __init__(self, superuser=None, computer=None, user=None, code=None, branch=None,
+    def __init__(self, superuser=None, computer=None, user=None, code=None, branch=None, id_local_process='unused',
                  type_list=[None], case_list=[[None]], configuration_list=[None],
                  operation_type=None, operation=None,
                  test_mode='0', test_level='0',
@@ -46,13 +44,14 @@ class Environment:
         self.__testing = Testing(test_mode, test_level)
 
         mysql_inst = MySQL(mysql_user, mysql_password, mysql_host, mysql_schema)
-        self.__subject_inst = Subject(superuser, computer, user, code, branch)
+        self.__subject_inst = Subject(superuser, computer, user, code, branch, id_local_process)
         self.__setting_inst = Setting(type_list, case_list, configuration_list,
                                       operation_type, operation,
                                       self.__testing, mysql_inst)
 
-        self.__subject_inst.print_selected_variables()
-        self.__setting_inst.print_selected_variables()
+        if location == 'local':
+            self.__subject_inst.print_selected_variables()
+            self.__setting_inst.print_selected_variables()
         print('\n-----------------------------------------------------------------')
 
     def __del__(self):
@@ -64,17 +63,17 @@ class Environment:
         main function of icbc:
             1. connect to and disconnect from data base if on local computer
             2. call select functions
-            3. call loop if selects successfull
+            3. call loop if selects successful
         :return: 0
         """
         if location == 'local':
             self.__setting_inst.connect_to_mysql()
 
         operation_inst = self.select()  # rerun if reselect chosen
-        if self.configure() == 1 or operation_inst == 1:
-            self.run()  # error - than rerun
-        self.loop(operation_inst)
+        if operation_inst == 1:
+            self.run()  # rerun
 
+        self.loop(operation_inst)
         del operation_inst
 
         if location == 'local':
@@ -84,64 +83,42 @@ class Environment:
 
         return 0
 
-    def loop(self, operation_inst):
-        """
-        loop over type, case, and configuration lists
-        :param operation_inst:
-        :return:
-        """
-        type_list_counter = 0
-        for item_type in self.__setting_inst.item_constituents.type_list:
-            for item_case in self.__setting_inst.item_constituents.case_list[type_list_counter]:
-                for item_configuration in self.__setting_inst.item_constituents.configuration_list:
-
-                    if self.check_if_item_is_to_test(item_case) == '1':
-                        self.go_for_run_item(operation_inst, item_type, item_case, item_configuration)
-
-            if len(self.__setting_inst.item_constituents.case_list) > 1:
-                type_list_counter += 1
-
-    def configure(self):
-        """
-        1.  if operation is to compare results with references, clear log file with names of
-            deviating files from previous runs
-        2. check if list entries for test items exit
-        :return: 0 if success; 1 if lists for item not complete
-        """
-        if self.__setting_inst.operation_type == 's' and self.__setting_inst.operation == 'o':
-            # the selected operation is to compare results with references
-            clear_file(self.__subject_inst.directory + "references\\deviatingFiles.log")
-
-        # if list entries for test item incomplete,
-        # do no operation, rather repeat run with empty string for entity to reselect
-        if self.__setting_inst.item_constituents.type_list is None \
-                or self.__setting_inst.item_constituents.case_list is None \
-                or self.__setting_inst.item_constituents.configuration_list is None:
-            message(mode='ERROR', text='No test item - No operation')
-            return 1
-        return 0
-
     def select(self):
         """
         select
-        1. operation type
-        2. operation
-        3. test items
-        if operation is to reselect, call self.run()
-        :return: (Operation(Building, Simulating, or Plotting)) operation instance
+        1. select operation type and operation
+        2. do configurations which are independent of test item
+        3. select test items
+        :return: (Operation(Building, Simulating, or Plotting)) operation instance; 1 if operation reselect or exception
         """
         self.__subject_inst.select(self.__setting_inst)
 
         selected_operation_type = self.__setting_inst.select_operation_type()
         operation_inst = self.select_operation(selected_operation_type)
+        if operation_inst == 1:
+            return 1
 
         if operation_inst.selected_operation == 's':  # reselect
             self.__setting_inst.reselect(self.__subject_inst)  # decide what to reselect
-            del operation_inst
-            self.run()
+            return 1
+
+        self.configure(operation_inst)
 
         self.__setting_inst.select_items_to_test(selected_operation_type,
                                                  self.__setting_inst.operation, self.__subject_inst.computer)
+
+        if self.__setting_inst.operation == 'reselect':
+            self.__setting_inst.operation = None
+            self.run()  # now reselection is finished, rerun to select next operation
+
+        # if list entries for test item incomplete,
+        # do no operation, rather repeat run with empty string for entity to reselect
+        if self.__setting_inst.item_constituents.type_list is [None] \
+                or self.__setting_inst.item_constituents.case_list is [[None]] \
+                or self.__setting_inst.item_constituents.configuration_list is [None]:
+            message(mode='ERROR', text='No test item - No operation')
+            return 1
+
         return operation_inst
 
     def select_operation(self, operation_type):
@@ -155,19 +132,51 @@ class Environment:
             operation_inst = Building(self.__subject_inst)
         elif operation_type == 's':  # simulating
             operation_inst = Simulating(self.__subject_inst)
-        elif operation_type == 'p':  # plotting  
+        elif operation_type == 'p':  # plotting
             operation_inst = Plotting(self.__subject_inst)
-        else:    
+        else:
             message(mode='ERROR', not_supported=operation_type)
             return 1
 
         operation_inst.select_operation(self.__setting_inst.operation)
 
         return operation_inst
-                            
+
+    def configure(self, operation_inst):
+        """
+        0.  call function to set flags for file uploads
+        1.  if operation is to compare results with references, clear log file with names of
+            deviating files from previous runs
+        2. check if list entries for test items exit
+        :param operation_inst: (class Building, Simulating, Plotting (Operation))
+        :return: 0 if success; 1 if lists for item not complete
+        """
+        operation_inst.set_upload_file_flags()
+
+        if self.__setting_inst.operation_type == 's' and self.__setting_inst.operation == 'o':
+            # the selected operation is to compare results with references
+            clear_file(adapt_path(self.__subject_inst.directory + "references\\deviatingFiles.log"))
+
+    def loop(self, operation_inst):
+        """
+        loop over type, case, and configuration lists
+        :param operation_inst: (class Building, Simulating, Plotting (Operation))
+        :return:
+        """
+        type_list_counter = 0
+        for item_type in self.__setting_inst.item_constituents.type_list:
+            for item_case in self.__setting_inst.item_constituents.case_list[type_list_counter]:
+                for item_configuration in self.__setting_inst.item_constituents.configuration_list:
+
+                    if self.check_if_item_is_to_test(item_case) == '1':
+                        self.go_for_run_item(operation_inst, item_type, item_case, item_configuration)
+
+            if len(self.__setting_inst.item_constituents.case_list) > 1:
+                type_list_counter += 1
+
     def check_if_item_is_to_test(self, item_case):
         """
-        check testMode, state, testLevel 
+        check testMode, state, testLevel
         used for simulation, plotting  operation type (case item exists)
         (all items (i.e. configurations) involved in building operation type)
         :param item_case: (string or None)
@@ -177,7 +186,7 @@ class Environment:
 
         if location == 'local' and item_case:
             if self.__testing.mode == '0':
-                # no test mode - select everything by typing on console 
+                # no test mode - select everything by typing on console
                 #                and than the items in the loop (in environment run) is involved
                 execute_flag = '1'
             elif self.__testing.mode == '1':
@@ -195,8 +204,7 @@ class Environment:
     def go_for_run_item(self, operation_inst, item_type, item_case, item_configuration):
         """
         1. generate (and delete) item instance
-        2. generate (and delete) simulationData instance (set ReadFileFlags there)
-            and call write files (for numerics, processing)
+        2. call write files (for numerics, processing)
         3. call operation run function
         :param operation_inst: (class Building, Simulating, or Plotting)
         :param item_type: (string)
@@ -205,12 +213,12 @@ class Environment:
         :return:
         """
         item_inst = self.generate_item_instance(operation_inst, item_type, item_case, item_configuration)
-        sim_data = SimulationData(operation_inst.selected_operation_type, operation_inst.selected_operation)
 
-        self.write_files_for_upload(sim_data, item_type, item_case, item_configuration)
-        operation_inst.run(item_inst, sim_data)
+        operation_inst.write_files_for_upload(item_type, item_case, item_configuration,
+                                              self.__setting_inst, self.__subject_inst.location)
+        operation_inst.run(item_inst)
 
-        del sim_data, item_inst
+        del item_inst
 
     def generate_item_instance(self, operation_inst, item_type, item_case, item_configuration):
         """
@@ -231,24 +239,3 @@ class Environment:
             message(mode='ERROR', not_supported=operation_inst.selected_operation_type)
             return 1  # check this
 
-    def write_files_for_upload(self, sim_data, item_type, item_case, item_configuration):
-        """
-        write files if on local computer and simulationData.ReadFileFlags are set
-        :param sim_data: (class SimulationData)
-        :param item_type: (string)
-        :param item_case: (string)
-        :param item_configuration: (string)
-        :return:
-        """
-        if location == 'local':
-            # do mysql queries
-            if sim_data.read_file_flags.numerics:
-                sim_data = self.__setting_inst.set_numerics_data(sim_data, item_case, item_configuration)
-                if self.__subject_inst.location == 'remote':
-                    # file transfer
-                    sim_data.write_numerics_data(item_configuration)
-            if sim_data.read_file_flags.processing:
-                sim_data = self.__setting_inst.set_processing_data(sim_data, item_type, item_configuration)
-                if self.__subject_inst.location == 'remote':
-                    # file transfer
-                    sim_data.write_processing_data(item_configuration)

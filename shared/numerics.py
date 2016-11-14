@@ -4,8 +4,8 @@ class Processes:
     used in numerics class Global
     """
     __flow = 'NO_FLOW'
-    __mass_flag = '0'  # becomes unity if MASS_TRANSPORT exists
-    __heat_flag = '0'  # becomes unity if HEAT_TRANSPORT exists
+    __mass_flag = bool()  # becomes unity if MASS_TRANSPORT exists
+    __heat_flag = bool()  # becomes unity if HEAT_TRANSPORT exists
 
     def __init__(self):
         pass
@@ -22,10 +22,17 @@ class Processes:
     def heat_flag(self):
         return self.__heat_flag
 
-    def set(self, flow, mass_flag, heat_flag):
-        self.__flow = flow
-        self.__mass_flag = mass_flag
-        self.__heat_flag = heat_flag
+    @flow.setter
+    def flow(self, value):
+        self.__flow = value
+
+    @mass_flag.setter
+    def mass_flag(self, value):
+        self.__mass_flag = value
+
+    @heat_flag.setter
+    def heat_flag(self, value):
+        self.__heat_flag = value
 
 
 class Global:
@@ -34,18 +41,17 @@ class Global:
     except the ones which depend on process
     used to write data files, which can be transfered to remote computer
     """
-    __prcs = None
-    __processes = list()  # first element always flow, than mass and heat if exist
+    __processes = None  # class Processes
 
-    __coupled_flag = str()
-    __lumping_flag = str()  # only flow lumped
-    __non_linear_flag = str()  # only flow nonlinear
+    __coupled_flag = bool()
+    __lumping_flag = bool()  # only flow lumped
+    __non_linear_flag = bool()  # only flow nonlinear
 
     def __init__(self):
-        del self.__processes[:]
+        self.__processes = Processes()
 
     def __del__(self):
-        del self.__processes[:]
+        del self.__processes
 
     @property
     def coupled_flag(self):
@@ -60,25 +66,21 @@ class Global:
         return self.__non_linear_flag
 
     @property
-    def prcs(self):
-        return self.__prcs
-
-    @property
     def processes(self):
         return self.__processes
 
-    def set(self, prcs, coupled_flag, lumping_flag, nonlinear_flag):
-        self.__prcs = prcs
- 
-        self.__processes.append('flow')
-        if prcs.mass_flag == '1':
-            self.__processes.append('mass')
-        if prcs.heat_flag == '1':
-            self.__processes.append('heat')
+    @processes.setter
+    def processes(self, value):
+        self.__processes = value
 
-        self.__coupled_flag = coupled_flag
-        self.__lumping_flag = lumping_flag
-        self.__non_linear_flag = nonlinear_flag
+    @coupled_flag.setter
+    def coupled_flag(self, value):
+        self.__coupled_flag = value
 
+    @lumping_flag.setter
+    def lumping_flag(self, value):
+        self.__lumping_flag = value
 
-
+    @non_linear_flag.setter
+    def non_linear_flag(self, value):
+        self.__non_linear_flag = value

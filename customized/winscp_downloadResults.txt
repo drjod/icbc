@@ -1,5 +1,0 @@
-option batch abort 
-option confirm off 
-open sftp://sungw389:******@rzcluster.rz.uni-kiel.de/ 
-get /home/sungw389/testingEnvironment/rzcluster/ogs/ogs_kb1/examples/files/bc_st_test_pris/2_2_1_pris/OGS_FEM_PETSC/results.tar F:\testingEnvironment\rzcluster\ogs\ogs_kb1\examples\files\bc_st_test_pris\2_2_1_pris\OGS_FEM_PETSC\ 
-exit

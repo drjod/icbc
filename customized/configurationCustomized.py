@@ -2,12 +2,14 @@ from sys import path as syspath
 from os import path
 syspath.append(path.join(path.dirname(__file__), '..', 'shared'))
 
+
+# id_called_process = 'unused'  # used to import num data on remote computer
+
 outputFile = 'out.txt'
 location = 'local'
-rootDirectory = '/home/jens/'
-computer = 'ibiza'
-compiler = 'GNU'
-
+rootDirectory = 'F:\\'
+computer = 'amak'
+compiler = ''  # for linux - there, it must equal specification in script compileInKiel.sh!!!
 
 testingDepth = 3
 walltime  = 0

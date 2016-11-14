@@ -7,7 +7,7 @@ from configurationCustomized import rootDirectory
 
 class Item:
     """
-    Parent of Build, Sim, Plot
+    parent of Build, Sim, Plot
     hosts directory, subject, configuration for specific test case or item if building operation
     """
     def __init__(self, subject=None, configuration=None, directory=None):
@@ -30,16 +30,15 @@ class Item:
 
 class Build(Item):
     """
-    Used in building operations
+    used in building operations
     """
     def __init__(self, subject, configuration):
-        Item.__init__(self, subject, configuration,
-                           adapt_path(subject.directory + 'Build_' + configuration + '\\'))
+        Item.__init__(self, subject, configuration, adapt_path(subject.directory + 'Build_' + configuration + '\\'))
 
 
 class Test(Item):
     """
-    Parent of Sim and Plot
+    parent of Sim and Plot
     """
     def __init__(self, subject, item_type, item_case, item_configuration, directory):
         self.__type = item_type
@@ -61,12 +60,12 @@ class Test(Item):
 
 class Sim(Test):
     """
-    Used in simulation operations
+    used in simulation operations
     """
     def __init__(self, subject, item_type, item_case, item_configuration):
         self.__directory_repository = adapt_path(rootDirectory +
-                                                 'testingEnvironment\\' + subject.computer +
-                                                 '\\repository\\' + item_type + '\\' + item_case + '\\')
+                                                 'testingEnvironment\\' + subject.computer + '\\repository\\' +
+                                                 item_type + '\\' + item_case + '\\' + item_configuration + '\\')
      
         Test.__init__(self, subject, item_type, item_case, item_configuration,
                       adapt_path(subject.directory + 'examples\\files\\' + item_type + '\\' +
@@ -79,7 +78,7 @@ class Sim(Test):
 
 class Plot(Test):    
     """
-    Used in plotting operations
+    used in plotting operations
     """
     def __init__(self, subject, item_type, item_case, item_configuration):
         example = item_type + '\\'

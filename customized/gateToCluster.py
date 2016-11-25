@@ -1,7 +1,6 @@
 from os import remove, path, access, R_OK, getpid
 from sys import path as syspath
 from subprocess import call, check_call
-syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
 syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
 from utilities import message, adapt_path, adapt_path_computer_selected, remove_file
 from configurationCustomized import rootDirectory, winscp
@@ -17,8 +16,8 @@ def operate(subject, item, operation_type, operation, simulation_data):
     :param simulation_data: (string)
     :return:
     """
-    shell_script = adapt_path(
-        rootDirectory + 'testingEnvironment\\scripts\\icbc\\temp\\remoteRun_' + str(getpid()) + '.sh')
+    shell_script = '{}{}remoteRun_{}.sh'.format(
+        rootDirectory, adapt_path('testingEnvironment\\scripts\\icbc\\temp\\'), getpid())
 
     upload_files(subject, simulation_data)
     write_shell_script_for_remote_run(subject, item, operation_type, operation, shell_script)
@@ -34,8 +33,8 @@ def execute_shell_script_on_remote_computer(subject, shell_script):
     """
     mod = __import__(subject.computer)
     try:
-        call('C:\\\"Program Files (x86)\"\\PuTTY\\plink ' + subject.user + '@' + subject.hostname + ' -pw ' +
-             mod.pwd + ' -m ' + shell_script, shell=True)
+        call('C:\\\"Program Files (x86)\"\\PuTTY\\plink {}@{} -pw {} -m {}'.format(
+            subject.user, subject.hostname, mod.pwd, shell_script), shell=True)
     except Exception as err:
         message(mode='ERROR', text='{0}'.format(err))
 
@@ -60,14 +59,16 @@ def write_shell_script_for_remote_run(subject, item, operation_type, operation, 
     else:
         f.write('#!/bin/sh\n')
         f.write('module load python3.3\n')
-        f.write('python ' + subject.directory_root + 'testingEnvironment/scripts/icbc/customized/run_remote.py ')
-        f.write(subject.computer + ' ' + subject.user
-                + ' ' + subject.code + ' ' + subject.branch + ' ' + str(getpid()) + ' ')
+        f.write('python3 {}testingEnvironment/scripts/icbc/customized/run_remote.py '.format(subject.directory_root))
+        f.write('{} {} {} {} {} '.format(subject.computer, subject.user, subject.code, subject.branch, getpid()))
         if operation_type == 'b':  # building
-            f.write('No No  ' + item.configuration + ' ')
-        else:
-            f.write(item.type + ' ' + item.case + ' ' + item.configuration + ' ')
-        f.write(operation_type + ' ' + operation)
+            f.write('None None  {} None None '.format(item.configuration))
+        elif operation_type == 's':  # simulating
+            f.write('{} {} {} {} {} '.format(
+                item.type, item.case, item.configuration, item.flow_process, item.element_type))
+        elif operation_type == 'p':  # plotting
+            f.write(' {} {} {} None None '.format(item.type, item.case, item.configuration))
+        f.write('{} {}'.format(operation_type, operation))
         f.close()
 
 
@@ -80,39 +81,38 @@ def upload_files(subject, simulation_data):
     :return:
     """
     mod = __import__(subject.computer)  # module with password for remote computer
-    directory_local_temp = rootDirectory + adapt_path('testingEnvironment\\scripts\\icbc\\temp\\')
-    directory_remote_temp = subject.directory_root + adapt_path_computer_selected(
-        'testingEnvironment\\scripts\\icbc\\temp\\', subject.operating_system)
+    directory_local_temp = '{}{}'.format(rootDirectory, adapt_path('testingEnvironment\\scripts\\icbc\\temp\\'))
+    directory_remote_temp = '{}{}'.format(subject.directory_root, adapt_path_computer_selected(
+        'testingEnvironment\\scripts\\icbc\\temp\\', subject.operating_system))
     command_list = list()
 
     try:
         if simulation_data.read_file_flags.numerics:
-            command_list.append('put ' + directory_local_temp + 'numerics_global_' + str(getpid()) + '.py '
-                                + directory_remote_temp + 'numerics_global_' + str(getpid()) + '.py')
-            command_list.append('put ' + directory_local_temp + 'numerics_flow_' + str(getpid()) + '.py '
-                                + directory_remote_temp + 'numerics_flow_' + str(getpid()) + '.py')
+            command_list.append('put {0}numerics_global_{2}.py {1}numerics_global_{2}.py'.format(
+                directory_local_temp, directory_remote_temp, getpid()))
+            command_list.append('put {0}numerics_flow_{2}.py {1}numerics_flow_{2}.py'.format(
+                directory_local_temp, directory_remote_temp, getpid()))
             if simulation_data.numerics_global.processes.mass_flag:
-                command_list.append('put ' + directory_local_temp + 'numerics_mass_' + str(getpid()) + '.py '
-                                    + directory_remote_temp + 'numerics_mass_' + str(getpid()) + '.py')
+                command_list.append('put {0}numerics_mass_{2}.py {1}numerics_mass_{2}.py'.format(
+                    directory_local_temp, directory_remote_temp, getpid()))
             if simulation_data.numerics_global.processes.heat_flag:
-                command_list.append('put ' + directory_local_temp + 'numerics_heat_' + str(getpid()) + '.py '
-                                    + directory_remote_temp + 'numerics_heat_' + str(getpid()) + '.py')
+                command_list.append('put {0}numerics_heat_{2}.py {1}numerics_heat_{2}.py'.format(
+                    directory_local_temp, directory_remote_temp, getpid()))
 
             call_winscp(command_list, subject.user, subject.hostname, mod.pwd, False)
-            remove_file(directory_local_temp + 'numerics_global_' + str(getpid()) + '.py', False)
-            remove_file(directory_local_temp + 'numerics_flow_' + str(getpid()) + '.py', False)
+            remove_file('{}numerics_global_{}.py'.format(directory_local_temp, getpid()), False)
+            remove_file('{}numerics_flow_{}.py'.format(directory_local_temp, getpid()), False)
             if simulation_data.numerics_global.processes.mass_flag:
-                remove_file(directory_local_temp + 'numerics_mass_' + str(getpid()) + '.py', False)
+                remove_file('{}numerics_mass_{}.py'.format(directory_local_temp, getpid()), False)
             if simulation_data.numerics_global.processes.heat_flag:
-                remove_file(directory_local_temp + 'numerics_heat_' + str(getpid()) + '.py', False)
+                remove_file('{}numerics_heat_{}.py'.format(directory_local_temp, getpid()), False)
         if simulation_data.read_file_flags.processing:
             command_list.clear()
-            command_list.append(
-                'put ' + directory_local_temp + 'processing_' + str(getpid()) + '.py ' +
-                directory_remote_temp + 'processing_' + str(getpid()) + '.py')
+            command_list.append('put {0}processing_{2}.py {1}processing_{2}.py'.format(
+                directory_local_temp, directory_remote_temp, getpid()))
 
             call_winscp(command_list, subject.user, subject.hostname, mod.pwd, False)
-            remove_file(directory_local_temp + 'processing_' + str(getpid()) + '.py', False)
+            remove_file('{}processing_{}.py'.format(directory_local_temp, getpid()), False)
 
     except Exception as err:
         message(mode='ERROR', text='{0}'.format(err))
@@ -130,9 +130,9 @@ def download_file_with_winscp(file_winscp, tarfile_remote, user, hostname, passw
     :param output_flag: (bool)
     :return:
     """
-    write_winscp_file(file_winscp, ['get ' + tarfile_remote], user, hostname, password, output_flag)
+    write_winscp_file(file_winscp, ['get {}'.format(tarfile_remote)], user, hostname, password, output_flag)
     try:
-        check_call(winscp + ' /script=' + file_winscp)
+        check_call(winscp + ' /script={}'.format(file_winscp))
         print('\n')
     except Exception as err:
         message(mode='ERROR', text='{0}'.format(err))
@@ -160,9 +160,9 @@ def write_winscp_file(file_winscp, winscp_command_list, user, hostname, password
     else:
         f.write('option batch abort \n')
         f.write('option confirm off \n')
-        f.write('open sftp://' + user + ':' + password + '@' + hostname + '/ \n')
+        f.write('open sftp://{}:{}@{}/ \n'.format(user, password, hostname))
         for command in winscp_command_list:
-            f.write(command+ ' \n')
+            f.write('{} \n'.format(command))
         f.write('exit')
         f.close()
 
@@ -177,13 +177,13 @@ def call_winscp(winscp_command_list, user, hostname, password, output_flag=True)
     :param output_flag:
     :return:
     """
-    temp_winscp_file = rootDirectory + adapt_path('testingEnvironment\\scripts\\icbc\\temp\\winscp_file_'
-                                                  + str(getpid()) + '.txt')
+    temp_winscp_file = '{}{}winscp_file_{}.txt'.format(rootDirectory, adapt_path(
+        'testingEnvironment\\scripts\\icbc\\temp\\'), getpid())
     write_winscp_file(temp_winscp_file, winscp_command_list, user, hostname, password, output_flag)
     try:
-        check_call(winscp + ' /script=' + temp_winscp_file)
+        check_call('{} /script={}'.format(winscp, temp_winscp_file))
     except Exception as err:
         message(mode='ERROR', text='{0}'.format(err))
     remove_file(temp_winscp_file, False)
-    print(' ')
+    print('\n')
 

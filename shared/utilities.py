@@ -21,16 +21,16 @@ def message(mode='ERROR', text=None, not_supported=None):
     :return:
     """
     if not_supported:
-        print_message = not_supported + ' is not supported'
+        print_message = '{} is not supported'.format(not_supported)
     else:
         print_message = text
 
     if mode == 'INFO':
         in_function = ''
     else:
-        in_function = ' in function ' + sys._getframe(1).f_code.co_name
+        in_function = ' in function {}'.format(sys._getframe(1).f_code.co_name)
 
-    print(mode + in_function + ' - ' + print_message)
+    print('{}{} - {}'.format(mode, in_function, print_message))
 
 
 def select_from_options(option_dict, message_text):
@@ -52,7 +52,7 @@ def select_from_options(option_dict, message_text):
         if option_selected.lower() in option_dict:
             break
         else:
-            message(mode='ERROR', text='Operation type ' + str(option_selected) + ' does not exist. Try again.')
+            message(mode='ERROR', text='Operation type {} does not exist. Try again.'.format(option_selected))
 
     return str(option_selected)
 
@@ -97,7 +97,7 @@ def generate_folder(directory):
     try:
         stat(directory)
     except:
-        message(mode='INFO', text='    Generate folder ' + directory)
+        message(mode='INFO', text='    Generate folder {}'.format(directory))
         makedirs(directory)
 
 
@@ -114,16 +114,16 @@ def unix2dos(file, output_flag=True):
         message(mode='INFO', text='    Convert to dos')
     try:
         infile = open(file, 'r')
-        outfile = open('dos_' + file, 'w')  # write into new file with suffix dos_
+        outfile = open('dos_{}'.format(file), 'w')  # write into new file with suffix dos_
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
     else:
         for line in infile:
             line = line.rstrip() + '\r\n'
             outfile.write(line)
         infile.close()
         outfile.close()
-        move('dos_' + file, file)  # remove suffix dos_ - overwrite original file
+        move('dos_{}'.format(file), file)  # remove suffix dos_ - overwrite original file
 
 
 def dos2unix(file, output_flag=True):
@@ -170,7 +170,7 @@ def copy_file(file, destination):
     try:
         copy(file, destination)
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
 
 
 def move_file(file, destination):
@@ -183,24 +183,27 @@ def move_file(file, destination):
     try:
         move(file, destination)
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
 
 
 def remove_file(file, output_flag=True):
     """
-    if file exists, remove it
+    if file exists, remove it, else do nothing
     :param file: (string) path and file name
     :param output_flag: (bool)
     :return:
     """
     file = adapt_path(file)
-    if output_flag:
-        message(mode='INFO', text='    Removing ' + file)
+    if not path.isfile(file):
+        return
+    else:
+        if output_flag:
+            message(mode='INFO', text='    Removing ' + file)
 
-    try:
-        remove(file)
-    except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        try:
+            remove(file)
+        except Exception as err:
+            message(mode='WARNING', text="{}".format(err))
 
 
 def clear_file(file):
@@ -214,7 +217,7 @@ def clear_file(file):
     try:
         open(file, 'w').close()
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
 
 
 def compare_files(file1, file2):
@@ -236,7 +239,7 @@ def append_to_file(file, new_text):
     try:
         f = open(file, 'a')
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
     else:
         f.write(new_text)
 
@@ -256,7 +259,7 @@ def record_regression_of_file(file_affected_name, directory, directory_reference
     directory_reference = adapt_path(directory_reference)
 
     if output_flag:
-        message(mode='INFO', text='Record regression of file ' + file_affected_name)
+        message(mode='INFO', text='Record regression of file {}'.format(file_affected_name))
     try:
         f = open(directory_reference + log_file_name, 'a')
         f1 = open(directory + file_affected_name, 'r')
@@ -265,13 +268,13 @@ def record_regression_of_file(file_affected_name, directory, directory_reference
         message(mode='ERROR', text='Cannot open file')
     else:
         f.write('------------------------------------------------------------------------------\n')
-        f.write(file_affected_name + '\n')
+        f.write('{}\n'.format(file_affected_name))
         diff = ndiff(f1.readlines(), f2.readlines())
         for line in diff:
             if line.startswith('-'):
                 f.write(line)
             elif line.startswith('+'):
-                f.write('\t\t' + line)
+                f.write('\t\t{}'.format(line))
                 # for i, line in enumerate(diff):
                 #    if line.startswith(' '):
                 #        continue
@@ -286,7 +289,7 @@ def unpack_tar_file(directory):
     :return:
     """
     message(mode='INFO', text='    Unpack')
-    tar_file = adapt_path(directory + 'results.tar')
+    tar_file = adapt_path('{}results.tar'.format(directory))
 
     try:
         chdir(directory)
@@ -294,7 +297,7 @@ def unpack_tar_file(directory):
     except FileNotFoundError:
         message(mode='ERROR', text='No tar file')
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
     else:
         tar.extractall()
         tar.close()
@@ -309,7 +312,7 @@ def pack_tar_file(directory):
     :return:
     """
     message(mode='INFO', text='    Pack')
-    tar_file = adapt_path(directory + 'results.tar')
+    tar_file = adapt_path('{}results.tar'.format(directory))
 
     try:
         if path.isfile(tar_file):  # remove old tar file if it exists
@@ -317,11 +320,11 @@ def pack_tar_file(directory):
         chdir(directory)
         tar = open_tar(tar_file, 'w')
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        message(mode='ERROR', text="{}".format(err))
     else:
         for extension in outputFileEndings:
             for file in listdir(directory):
-                if file.endswith('.' + extension):
+                if file.endswith('.{}'.format(extension)):
                     tar.add(file)
         tar.close()
 
@@ -341,11 +344,11 @@ def copy_input_files(directory_source, directory_destination, output_flag=True):
 
     if path.exists(directory_source):
         for ending_running in inputFileEndings:
-            file_running = directory_source + examplesName + '.' + ending_running
+            file_running = '{}{}.{}'.format(directory_source, examplesName, ending_running)
             if path.isfile(file_running) and access(file_running, R_OK):
                 convert_file(file_running)
                 if output_flag:
-                    message(mode='INFO', text='    Copy file ' + examplesName + '.' + ending_running)
+                    message(mode='INFO', text='    Copy file {}.{}'.format(examplesName, ending_running))
                 copy_file(file_running, directory_destination)
 
         copy_additional_input_files(directory_source, directory_destination)
@@ -369,10 +372,10 @@ def copy_additional_input_files(directory_source, directory_destination, output_
     for file_name_running in listdir(directory_source):
         file_running = directory_source + file_name_running
         for ending in additionalInputFileEndings:
-            if file_name_running.endswith('.' + ending):
+            if file_name_running.endswith('.{}'.format(ending)):
                 convert_file(file_running)
                 if output_flag:
-                    message(mode='INFO', text='    Copy file ' + file_name_running)
+                    message(mode='INFO', text='    Copy file {}'.format(file_name_running))
                 copy_file(file_running, directory_destination)
 
 
@@ -387,23 +390,22 @@ def write_tecplot_macro_for_jpg(directory, item_type):
 
     chdir(directory)
     try:
-        f = open(directory + '_genJPG.mcr', 'w')
+        f = open('{}_genJPG.mcr'.format(directory), 'w')
     except Exception as err:
-            message(mode='ERROR', text="{0}".format(err))
+            message(mode='ERROR', text="{}".format(err))
     else:
         f.write('#!MC 1300\n')
         f.write('#-----------------------------------------------------------------------\n')
         f.write('$!EXPORTSETUP EXPORTFORMAT = JPEG\n')
         f.write('$!EXPORTSETUP IMAGEWIDTH = 1500\n')
         f.write('#-----------------------------------------------------------------------\n')
-        f.write("$!EXPORTSETUP EXPORTFNAME = \'" + directory + "results_"
-                + item_type + ".jpg\'\n")
+        f.write("$!EXPORTSETUP EXPORTFNAME = \'{}results_{}.jpg\'\n".format(directory, item_type))
         f.write('$!EXPORT\n')
         f.write('EXPORTREGION = ALLFRAMES\n')
         f.close()
 
 
-def check_string_represents_non_negative_number_or_potentially_valid__character(value):
+def string_represents_non_negative_number_or_potentially_valid_character(value):
     """
     check if value is single char 'a' or can be casted to integer and is larger than 0
     displays warning, if this is not the case
@@ -430,7 +432,7 @@ def str2bool(value_str):
     converts string to bool
     :return:
     """
-    if value_str == '0':
+    if value_str == '0' or value_str == 'False':
         return False
     else:
         return True

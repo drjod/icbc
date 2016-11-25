@@ -1,4 +1,4 @@
-from utilities import message, select_from_options, check_string_represents_non_negative_number_or_a
+from utilities import message, select_from_options
 from copy import deepcopy
 from sys import path as syspath, exc_info
 from os import path
@@ -14,7 +14,7 @@ class Testing:
         self.level = level  # for testing with jenkins - each test case has a level this variable is compared with
 
 
-class MySQL:
+class Database:
     def __init__(self, user, password, host, schema):
         self.user = user
         self.password = password
@@ -120,7 +120,7 @@ class Setting:
     def query_username(self, superuser_name, computer_name):
         pass
                                                       
-    def query_column_for_case(self, case_name, column_name):
+    def query_column_entry_for_name(self, table, case_name, column_name):
         pass
 
     def select_operation_type(self):

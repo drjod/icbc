@@ -1,11 +1,8 @@
 from utilities import message, select_from_options, str2bool
-from utilities import is_in_list, check_string_represents_non_negative_number_or_potentially_valid__character
+from utilities import is_in_list, string_represents_non_negative_number_or_potentially_valid_character
 from copy import deepcopy
-from sys import path as syspath
-from os import path
 from processing import Processing
-syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
-from gateToMySQL import GateToMySQL
+from gateToDatabase import GateToDatabase
 
 
 class Testing:
@@ -14,7 +11,7 @@ class Testing:
         self.level = level  # for testing with jenkins - each test case has a level this variable is compared with
 
 
-class MySQL:
+class Database:
     def __init__(self, user, password, host, schema):
         self.user = user
         self.password = password
@@ -27,35 +24,34 @@ class ItemConstituents:
         self.type_list = type_list
         self.case_list = case_list
         self.configuration_list = configuration_list
-        self.flow_process_list = [[None]]  # for cases
-        self.element_type_list = [[None]]  # for cases
+
 
 class ListsCollection:  # stores lists for member get_name_list
     def __init__(self):
         self.id = list()       # stores selected ids
         self.name = list()     # contains selected names (derived from id)
         self.nameSub = list()  # to generate nested nameList for table cases, which depends on selected type
-        self.id_name_pair = list()  # for data base access - each entry contains an id and nam
+        self.id_name_pair = list()  # for data base access - each entry contains an id and name
         #                             as a dictionary {'id': ..., 'name':} obtained from databa
 
 
 class Setting:
     """
     console input
-    hosts TestCases lists, gateToMySQL
+    hosts TestCases lists, gateToDatabase
     operation, operation_type
     """
     __selectedTypeIdList = list()  # for tree structure (types, cases) - to know selected type when cases are selected
 
     def __init__(self, type_list, case_list, configuration_list, operation_type,
-                 operation, testing_properties, mysql_inst):
+                 operation, testing_properties, db_inst):
     
         self.__item_constituents = ItemConstituents(type_list, case_list, configuration_list)
         self.__operation_type = operation_type  # building or testing
         self.__operation = operation
         self.__testing = testing_properties  # to switch off select
-        self.__mysql_inst = mysql_inst
-        self.__gateToMySQL = None
+        self.__db_inst = db_inst
+        self.__gateToDatabase = None
         
     def __del__(self):
         pass
@@ -70,29 +66,29 @@ class Setting:
         """
         if self.__item_constituents.type_list[0]:
             for i in range(0, len(self.__item_constituents.type_list)):
-                message(mode='INFO', text='Set type ' + self.__item_constituents.type_list[i])
+                message(mode='INFO', text='Set type {}'.format(self.__item_constituents.type_list[i]))
         if self.__item_constituents.case_list[0][0]:
             for i in range(0, len(self.__item_constituents.case_list)):
                 for j in range(0, len(self.__item_constituents.case_list[i])):
-                    message(mode='INFO', text='Set case ' + self.__item_constituents.case_list[i][j])
+                    message(mode='INFO', text='Set case {}'.format(self.__item_constituents.case_list[i][j]))
         if self.__item_constituents.configuration_list[0]:
             for i in range(0, len(self.__item_constituents.configuration_list)):
-                message(mode='INFO', text='Set configuration ' + self.__item_constituents.configuration_list[i])
+                message(mode='INFO', text='Set configuration {}'.format(self.__item_constituents.configuration_list[i]))
 
         if self.__operation_type:
-            message(mode='INFO', text='Set operation type ' + self.__operation_type)
+            message(mode='INFO', text='Set operation type {}'.format(self.__operation_type))
         if self.__operation:
-            message(mode='INFO', text='Set operation ' + self.__operation)
+            message(mode='INFO', text='Set operation {}'.format(self.__operation))
 
-    def connect_to_mysql(self):
-        message(mode='INFO', text='Connect ' + self.__mysql_inst.user + ' to database ' + self.__mysql_inst.host +
-                                  ' ' + self.__mysql_inst.schema)
+    def connect_to_db(self):
+        message(mode='INFO', text='Connect {} to database {} {}'.format(
+            self.__db_inst.user, self.__db_inst.host, self.__db_inst.schema))
 
-        self.__gateToMySQL = GateToMySQL(self.__mysql_inst)
+        self.__gateToDatabase = GateToDatabase(self.__db_inst)
 
-    def disconnect_from_mysql(self):
+    def disconnect_from_db(self):
         # message(mode='INFO', text='Disconnecting')
-        del self.__gateToMySQL
+        del self.__gateToDatabase
 
     @property
     def item_constituents(self):
@@ -114,6 +110,52 @@ class Setting:
     def testing(self):
         return self.__testing
 
+    def query_flow_process_name_list(self, case_name):
+        """
+        :param case_name: (string)
+        :return: (string list)
+        """
+        name_list = list()
+
+        numerics_id_list = self.__gateToDatabase.query_ids_from_column_entries(
+            'numerics', 'case_id', self.__gateToDatabase.query_id_for_name('cases', case_name))
+
+        flow_process_id_list = list()
+
+        for numerics_id in numerics_id_list:
+            flow_process_id = self.__gateToDatabase.query_column_entry(
+                'numerics', numerics_id, 'flow_process_id')
+            if not is_in_list(flow_process_id, flow_process_id_list):
+                flow_process_id_list.append(flow_process_id)
+                name_list.append(self.__gateToDatabase.query_name_for_id('flow_processes', flow_process_id))
+        return name_list
+
+    def query_element_type_name_list(self, case_name, flow_process_name_list):
+        """
+
+        :param case_name:
+        :param flow_process_name_list:
+        :return:
+        """
+        name_nested_list = [[]]
+        name_nested_list.clear()
+
+        numerics_id_list = self.__gateToDatabase.query_ids_from_column_entries(
+            'numerics', 'case_id', self.__gateToDatabase.query_id_for_name('cases', case_name))
+
+        for flow_process_name in flow_process_name_list:
+            name_inner_list = list()
+            for numerics_id in numerics_id_list:
+                running_flow_process_name = self.__gateToDatabase.query_name_for_id(
+                    'flow_processes', self.__gateToDatabase.query_column_entry('numerics', numerics_id, 'flow_process_id'))
+                if flow_process_name == running_flow_process_name:
+                    flow_process_id = self.__gateToDatabase.query_column_entry(
+                        'numerics', numerics_id, 'element_type_id')
+                    name_inner_list.append(self.__gateToDatabase.query_name_for_id('element_types', flow_process_id))
+            name_nested_list.append(name_inner_list)
+
+        return name_nested_list
+
     def query_location(self, computer_name):
         """
         query location (local or remote) from computer table for given computer name
@@ -121,8 +163,8 @@ class Setting:
         :param computer_name: (string)
         :return: (string) location
         """
-        return self.__gateToMySQL.query_column_entry('computer',
-                                                     self.__gateToMySQL.query_id_for_name('computer', computer_name),
+        return self.__gateToDatabase.query_column_entry('computer',
+                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
                                                      'location')
 
     def query_operating_system(self, computer_name):
@@ -132,8 +174,8 @@ class Setting:
         :param computer_name:
         :return:
         """
-        return self.__gateToMySQL.query_column_entry('computer',
-                                                     self.__gateToMySQL.query_id_for_name('computer', computer_name),
+        return self.__gateToDatabase.query_column_entry('computer',
+                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
                                                      'operating_system')
  
     def query_directory_root(self, computer_name, user_name):
@@ -144,8 +186,8 @@ class Setting:
         :param user_name: (string)
         :return: (string) root directory
         """
-        return self.__gateToMySQL.query_directory_root(self.__gateToMySQL.query_id_for_name('computer', computer_name),
-                                                       self.__gateToMySQL.query_id_for_name('user', user_name))
+        return self.__gateToDatabase.query_directory_root(self.__gateToDatabase.query_id_for_name('computer', computer_name),
+                                                       self.__gateToDatabase.query_id_for_name('users', user_name))
 
     def query_hostname(self, computer_name):
         """
@@ -154,8 +196,8 @@ class Setting:
         :param computer_name: (string)
         :return: (string) hostname
         """
-        return self.__gateToMySQL.query_column_entry('computer',
-                                                     self.__gateToMySQL.query_id_for_name('computer', computer_name),
+        return self.__gateToDatabase.query_column_entry('computer',
+                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
                                                      'hostname')
     
     def query_username(self, superuser_name, computer_name):
@@ -166,20 +208,21 @@ class Setting:
         :param computer_name: (string)
         :return: (string ) username
         """
-        return self.__gateToMySQL.query_name_for_id('user',
-                                                    self.__gateToMySQL.query_userid(
+        return self.__gateToDatabase.query_name_for_id('users',
+                                                    self.__gateToDatabase.query_userid(
                                                         superuser_name, computer_name))
                                                       
-    def query_column_for_case(self, case_name, column_name):
+    def query_column_entry_for_name(self, table, name, column_name):
         """
-        query a column entry from cases table for a case name
+        query a column entry from table for a name
             by first querying case id
+        :param table: (string)
         :param case_name: (string)
         :param column_name: (string)
         :return: (string) column entry
         """
-        return self.__gateToMySQL.query_column_entry('cases', self.__gateToMySQL.query_id_for_name(
-            'cases', case_name), column_name)
+        return self.__gateToDatabase.query_column_entry(table, self.__gateToDatabase.query_id_for_name(
+            table, name), column_name)
 
     def query_process_numerics_data(self, numerics_type, process, item_case, item_configuration='no_configuration'):
         """
@@ -191,14 +234,14 @@ class Setting:
         :return:
         """
         if item_configuration == 'no_configuration':
-            column_name_in_cases_table = numerics_type + '_' + process
+            column_name_in_cases_table = '{}_{}'.format(numerics_type, process)
         else:
-            column_name_in_cases_table = numerics_type + '_' + process + '_' + item_configuration
+            column_name_in_cases_table = '{}_{}_{}'.format(numerics_type, process, item_configuration)
 
-        column_entry = self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), column_name_in_cases_table)
+        column_entry = self.__gateToDatabase.query_column_entry(
+            'cases', self.__gateToDatabase.query_id_for_name('cases', item_case), column_name_in_cases_table)
 
-        if (numerics_type == 'solver' or numerics_type == 'preconditioner'):
+        if numerics_type == 'solver' or numerics_type == 'preconditioner':
             return self.convert_numerics_entry_in_cases_table_to_specification(
                 item_configuration, column_entry, numerics_type)
         else:  # theta
@@ -304,7 +347,7 @@ class Setting:
         if table == 'cases':  # has sublist for each type (nested list)
             if len(self.__selectedTypeIdList) > 1:  # more than one type was selected
                 for typeId in self.__selectedTypeIdList:
-                    lists_inst.id_name_pair = self.__gateToMySQL.query_id_name_pair_list(
+                    lists_inst.id_name_pair = self.__gateToDatabase.query_id_name_pair_list(
                         'cases', 'a', selected_type_id=typeId)
                     for row in lists_inst.id_name_pair:
                         lists_inst.nameSub.append(str(row['name']))
@@ -312,13 +355,13 @@ class Setting:
                     # append to name to return this directly (without select_id)
                     lists_inst.nameSub.clear()
             else:  # cases for specific type
-                lists_inst.id_name_pair = self.__gateToMySQL.query_id_name_pair_list(
+                lists_inst.id_name_pair = self.__gateToDatabase.query_id_name_pair_list(
                     'cases', 'a', selected_type_id=self.__selectedTypeIdList[0])
         elif table == 'configurations':  # since it depends on computer
-            lists_inst.id_name_pair = self.__gateToMySQL.query_id_name_pair_list(
-                'configurations', 'a', self.__gateToMySQL.query_id_for_name('computer', computer))
+            lists_inst.id_name_pair = self.__gateToDatabase.query_id_name_pair_list(
+                'configurations', 'a', self.__gateToDatabase.query_id_for_name('computer', computer))
         else:  # computer, user, ... (anything but cases, configurations - see list in environment constructor)
-            lists_inst.id_name_pair = self.__gateToMySQL.query_id_name_pair_list(table, 'a')
+            lists_inst.id_name_pair = self.__gateToDatabase.query_id_name_pair_list(table, 'a')
        
     def select_id(self, table, lists_inst):
         """
@@ -370,12 +413,12 @@ class Setting:
                 for i in range(int(lower_range), int(upper_range) + 1):
                     self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
             else:
-                if not check_string_represents_non_negative_number_or_a(selected_id):
+                if not string_represents_non_negative_number_or_potentially_valid_character(selected_id):
                     return self.select_id(table, lists_inst)
                 self.__selectedTypeIdList.append(deepcopy(selected_id))
         print('\n-----------------------------------------------------------------')
 
-        if not check_string_represents_non_negative_number_or_potentially_valid__character(selected_id):
+        if not string_represents_non_negative_number_or_potentially_valid_character(selected_id):
             return self.select_id(table, lists_inst)
         return selected_id
 
@@ -451,14 +494,14 @@ class Setting:
         """
         try:
             if entry != 'null':
-                solver_table_name = self.__gateToMySQL.query_column_entry(
-                    'configurations', self.__gateToMySQL.query_id_for_name('configurations', item_configuration),
+                solver_table_name = self.__gateToDatabase.query_column_entry(
+                    'configurations', self.__gateToDatabase.query_id_for_name('configurations', item_configuration),
                     numerics_type + '_table_name')
-                return self.__gateToMySQL.query_column_entry(solver_table_name, entry, 'specification')
+                return self.__gateToDatabase.query_column_entry(solver_table_name, entry, 'specification')
             else:
                 return '-1'
         except Exception as err:
-            message(mode='ERROR', text="{0}".format(err))
+            message(mode='ERROR', text="{}".format(err))
 
     def select_items_to_test(self, operation_type, operation, computer):
         """
@@ -488,7 +531,7 @@ class Setting:
                 self.__item_constituents.configuration_list = self.select_constituent_of_items_to_test(
                     level='configurations', computer_of_subject=computer)
         else:
-            message(mode='ERROR', not_supported='operation_type ' + operation_type)
+            message(mode='ERROR', not_supported='operation_type {}'.format(operation_type))
 
     def set_processing_data(self, sim_data, item_type, item_configuration):
         """
@@ -500,52 +543,83 @@ class Setting:
         """
         processing = Processing()
 
-        processing.number_cpus = self.__gateToMySQL.query_column_entry(
-            'types', self.__gateToMySQL.query_id_for_name('types', item_type), 'numberOfCPUs')
-        processing.mode = self.__gateToMySQL.query_column_entry(
-            'configurations', self.__gateToMySQL.query_id_for_name('configurations', item_configuration), 'processing')
+        processing.number_cpus = self.__gateToDatabase.query_column_entry(
+            'types', self.__gateToDatabase.query_id_for_name('types', item_type), 'number_cpus')
+        processing.mode = self.__gateToDatabase.query_column_entry(
+            'configurations', self.__gateToDatabase.query_id_for_name('configurations', item_configuration), 'processing')
 
         sim_data.processing = processing
 
-    def set_numerics_data(self, sim_data, item_case, item_configuration):
+    def set_numerics_directories(self, sim_data, item_case, item_configuration,
+                                 flow_process_name, element_type_name, process):
+        sim_data.solver_dir[process] = self.convert_numerics_entry_in_cases_table_to_specification(
+            item_configuration, self.__gateToDatabase.query_column_entry(
+                'numerics', self.__gateToDatabase.query_id_from_numerics_table(
+                    item_case, flow_process_name, element_type_name),
+                'solver_' + process + '_' + item_configuration.lower()), 'solver')
+        sim_data.preconditioner_dir[process] = self.convert_numerics_entry_in_cases_table_to_specification(
+            item_configuration, self.__gateToDatabase.query_column_entry(
+                'numerics', self.__gateToDatabase.query_id_from_numerics_table(
+                    item_case, flow_process_name, element_type_name),
+                'preconditioner_' + process + '_' + item_configuration.lower()), 'preconditioner')
+        sim_data.theta_dir[process] = self.__gateToDatabase.query_column_entry(
+            'numerics', self.__gateToDatabase.query_id_from_numerics_table(
+                item_case, flow_process_name, element_type_name),
+            'theta_' + process)
+
+    def set_numerics_data(self, sim_data, item_case, item_configuration, flow_process_name, element_type_name):
         """
         get mumerics and parallelization data from database and store in sim_data
         data are used later on to write *.num *.pbs files
         :param sim_data: (class SimulationData)
         :param item_case: (string)
         :param item_configuration: (string)
+        :param flow_process_name: (string)
+        :param element_type_name: (string)
         :return:
         """
         # numerics global
-        sim_data.numerics_global.processes.flow = self.__gateToMySQL.query_name_for_id(
-            'flow_processes', self.__gateToMySQL.query_column_entry(
-                'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'flow_id'))
-        sim_data.numerics_global.processes.mass_flag = str2bool(self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'mass_flag'))
-        sim_data.numerics_global.processes.heat_flag = str2bool(self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'heat_flag'))
+        case_id = self.__gateToDatabase.query_id_for_name('cases', item_case)
+        sim_data.numerics_global.processes.flow = flow_process_name
+        sim_data.numerics_global.processes.mass_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'mass_flag'))
+        sim_data.numerics_global.processes.heat_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'heat_flag'))
+        sim_data.numerics_global.processes.deformation_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'deformation_flag'))
+        sim_data.numerics_global.processes.fluid_momentum_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'fluid_momentum_flag'))
+        sim_data.numerics_global.processes.overland_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'overland_flag'))
 
-        sim_data.numerics_global.coupled_flag = str2bool(self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'coupled_flag'))
-        sim_data.numerics_global.lumping_flag = str2bool(self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'lumping_flow'))
-        sim_data.numerics_global.non_linear_flag = str2bool(self.__gateToMySQL.query_column_entry(
-            'cases', self.__gateToMySQL.query_id_for_name('cases', item_case), 'nonlinear_flag'))
-        # solver_dir
-        sim_data.solver_dir['flow'] = self.query_process_numerics_data("solver", "flow", item_case, item_configuration)
-        sim_data.solver_dir['mass'] = self.query_process_numerics_data("solver", "mass", item_case, item_configuration)
-        sim_data.solver_dir['heat'] = self.query_process_numerics_data("solver", "heat", item_case, item_configuration)
-        # preconditioner_dir
-        sim_data.preconditioner_dir['flow'] = self.query_process_numerics_data(
-            "preconditioner", "flow", item_case, item_configuration)
-        sim_data.preconditioner_dir['mass'] = self.query_process_numerics_data(
-            "preconditioner", "mass", item_case, item_configuration)
-        sim_data.preconditioner_dir['heat'] = self.query_process_numerics_data(
-            "preconditioner", "heat", item_case, item_configuration)
-        # theta_dir
-        sim_data.theta_dir['flow'] = self.query_process_numerics_data("theta", "flow", item_case)
-        sim_data.theta_dir['mass'] = self.query_process_numerics_data("theta", "mass", item_case)
-        sim_data.theta_dir['heat'] = self.query_process_numerics_data("theta", "heat", item_case)
+        sim_data.numerics_global.coupled_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'cases', case_id, 'coupled_flag'))
+        sim_data.numerics_global.lumping_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'numerics', self.__gateToDatabase.query_id_from_numerics_table(
+                item_case, flow_process_name, element_type_name),
+            'flow_lumping_flag'))
+        sim_data.numerics_global.non_linear_flag = str2bool(self.__gateToDatabase.query_column_entry(
+            'flow_processes', self.__gateToDatabase.query_id_for_name(
+                'flow_processes', flow_process_name), 'nonlinear_flag'))
+        # solver, preconditioner, theta
+        self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                      flow_process_name, element_type_name, 'flow')
+        if sim_data.numerics_global.processes.mass_flag:
+            self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                          flow_process_name, element_type_name, 'mass')
+        if sim_data.numerics_global.processes.heat_flag:
+            self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                          flow_process_name, element_type_name, 'heat')
+        if sim_data.numerics_global.processes.deformation_flag:
+            self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                          flow_process_name, element_type_name, 'deformation')
+        if sim_data.numerics_global.processes.fluid_momentum_flag:
+            self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                          flow_process_name, element_type_name, 'fluid_momentum')
+        if sim_data.numerics_global.processes.overland_flag:
+            self.set_numerics_directories(sim_data, item_case, item_configuration,
+                                          flow_process_name, element_type_name, 'overland_flow')
+
 
 def get_list_id(selected_id, id_list):
     """

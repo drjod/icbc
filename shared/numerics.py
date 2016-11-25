@@ -4,8 +4,12 @@ class Processes:
     used in numerics class Global
     """
     __flow = 'NO_FLOW'
-    __mass_flag = bool()  # becomes unity if MASS_TRANSPORT exists
-    __heat_flag = bool()  # becomes unity if HEAT_TRANSPORT exists
+    # flags True if process exists
+    __mass_flag = bool()  # MASS_TRANSPORT
+    __heat_flag = bool()  # HEAT_TRANSPORT
+    __deformation_flag = bool()  # DEFORMATION
+    __fluid_momentum_flag = bool()  # FLUID_MOMENTUM
+    __overland_flag = bool()  # OVERLAND_FLOW
 
     def __init__(self):
         pass
@@ -22,6 +26,18 @@ class Processes:
     def heat_flag(self):
         return self.__heat_flag
 
+    @property
+    def deformation_flag(self):
+        return self.__deformation_flag
+
+    @property
+    def fluid_momentum_flag(self):
+        return self.__fluid_momentum_flag
+
+    @property
+    def overland_flag(self):
+        return self.__overland_flag
+
     @flow.setter
     def flow(self, value):
         self.__flow = value
@@ -33,6 +49,18 @@ class Processes:
     @heat_flag.setter
     def heat_flag(self, value):
         self.__heat_flag = value
+
+    @deformation_flag.setter
+    def deformation_flag(self, value):
+        self.__deformation_flag = value
+
+    @fluid_momentum_flag.setter
+    def fluid_momentum_flag(self, value):
+        self.__fluid_momentum_flag = value
+
+    @overland_flag.setter
+    def overland_flag(self, value):
+        self.__overland_flag = value
 
 
 class Global:

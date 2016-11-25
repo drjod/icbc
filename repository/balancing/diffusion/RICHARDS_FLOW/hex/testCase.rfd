@@ -1,0 +1,9 @@
+#PROJECT
+  taken from Buckley-Leverett benchmark 
+; Pc(s): Sw
+#CURVES   
+0.2  3.0   
+0.84   0.0
+
+#STOP
+

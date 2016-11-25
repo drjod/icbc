@@ -1,5 +1,5 @@
 from sys import stdout, path as syspath
-from os import path, listdir, chdir, access, R_OK
+from os import path, listdir, chdir
 from platform import system
 from subprocess import Popen, call
 from glob import glob
@@ -54,8 +54,8 @@ class Operation:
         :return:
         """
         print('\n-----------------------------------------------------------------\n') 
-        print('Test subject ' + self._subject.code + ' ' + self._subject.branch)
-        print('             on ' + self._subject.computer)
+        print('Test subject {} {}\n             on {}'.format(
+            self._subject.code, self._subject.branch, self._subject.computer))
 
         if selected_operation:
             self._selected_operation = selected_operation
@@ -65,20 +65,24 @@ class Operation:
     def set_upload_file_flags(self):
         self._simulation_data = SimulationData(self._selected_operation_type, self._selected_operation)
 
-    def write_files_for_upload(self, item_type, item_case, item_configuration, setting_inst, location_of_operation):
+    def set_numerics_and_processing_data(self, item_type, item_case, item_configuration,
+                                         flow_process_name, element_type_name, setting_inst, location_of_operation):
         """
         write files if on local computer and simulationData.ReadFileFlags are set
         :param item_type: (string)
         :param item_case: (string)
         :param item_configuration: (string)
-        :param setting_inst: (class Settting)
+        :param flow_process_name: (string)
+        :param element_type_name: (string)
+        :param setting_inst: (class Setting)
         :param location_of_operation: (string)
         :return:
         """
         if location == 'local':
-            # do mysql queries
+            # do database queries
             if self._simulation_data.read_file_flags.numerics:
-                setting_inst.set_numerics_data(self._simulation_data, item_case, item_configuration)
+                setting_inst.set_numerics_data(self._simulation_data, item_case, item_configuration,
+                                               flow_process_name, element_type_name)
                 if location_of_operation == 'remote':
                     # file transfer
                     self._simulation_data.write_numerics_data_files()
@@ -140,18 +144,18 @@ class Building(Operation):
         elif self._selected_operation == 'w':
             self.wait()                                                                                                   
         else:
-            message(mode='ERROR', not_supported='Operation ' + self._selected_operation)
+            message(mode='ERROR', not_supported='Operation {}'.format(self._selected_operation))
 
     def build(self):
         """
         call subprocess to build new release
         :return:
         """
-        message(mode='INFO', text='Building ' + self._item.configuration)
+        message(mode='INFO', text='Building {}'.format(self._item.configuration))
         try:
             Popen(self._subject.get_build_command(self._item), shell=True)
         except Exception as err:
-            message(mode='ERROR', text='{0}'.format(err))
+            message(mode='ERROR', text='{}'.format(err))
 
     def update_release(self):
         """
@@ -159,7 +163,7 @@ class Building(Operation):
         generate new release folder if it does not exist
         :return:
         """
-        message(mode='INFO', text='Updating release ' + system() + ' ' + self._item.configuration)
+        message(mode='INFO', text='Updating release {} {}'.format(system(), self._item.configuration))
 
         generate_folder(self._subject.directory + 'releases')
         built_file = self._subject.get_built_file(self._item)
@@ -170,15 +174,15 @@ class Building(Operation):
         delete built files (from folder where they are after compilation)
         :return:
         """
-        message(mode='INFO', text='Removing release ' + system() + ' ' + self._item.configuration)
-        remove_file(self._subject.get_built_file(self._item))
+        message(mode='INFO', text='Removing release {} {}'.format(system(), self._item.configuration))
+        remove_file(self._subject.get_built_file(self._item, False))
 
     def wait(self):
         """
         wait until release exists
         :return:
         """
-        message(mode='INFO', text='Waiting for release ' + system() + ' ' + self._item.configuration)
+        message(mode='INFO', text='Waiting for release {} {}'.format(system(), self._item.configuration))
         wait_for_file(self._subject.get_built_file(self._item))
 
 
@@ -198,7 +202,7 @@ class Simulating(Operation):
                                 't': 's(t)ore results as reference', 'o': 'c(o)mpare results with reference'}
         if subject.location == 'remote':
             option_dict_amendments = {'i': '(i)mport files from repository (gate)',
-                                      'x': 'e(x)port files to repository (gate)', 't': 'wri(t)e pbs',
+                                      'x': 'e(x)port files to repository (gate)', 'b': 'write p(b)s',
                                       'm': '(m)esh partition', 'p': '(p)ack results'}
             self._operation_dict.update(option_dict_amendments)
         option_dict_amendments = {'s': 're(s)elect'}
@@ -229,12 +233,12 @@ class Simulating(Operation):
             self.export_to_repository()
         elif self._selected_operation == 'X' and self._subject.location == 'remote':
             self.export_to_repository(gate_flag=True)
-        elif self._selected_operation == 't' and self._subject.location == 'remote':
+        elif self._selected_operation == 'b' and self._subject.location == 'remote':
             self.write_pbs()  
         elif self._selected_operation == 'm' and self._subject.location == 'remote':
             self.partition_mesh()  
         elif self._selected_operation == 'p' and self._subject.location == 'remote':
-            self.pack_results()   
+            self.pack_results()
         elif self._selected_operation == 'w':
             self.wait()
         elif self._selected_operation == '0':
@@ -247,14 +251,11 @@ class Simulating(Operation):
         call subprocess to run code for test item
         :return:
         """
-        message(mode='INFO', text='Running ' + self._item.name())
-        if path.exists(self._item.directory):
-            try:
-                call(self._subject.get_execution_command(self._item), shell=True)
-            except Exception as err:
-                message(mode='ERROR', text='{0}'.format(err))
-        else:
-            message(mode='ERROR', text='Directory missing')
+        message(mode='INFO', text='Running {}'.format(self._item.name()))
+        try:
+            call(self._subject.get_execution_command(self._item), shell=True)
+        except Exception as err:
+            message(mode='ERROR', text='{}'.format(err))
 
     def import_from_repository(self, gate_flag=False):
         """
@@ -264,7 +265,7 @@ class Simulating(Operation):
         i: source is repository (e.g. for file transfer between branches)
         :return:
         """
-        message(mode='INFO', text='Importing ' + self._item.name())              
+        message(mode='INFO', text='Importing {}'.format(self._item.name()))
         if gate_flag:
             message(mode='INFO', text='    From gate')     
             directory_source = self._subject.directory_gate
@@ -283,7 +284,7 @@ class Simulating(Operation):
         destination folder generated if it is missing
         :return:
         """
-        message(mode='INFO', text='Exporting ' + self._item.name())   
+        message(mode='INFO', text='Exporting {}'.format(self._item.name()))
         if gate_flag:
             message(mode='INFO', text='Into gate')
             directory_destination = self._subject.directory_gate
@@ -299,36 +300,25 @@ class Simulating(Operation):
         call member of SimulationData to write file *.num
         :return:
         """
-        message(mode='INFO', text='Write *.num ' + self._item.name())
-        if path.exists(self._item.directory):
-            self._simulation_data.write_num(self._item.directory)
-        else:
-            message(mode='ERROR', text='Directory missing')
+        message(mode='INFO', text='Write *.num {}'.format(self._item.name()))
+        self._simulation_data.write_num(self._item.directory)
 
     def write_pbs(self): 
         """
         call member of SimulationData to write file run.pbs
         :return:
         """
-        message(mode='INFO', text='Write run.pbs ' + self._item.name())
-
-        if path.exists(self._item.directory):
-            self._simulation_data.write_pbs(self._item.directory,
-                                            self._subject.get_built_file(self._item), self._item.type)
-        else:
-            message(mode='ERROR', text='Directory missing') 
+        message(mode='INFO', text='Write run.pbs {}'.format(self._item.name()))
+        self._simulation_data.write_pbs(self._item.directory,
+                                        self._subject.get_built_file(self._item), self._item.type)
 
     def partition_mesh(self): 
         """
         call member of SimulationData to partition shell script
         :return:
         """
-        message(mode='INFO', text='Mesh partition ' + self._item.name())
-
-        if path.exists(self._item.directory):
-            self._simulation_data.partition_mesh(self._item.directory)
-        else:
-            message(mode='ERROR', text='Directory missing')
+        message(mode='INFO', text='Mesh partition {}'.format(self._item.name()))
+        self._simulation_data.partition_mesh(self._item.directory)
 
     def clear_folder(self):   
         """
@@ -339,22 +329,20 @@ class Simulating(Operation):
         (remote folder for remote computer)
         :return:
         """
-        message(mode='INFO', text='Clear simulation folder ' + self._item.name())
+        message(mode='INFO', text='Clear simulation folder \n    {}'.format(self._item.name()))
         #
         if path.exists(self._item.directory):
             
             for file in listdir(self._item.directory):
                 for ending in outputFileEndings: 
-                    if file.endswith('.' + ending):
+                    if file.endswith('.{}'.format(ending)):
                         remove_file(self._item.directory + file) 
                                         
-            tarfile_remote = self._item.directory + 'results.tar'
-            if path.isfile(tarfile_remote):
-                remove_file(tarfile_remote)
+            tarfile_remote = '{}results.tar'.format(self._item.directory)
+            remove_file(tarfile_remote)
 
             output_file = self._item.directory + outputFile
-            if path.isfile(output_file):
-                remove_file(output_file)
+            remove_file(output_file)
         else:
             message(mode='ERROR', text='Directory missing')           
 
@@ -364,21 +352,17 @@ class Simulating(Operation):
         :return:
         """
         if self._subject.location == 'remote':
-            message(mode='INFO', text='Pack results ' + self._item.name())
-
-            if path.exists(self._item.directory):
-                pack_tar_file(self._item.directory)
-            else:     
-                message(mode='ERROR', text='Directory missing')
+            message(mode='INFO', text='Pack results {}'.format(self._item.name()))
+            pack_tar_file(self._item.directory)
         else:
-            message(mode='INFO', text=self._subject.computer + ' is local - Nothing done')
+            message(mode='INFO', text='{} is local - Nothing done'.format(self._subject.computer))
 
     def wait(self):   
         """
         Wait until configurationShared.outputFile exists
         :return:
         """
-        message(mode='INFO', text='Waiting for output file ' + self._item.name())
+        message(mode='INFO', text='Waiting for output file {}'.format(self._item.name()))
         #
         wait_for_file(self._item.directory + outputFile)
 
@@ -390,16 +374,19 @@ class Simulating(Operation):
         each computer, case, branch has own reference folder
         :return:
         """
-        message(mode='INFO', text='Store results as reference ' + self._item.name())
+        message(mode='INFO', text='Store results as reference \n    {}'.format(self._item.name()))
 
-        directory_reference = adapt_path(self._subject.directory + "references\\" + self._item.type +
-                                         "\\" + self._item.case + "\\" + self._item.configuration + "\\")
+        directory_reference = adapt_path("{}references\\{}\\{}\\{}\\{}\\{}\\".format(
+            self._subject.directory, self._item.type, self._item.case,
+            self._item.flow_process, self._item.element_type, self._item.configuration))
+
+
         generate_folder(directory_reference)
 
         if path.exists(self._item.directory):
             for extension in outputFileEndings:
                 for file_name in listdir(self._item.directory):
-                    if file_name.endswith('.' + extension):
+                    if file_name.endswith('.{}'.format(extension)):
                         copy_file(self._item.directory + file_name, directory_reference)
         else:
             message(mode='ERROR', text='Directory missing')
@@ -413,27 +400,30 @@ class Simulating(Operation):
         configurationCustomized.outputFile are not compared
         :return:
         """
-        message(mode='INFO', text='Compare result files with references ' + self._item.name())
+        message(mode='INFO', text='Compare result files with references {}'.format(self._item.name()))
 
-        directory_reference = adapt_path(self._subject.directory + "references\\" + self._item.type + "\\" +
-                                         self._item.case + "\\" + self._item.configuration + "\\")
+        directory_reference = adapt_path(
+            "{}references\\{}\\{}\\{}\\{}\\{}\\".format(
+                self._subject.directory, self._item.type, self._item.case,
+                self._item.flow_process, self._item.element_type, self._item.configuration))
 
         if path.exists(directory_reference):
             if path.exists(self._item.directory):
-                # clear file that will contain regressions (differences between files)
-                clear_file(directory_reference + 'deviations.log')
+                # clear file that will contain regressions (differences between file contents)
+                clear_file('{}deviations.log'.format(directory_reference))
 
                 for file_name in listdir(directory_reference):
                     if file_name != outputFile and file_name != 'deviations.log':
                         # file to check
-
                         result_comparison_flag = compare_files(self._item.directory + file_name,
                                                                directory_reference + file_name)
                         if not result_comparison_flag:
                             # file contents disagree
-                            message(mode='INFO', text='Deviating file: ' + file_name)
-                            append_to_file(self._subject.directory + 'references\\deviatingFiles.log',
-                                           self._item.directory + file_name + '\n')
+                            message(mode='INFO', text='Deviating file: {}'.format(file_name))
+                            append_to_file(
+                                adapt_path('{}references\\deviatingFiles.log'.format(self._subject.directory)),
+                                '{} {}\n'.format(self._item.directory, file_name))
+
                             record_regression_of_file(file_name, self._item.directory, directory_reference,
                                                       'deviations.log', output_flag=False)
             else:
@@ -455,7 +445,7 @@ class Plotting(Operation):
         """
         self._selected_operation_type = 'p'
 
-        self._operation_dict = {'p': '(p)replot', 'j': 'generate (j)pg', 'n': 'replace (n)ans and inds',
+        self._operation_dict = {'p': '(p)replot', 'j': 'generate (j)pgs', 'n': 'replace (n)ans and inds',
                                 'c': '(c)lear folder', 'w': '(w)ait', 's': 're(s)elect'}
         if subject.location == 'remote':
             option_dict_amendments = {'g': '(g)et results'}
@@ -473,7 +463,7 @@ class Plotting(Operation):
         elif self._selected_operation == 'p':
             self.preplot()
         elif self._selected_operation == 'j':
-            self.generate_jpg()
+            self.generate_jpgs()
         elif self._selected_operation == 'n':
             self.replace_nans_and_inds()
         elif self._selected_operation == 'c':
@@ -481,7 +471,7 @@ class Plotting(Operation):
         elif self._selected_operation == 'w':
             self.wait()
         else:
-            message(mode='ERROR', not_supported='Operation ' + self._selected_operation)
+            message(mode='ERROR', not_supported='Operation {}'.format(self._selected_operation))
 
     def get_results(self):
         """
@@ -490,7 +480,7 @@ class Plotting(Operation):
         :return:
         """
         if self._subject.location == 'remote':
-            message(mode='INFO', text='Get results ' + self._item.name())
+            message(mode='INFO', text='Get results {}'.format(self._item.name()))
 
             mod = __import__(self._subject.computer)
             generate_folder(self._item.directory)
@@ -501,7 +491,8 @@ class Plotting(Operation):
                 for file in files:
                     remove_file(file)
 
-                winscp_command = self._item.directory_computer_selected + 'results.tar' + ' ' + self._item.directory
+                winscp_command = 'get {}results.tar {}'.format(
+                    self._item.directory_computer_selected, self._item.directory)
                 call_winscp([winscp_command], self._subject.user, self._subject.hostname, mod.pwd, output_flag=True)
 
                 unpack_tar_file(self._item.directory)  # tar file on local computer
@@ -513,24 +504,24 @@ class Plotting(Operation):
             else:
                 message(mode='ERROR', text='Directory missing')
         else:
-            message(mode='INFO', text=self._subject.computer + ' is local - Nothing done')
+            message(mode='INFO', text='{} is local - Nothing done'.format(self._subject.computer))
 
     def replace_nans_and_inds(self):
         """
         replace each nan by 999 and remove each IND in all tec files
         :return:
         """
-        message(mode='INFO', text='Replace nans and inds ' + self._item.name())
+        message(mode='INFO', text='Replace nans and inds {}'.format(self._item.name()))
 
         if path.exists(self._item.directory):
             for file_name in listdir(self._item.directory):
                 if file_name.endswith('.tec'):
-                    message(mode='INFO', text='File: ' + file_name)
+                    message(mode='INFO', text='File: {}'.format(file_name))
                     try:
                         infile = open(self._item.directory + file_name, 'r')
-                        outfile = open(self._item.directory + 'new_' + file_name, 'w')
+                        outfile = open('{}new_{}'.format(self._item.directory, file_name), 'w')
                     except Exception as err:
-                        message(mode='ERROR', text='{0}'.format(err))
+                        message(mode='ERROR', text='{}'.format(err))
                     else:
                         for line in infile:
                             line = line.replace('nan', '999')
@@ -538,30 +529,30 @@ class Plotting(Operation):
                             outfile.write(line)
                         infile.close()
                         outfile.close()
-                        move_file(self._item.directory + 'new_' + file_name, self._item.directory + file_name)
+                        move_file('{}new_{}'.format(self._item.directory, file_name), self._item.directory + file_name)
         else:
             message(mode='ERROR', text='Directory missing')
 
     def preplot(self):
         """
-        call preplot via subprocess to generate *.plt's
+        call preplot via subprocess to generate *.plt's for all *.tec found in folder
         :return:
         """
-        message(mode='INFO', text='Preplot ' + self._item.name())
+        message(mode='INFO', text='Preplot {}'.format(self._item.name()))
 
         if path.exists(self._item.directory):
             chdir(self._item.directory)
             for file in listdir(self._item.directory):
                 if file.endswith('.tec'):
-                    message(mode='INFO', text='File: ' + file)
+                    message(mode='INFO', text='File: {}'.format(file))
                     try:
-                        call(preplot + ' ' + self._item.directory + file, shell=True)
+                        call('{} {}{}'.format(preplot, self._item.directory, file), shell=True)
                     except Exception as err:
-                        message(mode='ERROR', text='{0}'.format(err))
+                        message(mode='ERROR', text='{}'.format(err))
         else:
             message(mode='ERROR', text='Directory missing')
 
-    def generate_jpg(self):
+    def generate_jpgs(self):
         """
         generate JPG with tecplot
             1. generate tecplot macro
@@ -569,17 +560,21 @@ class Plotting(Operation):
             3. remove tecplot macro
         :return:
         """
-        message(mode='INFO', text='Generate Jpg ' + self._item.type)
+        message(mode='INFO', text='Generate Jpgs ' + self._item.type)
 
         if path.exists(self._subject.directory_plot):
-            write_tecplot_macro_for_jpg(self._subject.directory_plot, self._item.type)
+            chdir(self._subject.directory_plot)
+            for file in glob("{}*".format(self._item.type)):
+                filename = path.splitext(file)[0]
+                message(mode='INFO', text='    {}'.format(filename))
+                write_tecplot_macro_for_jpg(self._subject.directory_plot, filename)
 
-            layout = self._subject.directory_plot + self._item.type + '.lay'
-            try:
-                call(tecplot + ' ' + layout + ' -b -p ' + self._subject.directory_plot + '_genJPG.mcr', shell=True)
-            except Exception as err:
-                message(mode='ERROR', text='{0}'.format(err))
-            remove_file(self._subject.directory_plot + '_genJPG.mcr')
+                layout = '{}{}.lay'.format(self._subject.directory_plot, filename)
+                try:
+                    call('{} {} -b -p {}_genJPG.mcr'.format(tecplot, layout, self._subject.directory_plot), shell=True)
+                except Exception as err:
+                    message(mode='ERROR', text='{}'.format(err))
+                remove_file('{}_genJPG.mcr'.format(self._subject.directory_plot), output_flag=False)
         else:
             message(mode='ERROR', text='Directory missing')
 
@@ -590,12 +585,12 @@ class Plotting(Operation):
         """
         message(mode='INFO', text='Clear plotting folder ' + self._item.name())
         #
-        remove_file(self._subject.directory_plot + "results_" + self._item.type + ".jpg")
+        remove_file("{}results_{}.jpg".format(self._subject.directory_plot, self._item.type))
 
         if path.exists(self._item.directory):
             for file in listdir(self._item.directory):
                 for ending in outputFileEndings:
-                    if file.endswith('.' + ending):
+                    if file.endswith('.{}'.format(ending)):
                         if self._subject.location == 'remote' or ending != 'tec':
                             # do not delete tec if local
                             remove_file(self._item.directory + file)
@@ -617,8 +612,8 @@ class Plotting(Operation):
         wait until jpg file is in folder
         :return:
         """
-        message(mode='INFO', text='Waiting for jpg file ' + self._item.type)
-        wait_for_file(self._subject.directory_plot + "results_" + self._item.type + ".jpg")
+        message(mode='INFO', text='Waiting for jpg file {}'.format(self._item.type))
+        wait_for_file("{}results_{}.jpg".format(self._subject.directory_plot, self._item.type))
 
 
 def wait_for_file(file_name):

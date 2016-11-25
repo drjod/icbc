@@ -1,0 +1,22 @@
+
+#TIME_STEPPING
+ $PCS_TYPE
+  PS_GLOBAL
+ $TIME_STEPS
+  10 10000
+ $TIME_END
+  1.e13
+ $TIME_START
+  0.0
+
+
+#STOP
+
+  10 1e6
+  10 1e7
+  10 1e8
+  10 1e9
+  10 1e10
+  10 1e11
+
+

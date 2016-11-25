@@ -1,7 +1,7 @@
-import subject
 from utilities import adapt_path, adapt_path_computer_selected
-import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'customized'))
+from sys import path as syspath
+from os import path
+syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
 from configurationCustomized import rootDirectory
 
 
@@ -11,10 +11,10 @@ class Item:
     hosts directory, subject, configuration for specific test case or item if building operation
     """
     def __init__(self, subject=None, configuration=None, directory=None):
-        if subject is not None and configuration is not None and directory is not None:
-            self._subject = subject
-            self._configuration = configuration
-            self._directory = directory
+
+        self._subject = subject
+        self._configuration = configuration
+        self._directory = directory
  
     def __del__(self):
         del self._subject
@@ -33,69 +33,81 @@ class Build(Item):
     used in building operations
     """
     def __init__(self, subject, configuration):
-        Item.__init__(self, subject, configuration, adapt_path(subject.directory + 'Build_' + configuration + '\\'))
+        Item.__init__(self, subject, configuration, adapt_path('{}Build_{}\\'.format(subject.directory, configuration)))
 
 
 class Test(Item):
     """
     parent of Sim and Plot
     """
-    def __init__(self, subject, item_type, item_case, item_configuration, directory):
-        self.__type = item_type
-        self.__case = item_case
+    def __init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type, directory):
+        self._type = item_type
+        self._case = item_case
+        self._flow_process = flow_process
+        self._element_type = element_type
 
         Item.__init__(self, subject, item_configuration, directory)
 
     @property
     def type(self):
-        return self.__type
+        return self._type
 
     @property
     def case(self):
-        return self.__case
+        return self._case
+
+    @property
+    def flow_process(self):
+        return self._flow_process
+
+    @property
+    def element_type(self):
+        return self._element_type
 
     def name(self):
-        return self.__type + ' ' + self.__case + ' ' + self._configuration
+        return '{} {} {} {} {}'.format(
+            self._type, self._case, self._flow_process, self._element_type, self._configuration)
 
 
 class Sim(Test):
     """
     used in simulation operations
     """
-    def __init__(self, subject, item_type, item_case, item_configuration):
-        self.__directory_repository = adapt_path(rootDirectory +
-                                                 'testingEnvironment\\' + subject.computer + '\\repository\\' +
-                                                 item_type + '\\' + item_case + '\\' + item_configuration + '\\')
+    def __init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type):
+
+        self.__directory_repository = adapt_path(  # independent of configuration (one folder for all)
+            '{}testingEnvironment\\{}\\repository\\{}\\{}\\{}\\{}\\'.format(
+                rootDirectory, subject.computer, item_type, item_case, flow_process, element_type))
      
-        Test.__init__(self, subject, item_type, item_case, item_configuration,
-                      adapt_path(subject.directory + 'examples\\files\\' + item_type + '\\' +
-                                 item_case + '\\' + item_configuration + '\\'))  # test case directory
+        Test.__init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type, adapt_path(
+            '{}examples\\files\\{}\\{}\\{}\\{}\\{}\\'.format(
+                subject.directory, item_type, item_case, flow_process, element_type, item_configuration)))
 
     @property
     def directory_repository(self):
         return self.__directory_repository
-                                              
 
-class Plot(Test):    
+
+class Plot(Test):
     """
     used in plotting operations
     """
-    def __init__(self, subject, item_type, item_case, item_configuration):
-        example = item_type + '\\'
+    def __init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type):
+        example = '{}\\'.format(item_type)
         if item_case:
-            example = example + item_case + '\\'
+            example = '{}{}\\{}\\{}\\'.format(example, item_case, flow_process, element_type)
         if item_configuration:
-            example = example + item_configuration + '\\'
+            example = '{}{}\\'.format(example, item_configuration)
 
-        directory_local = adapt_path(rootDirectory + 'testingEnvironment\\' +
-                                     subject.computer + '\\' + subject.code + '\\' +
-                                     subject.branch + '\\examples\\files\\' + example)
-        self.__directory_computer_selected = adapt_path_computer_selected(subject.directory +
-                                                                          'examples\\files\\' +
-                                                                          example, subject.operating_system)
+        directory_local = adapt_path('{}testingEnvironment\\{}\\{}\\{}\\examples\\files\\{}'.format(
+            rootDirectory, subject.computer, subject.code,  subject.branch, example))
+        self.__directory_computer_selected = adapt_path_computer_selected('{}examples\\files\\{}'.format(
+            subject.directory, example), subject.operating_system)
  
-        Test.__init__(self, subject, item_type, item_case, item_configuration, directory_local)
+        Test.__init__(self, subject, item_type, item_case, item_configuration,
+                      flow_process, element_type, directory_local)
 
     @property
     def directory_computer_selected(self):
         return self.__directory_computer_selected
+

@@ -374,53 +374,52 @@ class Setting:
         :param lists_inst:
         :return:
         """
-        if self.__testing.mode == '0':
-            # print options
-            print('\nSelect from ' + table + ':\n')
-
-        # name_list = list()1
-
         for row in lists_inst.id_name_pair:
-            if self.__testing.mode == '0':
-                #if not is_in_list(str(row['name']), name_list):
-                #    # for cases - they have same name for different flow_process and element_type
-                #    # and should appear only once on the shell now
-                #    name_list.append(str(row['name']))
-                print('   ' + str(row['id']) + ' ' + str(row['name']))
             lists_inst.nameSub.append(deepcopy(str(row['name'])))
             lists_inst.id.append(deepcopy(str(row['id'])))
- 
-        if not(self.__testing.mode == '0'):
-            # TESTLEVEL: preselect anything but examples (types, cases, configurations)
-            # and specify state (for jsp) or level (for CI) in database
-            # all examples are selected here and level is checked later on
-            selected_id = 'a'
-        else:
+
+        if self.__testing.mode == '0':
+            # print options
+            print('\nSelect from {}:\n'.format(table))
+            for index, inst_id in enumerate(lists_inst.id):
+                print('   {} {}'.format(inst_id, lists_inst.nameSub[index]))
             print('   a all')
             if table == 'types':  # range only for types supported
                 print('   r range')
             # select
             #
             selected_id = input('\n   by entering value: ')
+        else:
+            # TESTLEVEL: preselect anything but examples (types, cases, configurations)
+            # and specify state (for jsp) or level (for CI) in database
+            # all examples are selected here and level is checked later on
+            selected_id = 'a'
 
-        if table == 'types':  # set self.__selectedTypeIdList
-            if selected_id == 'a':  # selected all
-                for i in range(0, len(lists_inst.id)):
-                    self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
-            elif selected_id == 'r':  # selected range - so get the lower and upper range limits now
-                lower_range = input('\n       From: ')
-                upper_range = input('\n         To: ')
-                for i in range(int(lower_range), int(upper_range) + 1):
-                    self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
-            else:
-                if not string_represents_non_negative_number_or_potentially_valid_character(selected_id):
-                    return self.select_id(table, lists_inst)
-                self.__selectedTypeIdList.append(deepcopy(selected_id))
+        if table == 'types':
+            self.set_type_ids(selected_id, lists_inst)
         print('\n-----------------------------------------------------------------')
 
         if not string_represents_non_negative_number_or_potentially_valid_character(selected_id):
             return self.select_id(table, lists_inst)
         return selected_id
+
+    def set_type_ids(self, selected_id, lists_inst):
+        """
+        set self.__selectedTypeIdList
+        :param selected_id: (string)
+        :param lists_inst: (string list)
+        :return:
+        """
+        if selected_id == 'a':  # selected all
+            for i in range(0, len(lists_inst.id)):
+                self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
+        elif selected_id == 'r':  # selected range - so get the lower and upper range limits now
+            lower_range = input('\n       From: ')
+            upper_range = input('\n         To: ')
+            for i in range(int(lower_range), int(upper_range) + 1):
+                self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
+        else:
+            self.__selectedTypeIdList.append(deepcopy(selected_id))
 
     def id2name(self, table, id_selected, lists_inst):
         """

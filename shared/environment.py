@@ -165,20 +165,28 @@ class Environment:
         type_list_counter = 0
         for item_type in self.__setting_inst.item_constituents.type_list:
             for item_case in self.__setting_inst.item_constituents.case_list[type_list_counter]:
-                if item_case is None:
-                    self.__flow_process_name_list = [None]
-                    self.__element_type_name_list = [[None]]
-                else:
-                    if location == 'local':
-                        self.__flow_process_name_list = self.__setting_inst.query_flow_process_name_list(item_case)
-                        self.__element_type_name_list = self.__setting_inst.query_element_type_name_list(
-                            item_case, self.__flow_process_name_list)
+                self.set_inner_loop_elements(item_case)
 
                 for item_configuration in self.__setting_inst.item_constituents.configuration_list:
                     if self.check_if_item_is_to_test(item_case) == '1':
-                        self.go_for_run_item(operation_inst, item_type, item_case, item_configuration)
+                        self.loop_inner(operation_inst, item_type, item_case, item_configuration)
             if len(self.__setting_inst.item_constituents.case_list) > 1:
                 type_list_counter += 1
+
+    def set_inner_loop_elements(self, item_case):
+        """
+        set lists with process name and element type
+        :param item_case: (string)
+        :return:
+        """
+        if item_case is None:
+            self.__flow_process_name_list = [None]
+            self.__element_type_name_list = [[None]]
+        else:
+            if location == 'local':
+                self.__flow_process_name_list = self.__setting_inst.query_flow_process_name_list(item_case)
+                self.__element_type_name_list = self.__setting_inst.query_element_type_name_list(
+                    item_case, self.__flow_process_name_list)
 
     def check_if_item_is_to_test(self, item_case):
         """
@@ -208,7 +216,7 @@ class Environment:
 
         return execute_flag  # remote always '1'
 
-    def go_for_run_item(self, operation_inst, item_type, item_case, item_configuration):
+    def loop_inner(self, operation_inst, item_type, item_case, item_configuration):
         """
         1. generate (and delete) item instance
         2. call write files (for numerics, processing)

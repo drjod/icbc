@@ -282,6 +282,8 @@ class SimulationData:
             file_stream.write('  FLUID_MOMENTUM\n')
         elif process == 'overland':
             file_stream.write('  OVERLAND_FLOW\n')
+        else:
+            message(mode='ERROR', text='Process {} not supported'.format(process))
         # LUMPING
         if self.__numerics_global.lumping_flag and process == 'flow':  # only flow gets lumped
             file_stream.write(' $ELE_MASS_LUMPING\n')

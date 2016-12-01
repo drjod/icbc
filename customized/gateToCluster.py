@@ -19,7 +19,7 @@ def operate(subject, item, operation_type, operation, simulation_data):
     shell_script = '{}{}remoteRun_{}.sh'.format(
         rootDirectory, adapt_path('testingEnvironment\\scripts\\icbc\\temp\\'), getpid())
 
-    upload_files(subject, simulation_data)
+    upload_numerics_and_processing(subject, simulation_data)
     write_shell_script_for_remote_run(subject, item, operation_type, operation, shell_script)
     execute_shell_script_on_remote_computer(subject, shell_script)
 
@@ -72,47 +72,62 @@ def write_shell_script_for_remote_run(subject, item, operation_type, operation, 
         f.close()
 
 
-def upload_files(subject, simulation_data):
+def upload_numerics_and_processing(subject, simulation_data):
     """
-    upload files with data for numerics and prallelization by calling winscp
+    upload files with data for numerics and parallelization by calling winscp
     then remove files from temp directory on local computer
     :param item: (class Item)
     :param simulation_data: (class Simulation Data)
     :return:
     """
-    mod = __import__(subject.computer)  # module with password for remote computer
+
     directory_local_temp = '{}{}'.format(rootDirectory, adapt_path('testingEnvironment\\scripts\\icbc\\temp\\'))
     directory_remote_temp = '{}{}'.format(subject.directory_root, adapt_path_computer_selected(
         'testingEnvironment\\scripts\\icbc\\temp\\', subject.operating_system))
+    module_list = list()
+
+    if simulation_data.read_file_flags.numerics:
+        module_list.clear()
+        module_list.append('numerics_global')
+        module_list.append('numerics_flow')
+        if simulation_data.numerics_global.processes.mass_flag:
+            module_list.append('numerics_mass')
+        if simulation_data.numerics_global.processes.heat_flag:
+            module_list.append('numerics_heat')
+        if simulation_data.numerics_global.processes.deformation_flag:
+            module_list.append('numerics_deformation')
+        if simulation_data.numerics_global.processes.fluid_momentum_flag:
+            module_list.append('numerics_fluid_momentum')
+        if simulation_data.numerics_global.processes.overland_flag:
+            module_list.append('numerics_overland')
+        upload_modules(subject, module_list, directory_local_temp, directory_remote_temp)
+
+    if simulation_data.read_file_flags.processing:
+        module_list.clear()
+        module_list.append('processing')
+        upload_modules(subject, module_list, directory_local_temp, directory_remote_temp)
+
+
+def upload_modules(subject, module_list, directory_local, directory_remote):
+    """
+    upload modules list and remove them from local directory
+    :param subject: (string)
+    :param module_list: (string list)
+    :param directory_local: (string)
+    :param directory_remote: (string)
+    :return:
+    """
+    mod = __import__(subject.computer)  # module with password for remote computer
     command_list = list()
+    for module in module_list:
+        command_list.append('put {0}{2}_{3}.py {1}{2}_{3}.py'.format(
+            directory_local, directory_remote, module, getpid()))
 
     try:
-        if simulation_data.read_file_flags.numerics:
-            command_list.append('put {0}numerics_global_{2}.py {1}numerics_global_{2}.py'.format(
-                directory_local_temp, directory_remote_temp, getpid()))
-            command_list.append('put {0}numerics_flow_{2}.py {1}numerics_flow_{2}.py'.format(
-                directory_local_temp, directory_remote_temp, getpid()))
-            if simulation_data.numerics_global.processes.mass_flag:
-                command_list.append('put {0}numerics_mass_{2}.py {1}numerics_mass_{2}.py'.format(
-                    directory_local_temp, directory_remote_temp, getpid()))
-            if simulation_data.numerics_global.processes.heat_flag:
-                command_list.append('put {0}numerics_heat_{2}.py {1}numerics_heat_{2}.py'.format(
-                    directory_local_temp, directory_remote_temp, getpid()))
+        call_winscp(command_list, subject.user, subject.hostname, mod.pwd, False)
 
-            call_winscp(command_list, subject.user, subject.hostname, mod.pwd, False)
-            remove_file('{}numerics_global_{}.py'.format(directory_local_temp, getpid()), False)
-            remove_file('{}numerics_flow_{}.py'.format(directory_local_temp, getpid()), False)
-            if simulation_data.numerics_global.processes.mass_flag:
-                remove_file('{}numerics_mass_{}.py'.format(directory_local_temp, getpid()), False)
-            if simulation_data.numerics_global.processes.heat_flag:
-                remove_file('{}numerics_heat_{}.py'.format(directory_local_temp, getpid()), False)
-        if simulation_data.read_file_flags.processing:
-            command_list.clear()
-            command_list.append('put {0}processing_{2}.py {1}processing_{2}.py'.format(
-                directory_local_temp, directory_remote_temp, getpid()))
-
-            call_winscp(command_list, subject.user, subject.hostname, mod.pwd, False)
-            remove_file('{}processing_{}.py'.format(directory_local_temp, getpid()), False)
+        for module in module_list:
+            remove_file('{}{}'.format(directory_local, module), False)
 
     except Exception as err:
         message(mode='ERROR', text='{0}'.format(err))

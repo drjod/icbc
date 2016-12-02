@@ -1,10 +1,11 @@
 from os import path
 from sys import path as syspath
 syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
+from glob import glob
 from subject import Subject
 from operation import Building, Simulating, Plotting
 from item import Build, Sim, Plot
-from utilities import message, adapt_path, clear_file, str2bool
+from utilities import message, adapt_path, remove_file, str2bool
 from configurationCustomized import location
 from setting import Testing, Database, Setting
 
@@ -152,9 +153,14 @@ class Environment:
         """
         operation_inst.set_upload_file_flags()
 
-        if self.__setting_inst.operation_type == 's' and self.__setting_inst.operation == 'o':
+        if operation_inst.selected_operation_type == 's' and operation_inst.selected_operation == 'o':
             # the selected operation is to compare results with references
-            clear_file(adapt_path("{}references\\deviatingFiles.log".format(self.__subject_inst.directory)))
+            files = glob(adapt_path('{}references\\deviatingFiles*'.format(self.__subject_inst.directory)))
+            for file in files:
+                remove_file(file)
+
+            #clear_file(adapt_path('{}references\\deviatingFiles_{}.log'.format(
+            #    self._subject_inst.directory, self._item.configuration)))
 
     def loop(self, operation_inst):
         """

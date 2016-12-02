@@ -126,7 +126,8 @@ class Building(Operation):
         """
         self._selected_operation_type = 'b'
 
-        self._operation_dict = {'b': '(b)uild', 'u': '(u)pdate', 'c': '(c)lear', 'w': '(w)ait', 's': 're(s)elect'}
+        self._operation_dict = {'b': '(b)uild', 'u': '(u)pdate', 'c': '(c)lear',
+                                'd': '(d)iagnose regression', 'w': '(w)ait', 's': 're(s)elect'}
         Operation.__init__(self, subject)
 
     def operate(self):
@@ -140,7 +141,9 @@ class Building(Operation):
         elif self._selected_operation == 'u':
             self.update_release()  
         elif self._selected_operation == 'c':
-            self.clear_folder()     
+            self.clear_folder()
+        elif self._selected_operation == 'd':
+            self.diagnose_regression()
         elif self._selected_operation == 'w':
             self.wait()                                                                                                   
         else:
@@ -176,6 +179,15 @@ class Building(Operation):
         """
         message(mode='INFO', text='Removing release {} {}'.format(system(), self._item.configuration))
         remove_file(self._subject.get_built_file(self._item, False))
+
+    def diagnose_regression(self):
+        message(mode='INFO', text='Diagnose regression {} {}'.format(system(), self._item.configuration))
+        try:
+            # chdir('F:\\testingEnvironment\\scripts\\icbc\\shared\\')
+            directory = adapt_path('{}\\testingEnvironment\\scripts\\icbc\\shared\\'.format(rootDirectory))
+            call('py.test {}test_regression.py'.format(directory), shell=True)
+        except Exception as err:
+            message(mode='ERROR', text='{}'.format(err))
 
     def wait(self):
         """
@@ -331,10 +343,15 @@ class Simulating(Operation):
         """
         message(mode='INFO', text='Clear simulation folder \n    {}'.format(self._item.name()))
         #
+        file_endings = list()  # concerns files with outputFileEndings and *.plt
+        for ending in outputFileEndings:
+            file_endings.append(ending)
+        file_endings.append('plt')
+
         if path.exists(self._item.directory):
             
             for file in listdir(self._item.directory):
-                for ending in outputFileEndings: 
+                for ending in file_endings:
                     if file.endswith('.{}'.format(ending)):
                         remove_file(self._item.directory + file) 
                                         
@@ -421,8 +438,9 @@ class Simulating(Operation):
                             # file contents disagree
                             message(mode='INFO', text='Deviating file: {}'.format(file_name))
                             append_to_file(
-                                adapt_path('{}references\\deviatingFiles.log'.format(self._subject.directory)),
-                                '{} {}\n'.format(self._item.directory, file_name))
+                                adapt_path('{}references\\deviatingFiles_{}.log'.format(
+                                    self._subject.directory, self._item.configuration)),
+                                '{}{}\n'.format(self._item.directory, file_name))
 
                             record_regression_of_file(file_name, self._item.directory, directory_reference,
                                                       'deviations.log', output_flag=False)
@@ -586,10 +604,14 @@ class Plotting(Operation):
         message(mode='INFO', text='Clear plotting folder ' + self._item.name())
         #
         remove_file("{}results_{}.jpg".format(self._subject.directory_plot, self._item.type))
+        file_endings = list()  # concerns files with outputFileEndings and *.plt
+        for ending in outputFileEndings:
+            file_endings.append(ending)
+        file_endings.append('plt')
 
         if path.exists(self._item.directory):
             for file in listdir(self._item.directory):
-                for ending in outputFileEndings:
+                for ending in file_endings:
                     if file.endswith('.{}'.format(ending)):
                         if self._subject.location == 'remote' or ending != 'tec':
                             # do not delete tec if local

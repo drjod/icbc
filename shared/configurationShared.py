@@ -2,7 +2,7 @@
 
 inputFileEndings = ('bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st',
                     'tim', 'pqc', 'krc')
-outputFileEndings = ('tec', 'txt', 'plt', 'vtk', 'asc')
+outputFileEndings = ('tec', 'txt', 'vtk', 'asc')
 additionalInputFileEndings = ('exe', 'dat', 'sts')  # to export to or import from repository
 
 

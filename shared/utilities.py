@@ -209,6 +209,7 @@ def remove_file(file, output_flag=True):
 def clear_file(file):
     """
     clear content of file
+    generates the file if it does not exist
     :param file: (string) path and file name
     :return:
     """

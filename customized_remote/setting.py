@@ -6,14 +6,6 @@ from processing import Processing
 from numerics import Global, Processes
 
 
-
-
-class Testing:
-    def __init__(self, mode, level):
-        self.mode = mode   # 0: with shell , 1: control via browser (case has stage in database), 2: with CI
-        self.level = level  # for testing with jenkins - each test case has a level this variable is compared with
-
-
 class Database:
     def __init__(self, user, password, host, schema):
         self.user = user
@@ -47,13 +39,13 @@ class Setting:
     __selectedTypeIdList = list()  # for tree structure (types, cases) - to know selected type when cases are selected
 
     def __init__(self, type_list, case_list, configuration_list, operation_type,
-                 operation, testing_properties, mysql_inst):
+                 operation, test_mode, db_inst):
     
         self.__item_constituents = ItemConstituents(type_list, case_list, configuration_list)
         self.__operation_type = operation_type  # building or testing
         self.__operation = operation
-        self.__testing = testing_properties  # to switch off select
-        self.__mysql_inst = mysql_inst
+        self.__test_mode = test_mode  # to switch off select
+        self.__db_inst = db_inst
         self.__gateToMySQL = None
         
     def __del__(self):
@@ -102,8 +94,8 @@ class Setting:
         return self.__operation
 
     @property
-    def testing(self):
-        return self.__testing
+    def test_mode(self):
+        return self.__test_mode
 
     def query_location(self, computer_name):
         pass

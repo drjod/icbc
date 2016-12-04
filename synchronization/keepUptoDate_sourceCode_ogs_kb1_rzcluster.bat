@@ -27,7 +27,7 @@ set remoteRoot=/home/%login%/testingEnvironment
 
 
 :: GET PASSWORD
-call %localRoot%\scripts\icbc\pwds\%remoteComputer%.bat
+call %localRoot%\scripts\icbc\access\%remoteComputer%.bat
 
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

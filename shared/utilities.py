@@ -3,7 +3,6 @@ from os import stat, chdir, makedirs, remove, path, listdir, access, R_OK
 from shutil import move, copy
 from tarfile import open as open_tar
 from difflib import ndiff
-from imp import reload
 from filecmp import cmp
 from platform import system
 from configurationShared import examplesName, inputFileEndings, outputFileEndings, additionalInputFileEndings
@@ -38,15 +37,17 @@ def select_from_options(option_dict, message_text):
     select by user input from dictionary with options
     recalls itself in case of non-proper user input (for simplicity, it checks only
     if lower-case string is in dictionary)
-    :param option_dict: {string: string, ...} key is value to type in to select
+    :param option_dict: either dictionary {string: string, ...} or OrderedDict([(string, string), ...])
+                        key is value to type in to select
     :param message_text: (string) printed with the dictionary keys and values
     to ask user for input, e.g. 'Select option type'
     :return: (one-char string) selected option (=selected key of dictionary)
     """
     while True:
         print('\n ' + message_text + ':')
+
         for key, option in option_dict.items():
-            print('    ' + option)
+            print('    {}'.format(option))
         option_selected = input('\n')
 
         if option_selected.lower() in option_dict:
@@ -198,7 +199,7 @@ def remove_file(file, output_flag=True):
         return
     else:
         if output_flag:
-            message(mode='INFO', text='    Removing ' + file)
+            message(mode='INFO', text='    Removing {}'.format(file))
 
         try:
             remove(file)

@@ -76,8 +76,8 @@ class Sim(Test):
     def __init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type):
 
         self.__directory_repository = adapt_path(  # independent of configuration (one folder for all)
-            '{}testingEnvironment\\{}\\repository\\{}\\{}\\{}\\{}\\'.format(
-                rootDirectory, subject.computer, item_type, item_case, flow_process, element_type))
+            '{}testingEnvironment\\scripts\\icbc\\repository\\{}\\{}\\{}\\{}\\'.format(
+                rootDirectory, item_type, item_case, flow_process, element_type))
      
         Test.__init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type, adapt_path(
             '{}examples\\files\\{}\\{}\\{}\\{}\\{}\\'.format(

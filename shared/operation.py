@@ -5,7 +5,8 @@ from subprocess import Popen, call
 from glob import glob
 from time import time
 syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
-syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+syspath.append(path.join(path.dirname(__file__), '..', 'access'))
+from collections import OrderedDict
 from configurationCustomized import location, rootDirectory, outputFile, preplot, tecplot
 from gateToCluster import operate as operate_on_cluster, call_winscp
 from simulationData import SimulationData
@@ -20,7 +21,7 @@ class Operation:
     """
     parent class of Building, Plotting, Simulating
     """
-    _operation_dict = dict()  # depends on self._selected_operation_type
+    _operation_dict = OrderedDict()  # depends on self._selected_operation_type
     _selected_operation = str()
     _selected_operation_type = str()
     _item = None  # class Build, Sim, or Plot (Item)
@@ -126,8 +127,8 @@ class Building(Operation):
         """
         self._selected_operation_type = 'b'
 
-        self._operation_dict = {'b': '(b)uild', 'u': '(u)pdate', 'c': '(c)lear',
-                                'd': '(d)iagnose regression', 'w': '(w)ait', 's': 're(s)elect'}
+        self._operation_dict = OrderedDict([('b', '(b)uild'), ('u', '(u)pdate'), ('c', '(c)lear'),
+                                            ('g', 'show re(g)ression'), ('w', '(w)ait'), ('s', 're(s)elect')])
         Operation.__init__(self, subject)
 
     def operate(self):
@@ -142,8 +143,8 @@ class Building(Operation):
             self.update_release()  
         elif self._selected_operation == 'c':
             self.clear_folder()
-        elif self._selected_operation == 'd':
-            self.diagnose_regression()
+        elif self._selected_operation == 'g':
+            self.show_regression()
         elif self._selected_operation == 'w':
             self.wait()                                                                                                   
         else:
@@ -178,14 +179,27 @@ class Building(Operation):
         :return:
         """
         message(mode='INFO', text='Removing release {} {}'.format(system(), self._item.configuration))
-        remove_file(self._subject.get_built_file(self._item, False))
+        remove_file(self._subject.get_built_file(self._item), False)
 
-    def diagnose_regression(self):
-        message(mode='INFO', text='Diagnose regression {} {}'.format(system(), self._item.configuration))
+    def show_regression(self):
+        """
+        reads file where regression is documented
+        :return:
+        """
+        message(mode='INFO', text='Show regression {} {}'.format(system(), self._item.configuration))
         try:
-            # chdir('F:\\testingEnvironment\\scripts\\icbc\\shared\\')
-            directory = adapt_path('{}\\testingEnvironment\\scripts\\icbc\\shared\\'.format(rootDirectory))
-            call('py.test {}test_regression.py'.format(directory), shell=True)
+            file = adapt_path('{}\\testingEnvironment\\{}\\{}\\{}\\references\\deviatingFiles_{}.log'.format(
+                rootDirectory, self._subject.computer,
+                self._subject.code, self._subject.branch, self._item.configuration))
+            try:
+                log = open(file, 'r')
+                message(mode='INFO', text='    Regression in files')
+                for line in log:
+                    print(line)
+            except:
+                message(mode='INFO', text='    No regression recorded')
+            # directory = adapt_path('{}\\testingEnvironment\\scripts\\icbc\\shared\\'.format(rootDirectory))
+            # call('py.test {}test_regression.py'.format(directory), shell=True)
         except Exception as err:
             message(mode='ERROR', text='{}'.format(err))
 
@@ -210,12 +224,14 @@ class Simulating(Operation):
         """
         self._selected_operation_type = 's'
 
-        self._operation_dict = {'r': '(r)un', 'n': 'write (n)um', 'c': '(c)lear folder from results', 'w': '(w)ait',
-                                't': 's(t)ore results as reference', 'o': 'c(o)mpare results with reference'}
+        self._operation_dict = OrderedDict([('r', '(r)un'), ('n', 'write (n)um'), ('c', '(c)lear folder from results'),
+                                            ('w', '(w)ait'), ('i', '(i)mport files from repository'),
+                                            ('x', 'e(x)port files to repository'),
+                                            ('t', 's(t)ore results as reference'),
+                                            ('o', 'c(o)mpare results with reference'),
+                                            ('g', 'show re(g)ression')])
         if subject.location == 'remote':
-            option_dict_amendments = {'i': '(i)mport files from repository (gate)',
-                                      'x': 'e(x)port files to repository (gate)', 'b': 'write p(b)s',
-                                      'm': '(m)esh partition', 'p': '(p)ack results'}
+            option_dict_amendments = {'b': 'write p(b)s', 'm': '(m)esh partition', 'p': '(p)ack results'}
             self._operation_dict.update(option_dict_amendments)
         option_dict_amendments = {'s': 're(s)elect'}
         self._operation_dict.update(option_dict_amendments)
@@ -237,13 +253,15 @@ class Simulating(Operation):
             self.store_results_as_reference()
         elif self._selected_operation == 'o':
             self.compare_results_with_reference()
-        elif self._selected_operation == 'i' and self._subject.location == 'remote':
+        elif self._selected_operation == 'g':
+            self.show_regression()
+        elif self._selected_operation == 'i':
             self.import_from_repository()
-        elif self._selected_operation == 'I' and self._subject.location == 'remote':
+        elif self._selected_operation == 'I':
             self.import_from_repository(gate_flag=True)
-        elif self._selected_operation == 'x' and self._subject.location == 'remote':
+        elif self._selected_operation == 'x':
             self.export_to_repository()
-        elif self._selected_operation == 'X' and self._subject.location == 'remote':
+        elif self._selected_operation == 'X':
             self.export_to_repository(gate_flag=True)
         elif self._selected_operation == 'b' and self._subject.location == 'remote':
             self.write_pbs()  
@@ -353,13 +371,13 @@ class Simulating(Operation):
             for file in listdir(self._item.directory):
                 for ending in file_endings:
                     if file.endswith('.{}'.format(ending)):
-                        remove_file(self._item.directory + file) 
+                        remove_file(self._item.directory + file, False)
                                         
             tarfile_remote = '{}results.tar'.format(self._item.directory)
-            remove_file(tarfile_remote)
+            remove_file(tarfile_remote, False)
 
             output_file = self._item.directory + outputFile
-            remove_file(output_file)
+            remove_file(output_file, False)
         else:
             message(mode='ERROR', text='Directory missing')           
 
@@ -397,7 +415,6 @@ class Simulating(Operation):
             self._subject.directory, self._item.type, self._item.case,
             self._item.flow_process, self._item.element_type, self._item.configuration))
 
-
         generate_folder(directory_reference)
 
         if path.exists(self._item.directory):
@@ -417,7 +434,7 @@ class Simulating(Operation):
         configurationCustomized.outputFile are not compared
         :return:
         """
-        message(mode='INFO', text='Compare result files with references {}'.format(self._item.name()))
+        message(mode='INFO', text='Compare result with reference files\n    {}'.format(self._item.name()))
 
         directory_reference = adapt_path(
             "{}references\\{}\\{}\\{}\\{}\\{}\\".format(
@@ -427,7 +444,7 @@ class Simulating(Operation):
         if path.exists(directory_reference):
             if path.exists(self._item.directory):
                 # clear file that will contain regressions (differences between file contents)
-                clear_file('{}deviations.log'.format(directory_reference))
+                remove_file('{}deviations.log'.format(directory_reference), False)
 
                 for file_name in listdir(directory_reference):
                     if file_name != outputFile and file_name != 'deviations.log':
@@ -449,6 +466,28 @@ class Simulating(Operation):
         else:
             message(mode='ERROR', text='Directory with reference files missing')
 
+    def show_regression(self):
+        """
+        reads file where regression is documented
+        :return:
+        """
+        message(mode='INFO', text='Show regression\n    {}'.format(self._item.name()))
+        try:
+            file = adapt_path("{}references\\{}\\{}\\{}\\{}\\{}\\deviations.log".format(
+                self._subject.directory, self._item.type, self._item.case,
+                self._item.flow_process, self._item.element_type, self._item.configuration))
+            try:
+                log = open(file, 'r')
+                message(mode='INFO', text='    Regression recorded:')
+                for line in log:
+                    print(line)
+            except:
+                message(mode='INFO', text='    No regression recorded')
+                # directory = adapt_path('{}\\testingEnvironment\\scripts\\icbc\\shared\\'.format(rootDirectory))
+                # call('py.test {}test_regression.py'.format(directory), shell=True)
+        except Exception as err:
+            message(mode='ERROR', text='{}'.format(err))
+
 
 class Plotting(Operation):
     """
@@ -458,13 +497,13 @@ class Plotting(Operation):
 
     def __init__(self, subject):
         """
-
         :param subject:
         """
         self._selected_operation_type = 'p'
 
-        self._operation_dict = {'p': '(p)replot', 'j': 'generate (j)pgs', 'n': 'replace (n)ans and inds',
-                                'c': '(c)lear folder', 'w': '(w)ait', 's': 're(s)elect'}
+        self._operation_dict = OrderedDict([('p', '(p)replot'), ('j', 'generate (j)pgs'),
+                                            ('n', 'replace (n)ans and inds'), ('c', '(c)lear folder'),
+                                            ('w', '(w)ait'), ('s', 're(s)elect')])
         if subject.location == 'remote':
             option_dict_amendments = {'g': '(g)et results'}
             self._operation_dict.update(option_dict_amendments)
@@ -603,7 +642,7 @@ class Plotting(Operation):
         """
         message(mode='INFO', text='Clear plotting folder ' + self._item.name())
         #
-        remove_file("{}results_{}.jpg".format(self._subject.directory_plot, self._item.type))
+        remove_file("{}results_{}.jpg".format(self._subject.directory_plot, self._item.type), False)
         file_endings = list()  # concerns files with outputFileEndings and *.plt
         for ending in outputFileEndings:
             file_endings.append(ending)
@@ -615,7 +654,7 @@ class Plotting(Operation):
                     if file.endswith('.{}'.format(ending)):
                         if self._subject.location == 'remote' or ending != 'tec':
                             # do not delete tec if local
-                            remove_file(self._item.directory + file)
+                            remove_file(self._item.directory + file, False)
 
                 # myLocalTarFile = self._item.directory + 'results.tar'  # done in get_results()
                 # if path.isfile(myLocalTarFile):

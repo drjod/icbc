@@ -176,8 +176,6 @@ class Subject:
         return adapt_path('{}releases\\{}_{}_{}_{}{}'.format(
             self.__directory, self.__code, self.__branch, system(), item.configuration, extension))
 
-
-
     def get_built_file(self, item):
         """
         get the built (.exe,...) to run test cases

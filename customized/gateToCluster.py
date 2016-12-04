@@ -1,7 +1,7 @@
 from os import remove, path, access, R_OK, getpid
 from sys import path as syspath
 from subprocess import call, check_call
-syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+syspath.append(path.join(path.dirname(__file__), '..', 'access'))
 from utilities import message, adapt_path, adapt_path_computer_selected, remove_file
 from configurationCustomized import rootDirectory, winscp
 

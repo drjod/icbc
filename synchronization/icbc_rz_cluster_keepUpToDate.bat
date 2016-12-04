@@ -10,7 +10,7 @@ set hostName=rzcluster.rz.uni-kiel.de
 
 set winscpScript=%tempFolder%\winscp_keepUpToDate_icbc_rzcluster.txt
 
-call F:\testingEnvironment\scripts\icbc\pwds\%remoteComputer%.bat
+call F:\testingEnvironment\scripts\icbc\access\%remoteComputer%.bat
 
 echo option batch abort > %winscpScript%
 echo option confirm off >> %winscpScript%

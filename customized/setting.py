@@ -1,14 +1,9 @@
 from utilities import message, select_from_options, str2bool
 from utilities import is_in_list, string_represents_non_negative_number_or_potentially_valid_character
 from copy import deepcopy
+from collections import OrderedDict
 from processing import Processing
 from gateToDatabase import GateToDatabase
-
-
-class Testing:
-    def __init__(self, mode, level):
-        self.mode = mode   # 0: with shell , 1: control via browser (case has stage in database), 2: with CI
-        self.level = level  # for testing with jenkins - each test case has a level this variable is compared with
 
 
 class Database:
@@ -44,12 +39,13 @@ class Setting:
     __selectedTypeIdList = list()  # for tree structure (types, cases) - to know selected type when cases are selected
 
     def __init__(self, type_list, case_list, configuration_list, operation_type,
-                 operation, testing_properties, db_inst):
+                 operation, test_mode, db_inst):
     
         self.__item_constituents = ItemConstituents(type_list, case_list, configuration_list)
         self.__operation_type = operation_type  # building or testing
         self.__operation = operation
-        self.__testing = testing_properties  # to switch off select
+        self.__test_mode = test_mode  # 0: with shell ,
+        # 1: control via browser (case has stage in database), 2: with CI
         self.__db_inst = db_inst
         self.__gateToDatabase = None
         
@@ -81,8 +77,8 @@ class Setting:
             message(mode='INFO', text='Set operation {}'.format(self.__operation))
 
     def connect_to_db(self):
-        message(mode='INFO', text='Connect {} to database {} {}'.format(
-            self.__db_inst.user, self.__db_inst.host, self.__db_inst.schema))
+        message(mode='INFO', text='Connect {} to database {} at {}'.format(
+            self.__db_inst.user, self.__db_inst.schema, self.__db_inst.host))
 
         self.__gateToDatabase = GateToDatabase(self.__db_inst)
 
@@ -107,8 +103,8 @@ class Setting:
         self.__operation = value
 
     @property
-    def testing(self):
-        return self.__testing
+    def test_mode(self):
+        return self.__test_mode
 
     def query_flow_process_name_list(self, case_name):
         """
@@ -147,7 +143,8 @@ class Setting:
             name_inner_list = list()
             for numerics_id in numerics_id_list:
                 running_flow_process_name = self.__gateToDatabase.query_name_for_id(
-                    'flow_processes', self.__gateToDatabase.query_column_entry('numerics', numerics_id, 'flow_process_id'))
+                    'flow_processes', self.__gateToDatabase.query_column_entry(
+                        'numerics', numerics_id, 'flow_process_id'))
                 if flow_process_name == running_flow_process_name:
                     flow_process_id = self.__gateToDatabase.query_column_entry(
                         'numerics', numerics_id, 'element_type_id')
@@ -163,9 +160,8 @@ class Setting:
         :param computer_name: (string)
         :return: (string) location
         """
-        return self.__gateToDatabase.query_column_entry('computer',
-                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
-                                                     'location')
+        return self.__gateToDatabase.query_column_entry(
+            'computer', self.__gateToDatabase.query_id_for_name('computer', computer_name), 'location')
 
     def query_operating_system(self, computer_name):
         """
@@ -174,9 +170,8 @@ class Setting:
         :param computer_name:
         :return:
         """
-        return self.__gateToDatabase.query_column_entry('computer',
-                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
-                                                     'operating_system')
+        return self.__gateToDatabase.query_column_entry(
+            'computer', self.__gateToDatabase.query_id_for_name('computer', computer_name), 'operating_system')
  
     def query_directory_root(self, computer_name, user_name):
         """
@@ -186,8 +181,9 @@ class Setting:
         :param user_name: (string)
         :return: (string) root directory
         """
-        return self.__gateToDatabase.query_directory_root(self.__gateToDatabase.query_id_for_name('computer', computer_name),
-                                                       self.__gateToDatabase.query_id_for_name('users', user_name))
+        return self.__gateToDatabase.query_directory_root(
+            self.__gateToDatabase.query_id_for_name('computer', computer_name),
+            self.__gateToDatabase.query_id_for_name('users', user_name))
 
     def query_hostname(self, computer_name):
         """
@@ -196,9 +192,8 @@ class Setting:
         :param computer_name: (string)
         :return: (string) hostname
         """
-        return self.__gateToDatabase.query_column_entry('computer',
-                                                     self.__gateToDatabase.query_id_for_name('computer', computer_name),
-                                                     'hostname')
+        return self.__gateToDatabase.query_column_entry(
+            'computer', self.__gateToDatabase.query_id_for_name('computer', computer_name), 'hostname')
     
     def query_username(self, superuser_name, computer_name):
         """
@@ -208,16 +203,15 @@ class Setting:
         :param computer_name: (string)
         :return: (string ) username
         """
-        return self.__gateToDatabase.query_name_for_id('users',
-                                                    self.__gateToDatabase.query_userid(
-                                                        superuser_name, computer_name))
+        return self.__gateToDatabase.query_name_for_id(
+            'users', self.__gateToDatabase.query_userid(superuser_name, computer_name))
                                                       
     def query_column_entry_for_name(self, table, name, column_name):
         """
         query a column entry from table for a name
             by first querying case id
         :param table: (string)
-        :param case_name: (string)
+        :param name: (string)
         :param column_name: (string)
         :return: (string) column entry
         """
@@ -253,7 +247,7 @@ class Setting:
         :return: ((one-character) tring) selected operation type
         """
         if not self.__operation_type:
-            operation_type_dict = {'b': '(b)uilding', 's': '(s)imulating', 'p': '(p)lotting'}
+            operation_type_dict = OrderedDict([('b', '(b)uilding'), ('s', '(s)imulating'), ('p', '(p)lotting')])
             self.__operation_type = select_from_options(operation_type_dict, 'Select operation type')
         return self.__operation_type
 
@@ -265,8 +259,8 @@ class Setting:
         :param subject: (class Subject) stores variables computer, user, code, branch
         :return:
         """
-        option_dict = {'p': 'o(p)eration type', 'c': '(c)omputer', 'o': 'c(o)de',
-                       'b': '(b)ranch', 'n': 'co(n)figuration'}
+        option_dict = OrderedDict([('p', 'o(p)eration type'), ('c', '(c)omputer'), ('o', 'c(o)de'),
+                                   ('b', '(b)ranch'), ('n', 'co(n)figuration')])
         if self.__operation_type == 's' or self.__operation_type == 'p':
             option_dict_amendments = {'e': '(e)xample', 't': '(t)ype', 'a': 'c(a)se'}
             option_dict.update(option_dict_amendments)
@@ -286,16 +280,16 @@ class Setting:
         """
         if option_selected == 'c':  # computer
             subject.computer = None
-            subject.user = None  # user must be reselected too
+            subject.user = None  # user must be reselected, too
             self.__item_constituents.configuration_list = [None]  # also configurations since they depend on computer
         if option_selected == 'o':  # code
             subject.code = None
-            subject.branch = None  # branch must be reselected too
+            subject.branch = None  # branch must be reselected, too
         if option_selected == 'b':  # branch
             subject.branch = None
         if option_selected == 't' or option_selected == 'e':  # type | example
             self.__item_constituents.type_list = [None]
-            self.__item_constituents.case_list = [[None]]  # case must be reselected too
+            self.__item_constituents.case_list = [[None]]  # case must be reselected, too
             self.__selectedTypeIdList.clear()
         if option_selected == 'a' or option_selected == 'e':  # case | example
             self.__item_constituents.case_list = [[None]]
@@ -374,15 +368,17 @@ class Setting:
         :param lists_inst:
         :return:
         """
+        id_name = dict() # use dict to print ids sorted in table where id is selected
         for row in lists_inst.id_name_pair:
             lists_inst.nameSub.append(deepcopy(str(row['name'])))
             lists_inst.id.append(deepcopy(str(row['id'])))
+            id_name.update({deepcopy(str(row['id'])): deepcopy(str(row['name']))})
 
-        if self.__testing.mode == '0':
-            # print options
+        id_name_sorted = OrderedDict(sorted(id_name.items(), key=lambda t: int(t[0])))
+        if self.__test_mode == '0':
             print('\nSelect from {}:\n'.format(table))
-            for index, inst_id in enumerate(lists_inst.id):
-                print('   {} {}'.format(inst_id, lists_inst.nameSub[index]))
+            for key, value in id_name_sorted.items():
+                print('    {} {}'.format(key, value))
             print('   a all')
             if table == 'types':  # range only for types supported
                 print('   r range')
@@ -464,19 +460,19 @@ class Setting:
         """
         if level == 'types':
             if self.__item_constituents.type_list == [None]:
-                #len(self.__item_constituents.type_list) == 0 or not self.__item_constituents.type_list[0]:
+                # len(self.__item_constituents.type_list) == 0 or not self.__item_constituents.type_list[0]:
                 return self.get_name_list(table='types')
             else:
                 return self.__item_constituents.type_list
         elif level == 'cases':
             if self.__item_constituents.case_list == [[None]]:
-                #len(self.__item_constituents.case_list) == 0 or self.__item_constituents.case_list[0] == [None]:
+                # len(self.__item_constituents.case_list) == 0 or self.__item_constituents.case_list[0] == [None]:
                 return self.get_name_list(table='cases')
             else:
                 return self.__item_constituents.case_list
         elif level == 'configurations':
             if self.__item_constituents.configuration_list == [None]:
-                #len(self.__item_constituents.configuration_list) == 0 \
+                # len(self.__item_constituents.configuration_list) == 0 \
                 #    or not self.__item_constituents.configuration_list[0]:
                 return self.get_name_list(table='configurations', computer=computer_of_subject)
             else:
@@ -545,7 +541,8 @@ class Setting:
         processing.number_cpus = self.__gateToDatabase.query_column_entry(
             'types', self.__gateToDatabase.query_id_for_name('types', item_type), 'number_cpus')
         processing.mode = self.__gateToDatabase.query_column_entry(
-            'configurations', self.__gateToDatabase.query_id_for_name('configurations', item_configuration), 'processing')
+            'configurations', self.__gateToDatabase.query_id_for_name(
+                'configurations', item_configuration), 'processing')
 
         sim_data.processing = processing
 

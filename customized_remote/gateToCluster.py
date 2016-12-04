@@ -2,7 +2,7 @@ from os import remove, path, access, R_OK
 from sys import path as syspath
 from subprocess import call
 syspath.append(path.join(path.dirname(__file__), '..', 'customized'))
-syspath.append(path.join(path.dirname(__file__), '..', 'pwds'))
+syspath.append(path.join(path.dirname(__file__), '..', 'access'))
 from utilities import message, adapt_path
 from configurationCustomized import rootDirectory, winscp
 

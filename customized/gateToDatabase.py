@@ -72,10 +72,10 @@ class GateToDatabase:
             return None  # no name given get_table_data_from_database
         else:
             # query_text = "SELECT {} FROM computer WHERE name=%s"
-            #.format(table, name)
-            #.encode(encoding='UTF-8', errors='strict')
+            # .format(table, name)
+            # .encode(encoding='UTF-8', errors='strict')
             # query_text2 = query_text.decode(encoding='UTF-8', errors='strict')
-            #.format(table, name)
+            # .format(table, name)
             # row_list = self.query("SELECT id FROM " + str(table) + " WHERE name=%s", [name])
             query_text = "SELECT id from {} WHERE name='{}'".format(table, name)
             row_list = self.query(query_text)
@@ -121,7 +121,7 @@ class GateToDatabase:
             self.query("SELECT * FROM ' + table + ' WHERE id={}".format(item_id))
 
         return row_list
-        #return extract_id_name_pairs(row_list)
+        # return extract_id_name_pairs(row_list)
 
     def query_column_entry(self, table, item_id, column_name):
         """
@@ -144,6 +144,7 @@ class GateToDatabase:
         :param table: (string): name of table in SQL schema
         :param item_id: (string): entry in id column (primary key)
         :param column_name: (string) name of column where entry is searched from
+        :param entry: (string)
         :return: (string) column entry, '-1' if no entry found (exception)
         """
         result_list = list()
@@ -203,7 +204,6 @@ class GateToDatabase:
         :param parameter_list: (string list)
         :return: list of dictionary with query results, [None] if exception
         """
-        row_list = list()
         try:
             with self.__cnx.cursor(cursor_factory=psycopg2.extras.DictCursor) as cursor:
                 if len(parameter_list) > 0:

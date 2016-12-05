@@ -58,7 +58,7 @@ def write_shell_script_for_remote_run(subject, item, operation_type, operation, 
         message(mode='ERROR', text='{0}'.format(err))
     else:
         f.write('#!/bin/sh\n')
-        f.write('module load python3.3\n')
+        f.write('module load Python-3.3.2\n')
         f.write('python3 {}testingEnvironment/scripts/icbc/customized/run_remote.py '.format(subject.directory_root))
         f.write('{} {} {} {} {} '.format(subject.computer, subject.user, subject.code, subject.branch, getpid()))
         if operation_type == 'b':  # building

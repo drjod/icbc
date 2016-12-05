@@ -7,8 +7,8 @@
 
 outputFile = 'out.txt'
 location = 'local'
-rootDirectory = '/home/jens/'
-computer = 'ibiza'
+rootDirectory = 'F:\\'
+computer = 'amak'
 compiler = 'GNU'  # for linux - there, it must equal specification in script compileInKiel.sh!!!
 
 walltime  = '2:00:00'

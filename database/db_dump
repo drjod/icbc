@@ -79,7 +79,8 @@ CREATE TABLE cases (
     coupled_flag boolean,
     deformation_flag boolean DEFAULT false,
     overland_flag boolean DEFAULT false,
-    fluid_momentum_flag boolean DEFAULT false
+    fluid_momentum_flag boolean DEFAULT false,
+    active boolean DEFAULT true
 );
 
 
@@ -949,84 +950,84 @@ SELECT pg_catalog.setval('branches_id_seq', 1, false);
 -- Data for Name: cases; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY cases (id, name, mass_flag, heat_flag, coupled_flag, deformation_flag, overland_flag, fluid_momentum_flag) FROM stdin;
-29	mass	t	f	f	f	f	f
-30	heat	f	t	f	f	f	f
-22	2D	t	f	f	f	f	f
-21	1D	t	f	f	f	f	f
-9	advection_x	t	t	f	f	f	f
-13	advection_axis	t	t	f	f	f	f
-11	advection_y	t	t	f	f	f	f
-14	diffusion_axis	t	t	f	f	f	f
-10	diffusion_x	t	t	f	f	f	f
-5	advection	t	t	f	f	f	f
-6	diffusion	t	t	f	f	f	f
-8	diffusion_z	t	t	f	f	f	f
-1	advection_xy	t	t	f	f	f	f
-2	diffusion_xy	t	t	f	f	f	f
-12	diffusion_y	t	t	f	f	f	f
-3	advection_xz	t	t	f	f	f	f
-4	diffusion_xz	t	t	f	f	f	f
-7	advection_z	t	t	f	f	f	f
-20	2_2_1	t	t	t	f	f	f
-15	1_1_1	t	t	f	f	f	f
-18	2_1_1	t	t	f	f	f	f
-16	1_1_2	t	t	f	f	f	f
-19	2_1_2	t	t	f	f	f	f
-17	1_2_1	t	t	f	f	f	f
-25	2D_xz	f	f	f	f	f	f
-24	2D_xy_LPVC	f	f	f	f	f	f
-23	2D_xy	f	f	f	f	f	f
-27	3D	f	f	f	f	f	f
-26	2D_xz_LPVC	f	f	f	f	f	f
-46	O	f	t	f	f	f	f
-45	U	f	t	f	f	f	f
-44	pole_diffusive	f	t	f	f	f	f
-43	pole_advective	f	t	f	f	f	f
-28	3D_LPVC	f	f	f	f	f	f
-40	2D_heat_advective_REFERENCE	f	t	f	f	f	f
-35	1D_heat_diffusive_LPVC	f	t	f	f	f	f
-34	1D_heat_advective_REFERENCE	f	t	f	f	f	f
-36	1D_heat_diffusive_REFERENCE	f	t	f	f	f	f
-39	2D_heat_advective_LPVC	f	t	f	f	f	f
-41	2D_heat_diffusive_LPVC	f	t	f	f	f	f
-31	1D_flow_only_LPVC	f	t	f	f	f	f
-32	1D_flow_only_REFERENCE	f	t	f	f	f	f
-37	2D_flow_only_LPVC	f	t	f	f	f	f
-33	1D_heat_advective_LPVC	f	t	f	f	f	f
-42	2D_heat_diffusive_REFERENCE	f	t	f	f	f	f
-38	2D_flow_only_REFERENCE	f	t	f	f	f	f
-52	CO2	t	f	f	f	f	f
-51	nitrate	t	f	f	f	f	f
-50	calcite	t	f	f	f	f	f
-53	decay	t	f	f	f	f	f
-47	flow	f	f	f	f	f	f
-48	mass	t	f	f	f	f	f
-49	kinReact	t	f	f	f	f	f
-54	C	t	t	f	f	f	f
-64	mcWorter	f	f	f	f	f	f
-60	thermohaline	t	t	t	f	f	f
-63	liakopoulos	f	f	f	f	f	f
-61	buckleyLeverett	f	f	f	f	f	f
-58	haline	t	f	t	f	f	f
-62	kueper	f	f	f	f	f	f
-56	cutOut_deactivatedSubdomain	f	t	f	f	f	f
-59	thermal	f	t	t	f	f	f
-57	cutOut_materialDensity	f	t	f	f	f	f
-55	II	f	t	f	f	f	f
-67	HM_dyn	f	f	f	t	f	f
-68	HM_excavation	f	f	f	t	f	f
-70	HM_linearSwelling	f	f	f	t	f	f
-66	HM_cc	f	f	f	t	f	f
-69	HM_foot	f	f	f	t	f	f
-71	HM_unsaturated	f	f	f	t	f	f
-65	HM	f	f	f	t	f	f
-72	TH2M	f	t	f	t	f	f
-73	THM	f	t	f	t	f	f
-76	celia	f	f	f	f	f	f
-74	smithWoolhiser_coupled	f	f	t	f	t	f
-75	smithWoolhiser_greenAmpt	f	f	f	f	t	f
-77	fluid_momentum	f	f	f	f	f	t
+COPY cases (id, name, mass_flag, heat_flag, coupled_flag, deformation_flag, overland_flag, fluid_momentum_flag, active) FROM stdin;
+29	mass	t	f	f	f	f	f	t
+30	heat	f	t	f	f	f	f	t
+22	2D	t	f	f	f	f	f	t
+21	1D	t	f	f	f	f	f	t
+9	advection_x	t	t	f	f	f	f	t
+13	advection_axis	t	t	f	f	f	f	t
+11	advection_y	t	t	f	f	f	f	t
+14	diffusion_axis	t	t	f	f	f	f	t
+10	diffusion_x	t	t	f	f	f	f	t
+5	advection	t	t	f	f	f	f	t
+6	diffusion	t	t	f	f	f	f	t
+8	diffusion_z	t	t	f	f	f	f	t
+1	advection_xy	t	t	f	f	f	f	t
+2	diffusion_xy	t	t	f	f	f	f	t
+12	diffusion_y	t	t	f	f	f	f	t
+3	advection_xz	t	t	f	f	f	f	t
+4	diffusion_xz	t	t	f	f	f	f	t
+7	advection_z	t	t	f	f	f	f	t
+20	2_2_1	t	t	t	f	f	f	t
+15	1_1_1	t	t	f	f	f	f	t
+18	2_1_1	t	t	f	f	f	f	t
+16	1_1_2	t	t	f	f	f	f	t
+19	2_1_2	t	t	f	f	f	f	t
+17	1_2_1	t	t	f	f	f	f	t
+25	2D_xz	f	f	f	f	f	f	t
+24	2D_xy_LPVC	f	f	f	f	f	f	t
+23	2D_xy	f	f	f	f	f	f	t
+27	3D	f	f	f	f	f	f	t
+26	2D_xz_LPVC	f	f	f	f	f	f	t
+46	O	f	t	f	f	f	f	t
+45	U	f	t	f	f	f	f	t
+44	pole_diffusive	f	t	f	f	f	f	t
+43	pole_advective	f	t	f	f	f	f	t
+28	3D_LPVC	f	f	f	f	f	f	t
+40	2D_heat_advective_REFERENCE	f	t	f	f	f	f	t
+35	1D_heat_diffusive_LPVC	f	t	f	f	f	f	t
+34	1D_heat_advective_REFERENCE	f	t	f	f	f	f	t
+36	1D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
+39	2D_heat_advective_LPVC	f	t	f	f	f	f	t
+41	2D_heat_diffusive_LPVC	f	t	f	f	f	f	t
+31	1D_flow_only_LPVC	f	t	f	f	f	f	t
+32	1D_flow_only_REFERENCE	f	t	f	f	f	f	t
+37	2D_flow_only_LPVC	f	t	f	f	f	f	t
+33	1D_heat_advective_LPVC	f	t	f	f	f	f	t
+42	2D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
+38	2D_flow_only_REFERENCE	f	t	f	f	f	f	t
+52	CO2	t	f	f	f	f	f	t
+51	nitrate	t	f	f	f	f	f	t
+50	calcite	t	f	f	f	f	f	t
+53	decay	t	f	f	f	f	f	t
+47	flow	f	f	f	f	f	f	t
+48	mass	t	f	f	f	f	f	t
+49	kinReact	t	f	f	f	f	f	t
+54	C	t	t	f	f	f	f	t
+64	mcWorter	f	f	f	f	f	f	t
+60	thermohaline	t	t	t	f	f	f	t
+63	liakopoulos	f	f	f	f	f	f	t
+61	buckleyLeverett	f	f	f	f	f	f	t
+58	haline	t	f	t	f	f	f	t
+62	kueper	f	f	f	f	f	f	t
+56	cutOut_deactivatedSubdomain	f	t	f	f	f	f	t
+59	thermal	f	t	t	f	f	f	t
+57	cutOut_materialDensity	f	t	f	f	f	f	t
+55	II	f	t	f	f	f	f	t
+67	HM_dyn	f	f	f	t	f	f	t
+68	HM_excavation	f	f	f	t	f	f	t
+70	HM_linearSwelling	f	f	f	t	f	f	t
+66	HM_cc	f	f	f	t	f	f	t
+69	HM_foot	f	f	f	t	f	f	t
+71	HM_unsaturated	f	f	f	t	f	f	t
+65	HM	f	f	f	t	f	f	t
+72	TH2M	f	t	f	t	f	f	t
+73	THM	f	t	f	t	f	f	t
+76	celia	f	f	f	f	f	f	t
+74	smithWoolhiser_coupled	f	f	t	f	t	f	t
+75	smithWoolhiser_greenAmpt	f	f	f	f	t	f	t
+77	fluid_momentum	f	f	f	f	f	t	t
 \.
 
 
@@ -1058,11 +1059,11 @@ SELECT pg_catalog.setval('codes_id_seq', 1, false);
 --
 
 COPY computer (id, name, operating_system, location, hostname) FROM stdin;
-5	ibiza	windows	local	localhost
 4	Lokstedt	linux	remote	134.245.120.191
 1	amak	windows	local	localhost
 2	rzcluster	linux	remote	rzcluster.rz.uni-kiel.de
 3	NEC	linux	remote	nesh-fe.rz.uni-kiel.de
+5	ibiza	linux	local	localhost
 \.
 
 
@@ -1466,7 +1467,7 @@ COPY paths (id, computer_id, user_id, root) FROM stdin;
 2	2	2	/home/sungw389/
 3	3	2	/sfs/fs5/home-sh/sungw389/
 4	4	1	/home/jens/
-5	5	3	C:\\\\
+5	5	3	/home/jens/
 \.
 
 

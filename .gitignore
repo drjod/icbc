@@ -1,0 +1,9 @@
+/access
+/.cache
+/.idea
+/customized/__pycache__
+/customized_remote/__pycache__
+/shared/__pycache__
+/customized/__pycache__
+/temp
+testCase.num

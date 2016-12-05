@@ -117,7 +117,8 @@ def unix2dos(file, output_flag=True):
         infile = open(file, 'r')
         outfile = open('dos_{}'.format(file), 'w')  # write into new file with suffix dos_
     except Exception as err:
-        message(mode='ERROR', text="{}".format(err))
+        pass  # no message since error if file already in dos format
+        # message(mode='ERROR', text="{}".format(err))
     else:
         for line in infile:
             line = line.rstrip() + '\r\n'
@@ -142,7 +143,8 @@ def dos2unix(file, output_flag=True):
         text = open(file, 'rb').read().replace('\r\n', '\n')
         open(file, 'wb').write(text)
     except Exception as err:
-        message(mode='ERROR', text="{0}".format(err))
+        pass  # no message since error if file already in dos format
+        # message(mode='ERROR', text="{0}".format(err))
 
 
 def convert_file(file):

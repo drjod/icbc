@@ -2,12 +2,11 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 9.6.1
--- Dumped by pg_dump version 9.6.1
+-- Dumped from database version 9.5.5
+-- Dumped by pg_dump version 9.5.5
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SET check_function_bodies = false;
@@ -147,9 +146,11 @@ ALTER SEQUENCE codes_id_seq OWNED BY codes.id;
 CREATE TABLE computer (
     id integer NOT NULL,
     name character varying(80),
-    operating_system character varying(80),
-    location character varying(80),
-    hostname character varying(80)
+    hostname character varying(80),
+    root_directory character varying(80),
+    remote_flag boolean,
+    compiler character varying(80),
+    python3 character varying(80)
 );
 
 
@@ -355,9 +356,6 @@ ALTER SEQUENCE modi_id_seq OWNED BY modi.id;
 
 CREATE TABLE numerics (
     id integer NOT NULL,
-    case_id integer,
-    flow_process_id integer,
-    element_type_id integer,
     theta_flow double precision,
     theta_mass double precision,
     theta_heat double precision,
@@ -421,7 +419,10 @@ CREATE TABLE numerics (
     preconditioner_overland_ogs_fem_sp integer,
     preconditioner_overland_ogs_fem_mkl integer,
     preconditioner_overland_ogs_fem_mpi integer,
-    preconditioner_overland_ogs_fem_petsc integer
+    preconditioner_overland_ogs_fem_petsc integer,
+    case_id integer,
+    flow_process_id integer,
+    element_type_id integer
 );
 
 
@@ -446,41 +447,6 @@ ALTER TABLE numerics_id_seq OWNER TO postgres;
 --
 
 ALTER SEQUENCE numerics_id_seq OWNED BY numerics.id;
-
-
---
--- Name: paths; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE paths (
-    id integer NOT NULL,
-    computer_id integer,
-    user_id integer,
-    root character varying(80)
-);
-
-
-ALTER TABLE paths OWNER TO postgres;
-
---
--- Name: paths_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
---
-
-CREATE SEQUENCE paths_id_seq
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE paths_id_seq OWNER TO postgres;
-
---
--- Name: paths_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
---
-
-ALTER SEQUENCE paths_id_seq OWNED BY paths.id;
 
 
 --
@@ -790,140 +756,133 @@ ALTER SEQUENCE users_id_seq OWNED BY users.id;
 
 
 --
--- Name: branches id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY branches ALTER COLUMN id SET DEFAULT nextval('branches_id_seq'::regclass);
 
 
 --
--- Name: cases id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY cases ALTER COLUMN id SET DEFAULT nextval('cases_id_seq'::regclass);
 
 
 --
--- Name: codes id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY codes ALTER COLUMN id SET DEFAULT nextval('codes_id_seq'::regclass);
 
 
 --
--- Name: computer id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY computer ALTER COLUMN id SET DEFAULT nextval('computer_id_seq'::regclass);
 
 
 --
--- Name: configurations id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY configurations ALTER COLUMN id SET DEFAULT nextval('configurations_id_seq'::regclass);
 
 
 --
--- Name: element_types id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY element_types ALTER COLUMN id SET DEFAULT nextval('element_types_id_seq'::regclass);
 
 
 --
--- Name: examples id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY examples ALTER COLUMN id SET DEFAULT nextval('examples_id_seq'::regclass);
 
 
 --
--- Name: flow_processes id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY flow_processes ALTER COLUMN id SET DEFAULT nextval('flow_processes_id_seq'::regclass);
 
 
 --
--- Name: modi id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY modi ALTER COLUMN id SET DEFAULT nextval('modi_id_seq'::regclass);
 
 
 --
--- Name: numerics id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics ALTER COLUMN id SET DEFAULT nextval('numerics_id_seq'::regclass);
 
 
 --
--- Name: paths id; Type: DEFAULT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY paths ALTER COLUMN id SET DEFAULT nextval('paths_id_seq'::regclass);
-
-
---
--- Name: preconditioner id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner ALTER COLUMN id SET DEFAULT nextval('preconditioner_id_seq'::regclass);
 
 
 --
--- Name: preconditioner_mkl id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner_mkl ALTER COLUMN id SET DEFAULT nextval('preconditioner_mkl_id_seq'::regclass);
 
 
 --
--- Name: preconditioner_petsc id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner_petsc ALTER COLUMN id SET DEFAULT nextval('preconditioner_petsc_id_seq'::regclass);
 
 
 --
--- Name: solver id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver ALTER COLUMN id SET DEFAULT nextval('solver_id_seq'::regclass);
 
 
 --
--- Name: solver_mkl id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver_mkl ALTER COLUMN id SET DEFAULT nextval('solver_mkl_id_seq'::regclass);
 
 
 --
--- Name: solver_petsc id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver_petsc ALTER COLUMN id SET DEFAULT nextval('solver_petsc_id_seq'::regclass);
 
 
 --
--- Name: superusers id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY superusers ALTER COLUMN id SET DEFAULT nextval('superusers_id_seq'::regclass);
 
 
 --
--- Name: types id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY types ALTER COLUMN id SET DEFAULT nextval('types_id_seq'::regclass);
 
 
 --
--- Name: users id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: id; Type: DEFAULT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY users ALTER COLUMN id SET DEFAULT nextval('users_id_seq'::regclass);
@@ -951,10 +910,6 @@ SELECT pg_catalog.setval('branches_id_seq', 1, false);
 --
 
 COPY cases (id, name, mass_flag, heat_flag, coupled_flag, deformation_flag, overland_flag, fluid_momentum_flag, active) FROM stdin;
-29	mass	t	f	f	f	f	f	t
-30	heat	f	t	f	f	f	f	t
-22	2D	t	f	f	f	f	f	t
-21	1D	t	f	f	f	f	f	t
 9	advection_x	t	t	f	f	f	f	t
 13	advection_axis	t	t	f	f	f	f	t
 11	advection_y	t	t	f	f	f	f	t
@@ -969,65 +924,69 @@ COPY cases (id, name, mass_flag, heat_flag, coupled_flag, deformation_flag, over
 3	advection_xz	t	t	f	f	f	f	t
 4	diffusion_xz	t	t	f	f	f	f	t
 7	advection_z	t	t	f	f	f	f	t
-20	2_2_1	t	t	t	f	f	f	t
-15	1_1_1	t	t	f	f	f	f	t
-18	2_1_1	t	t	f	f	f	f	t
-16	1_1_2	t	t	f	f	f	f	t
-19	2_1_2	t	t	f	f	f	f	t
-17	1_2_1	t	t	f	f	f	f	t
-25	2D_xz	f	f	f	f	f	f	t
-24	2D_xy_LPVC	f	f	f	f	f	f	t
+21	1D	t	f	f	f	f	f	t
+22	2D	t	f	f	f	f	f	t
 23	2D_xy	f	f	f	f	f	f	t
-27	3D	f	f	f	f	f	f	t
+24	2D_xy_LPVC	f	f	f	f	f	f	t
+25	2D_xz	f	f	f	f	f	f	t
 26	2D_xz_LPVC	f	f	f	f	f	f	t
-46	O	f	t	f	f	f	f	t
-45	U	f	t	f	f	f	f	t
-44	pole_diffusive	f	t	f	f	f	f	t
-43	pole_advective	f	t	f	f	f	f	t
+27	3D	f	f	f	f	f	f	t
 28	3D_LPVC	f	f	f	f	f	f	t
-40	2D_heat_advective_REFERENCE	f	t	f	f	f	f	t
-35	1D_heat_diffusive_LPVC	f	t	f	f	f	f	t
-34	1D_heat_advective_REFERENCE	f	t	f	f	f	f	t
-36	1D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
-39	2D_heat_advective_LPVC	f	t	f	f	f	f	t
-41	2D_heat_diffusive_LPVC	f	t	f	f	f	f	t
+29	mass	t	f	f	f	f	f	t
+30	heat	f	t	f	f	f	f	t
 31	1D_flow_only_LPVC	f	t	f	f	f	f	t
 32	1D_flow_only_REFERENCE	f	t	f	f	f	f	t
-37	2D_flow_only_LPVC	f	t	f	f	f	f	t
 33	1D_heat_advective_LPVC	f	t	f	f	f	f	t
-42	2D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
+34	1D_heat_advective_REFERENCE	f	t	f	f	f	f	t
+64	mcWorter	f	f	f	f	f	f	f
+62	kueper	f	f	f	f	f	f	t
+63	liakopoulos	f	f	f	f	f	f	t
+61	buckleyLeverett	f	f	f	f	f	f	t
+60	thermohaline	t	t	t	f	f	f	t
+59	thermal	f	t	t	f	f	f	t
+58	haline	t	f	t	f	f	f	t
+35	1D_heat_diffusive_LPVC	f	t	f	f	f	f	t
+57	cutOut_materialDensity	f	t	f	f	f	f	t
+36	1D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
+37	2D_flow_only_LPVC	f	t	f	f	f	f	t
 38	2D_flow_only_REFERENCE	f	t	f	f	f	f	t
+39	2D_heat_advective_LPVC	f	t	f	f	f	f	t
+40	2D_heat_advective_REFERENCE	f	t	f	f	f	f	t
+41	2D_heat_diffusive_LPVC	f	t	f	f	f	f	t
+42	2D_heat_diffusive_REFERENCE	f	t	f	f	f	f	t
+43	pole_advective	f	t	f	f	f	f	t
+44	pole_diffusive	f	t	f	f	f	f	t
+45	U	f	t	f	f	f	f	t
+65	HM	f	f	f	t	f	f	t
+66	HM_cc	f	f	f	t	f	f	t
+67	HM_dyn	f	f	f	t	f	f	t
+68	HM_excavation	f	f	f	t	f	f	t
+69	HM_foot	f	f	f	t	f	f	t
+70	HM_linearSwelling	f	f	f	t	f	f	t
+71	HM_unsaturated	f	f	f	t	f	f	t
+72	TH2M	f	t	f	t	f	f	t
+73	THM	f	t	f	t	f	f	t
+74	smithWoolhiser_coupled	f	f	t	f	t	f	t
+76	celia	f	f	f	f	f	f	t
+77	fluid_momentum	f	f	f	f	f	t	t
+75	smithWoolhiser_greenAmpt	f	f	f	f	t	f	f
+47	NAPL_flow	f	f	f	f	f	f	t
+48	NAPL_mass	t	f	f	f	f	f	t
+49	NAPL_kinReact	t	f	f	f	f	f	t
+56	cutOut_deactivatedSubdomain	f	t	f	f	f	f	t
+55	II	f	t	f	f	f	f	t
+54	C	t	t	f	f	f	f	t
+53	decay	t	f	f	f	f	f	t
 52	CO2	t	f	f	f	f	f	t
 51	nitrate	t	f	f	f	f	f	t
 50	calcite	t	f	f	f	f	f	t
-53	decay	t	f	f	f	f	f	t
-47	flow	f	f	f	f	f	f	t
-48	mass	t	f	f	f	f	f	t
-49	kinReact	t	f	f	f	f	f	t
-54	C	t	t	f	f	f	f	t
-64	mcWorter	f	f	f	f	f	f	t
-60	thermohaline	t	t	t	f	f	f	t
-63	liakopoulos	f	f	f	f	f	f	t
-61	buckleyLeverett	f	f	f	f	f	f	t
-58	haline	t	f	t	f	f	f	t
-62	kueper	f	f	f	f	f	f	t
-56	cutOut_deactivatedSubdomain	f	t	f	f	f	f	t
-59	thermal	f	t	t	f	f	f	t
-57	cutOut_materialDensity	f	t	f	f	f	f	t
-55	II	f	t	f	f	f	f	t
-67	HM_dyn	f	f	f	t	f	f	t
-68	HM_excavation	f	f	f	t	f	f	t
-70	HM_linearSwelling	f	f	f	t	f	f	t
-66	HM_cc	f	f	f	t	f	f	t
-69	HM_foot	f	f	f	t	f	f	t
-71	HM_unsaturated	f	f	f	t	f	f	t
-65	HM	f	f	f	t	f	f	t
-72	TH2M	f	t	f	t	f	f	t
-73	THM	f	t	f	t	f	f	t
-76	celia	f	f	f	f	f	f	t
-74	smithWoolhiser_coupled	f	f	t	f	t	f	t
-75	smithWoolhiser_greenAmpt	f	f	f	f	t	f	t
-77	fluid_momentum	f	f	f	f	f	t	t
+46	O	f	t	f	f	f	f	t
+15	1_1_1	t	t	f	f	f	f	t
+16	1_1_2	t	t	f	f	f	f	t
+17	1_2_1	t	t	f	f	f	f	t
+18	2_1_1	t	t	f	f	f	f	t
+19	2_1_2	t	t	f	f	f	f	t
+20	2_2_1	t	t	t	f	f	f	t
 \.
 
 
@@ -1058,12 +1017,12 @@ SELECT pg_catalog.setval('codes_id_seq', 1, false);
 -- Data for Name: computer; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY computer (id, name, operating_system, location, hostname) FROM stdin;
-4	Lokstedt	linux	remote	134.245.120.191
-1	amak	windows	local	localhost
-2	rzcluster	linux	remote	rzcluster.rz.uni-kiel.de
-3	NEC	linux	remote	nesh-fe.rz.uni-kiel.de
-5	ibiza	linux	local	localhost
+COPY computer (id, name, hostname, root_directory, remote_flag, compiler, python3) FROM stdin;
+3	NEC	nesh-fe.rz.uni-kiel.de	\N	t	\N	\N
+4	Lokstedt	134.245.120.191	/home/jens	t	GNU	\N
+1	amak	localhost	/home/jens	f	GNU	python
+5	ibiza	localhost	/home/jens	f	GNU	python
+2	rzcluster	rzcluster.rz.uni-kiel.de	/home/sungw389	t	intel1502	/cluster/Software/Python-3.3.2/bin/python3.3
 \.
 
 
@@ -1099,19 +1058,19 @@ SELECT pg_catalog.setval('configurations_id_seq', 1, false);
 --
 
 COPY element_types (id, name, active) FROM stdin;
+1	line	t
+3	tri	t
+0	none	t
 2	quad	t
 4	hex	t
 5	tet	t
 6	pris	t
-1	line	t
-3	tri	t
 7	pyra	t
-0	none	t
 8	tri_quad	t
 9	quad_tri	t
-12	tet_pris	t
-11	pyra_hex	t
 10	hex_pris	t
+11	pyra_hex	t
+12	tet_pris	t
 \.
 
 
@@ -1219,14 +1178,14 @@ SELECT pg_catalog.setval('examples_id_seq', 1, false);
 --
 
 COPY flow_processes (id, name, nonlinear_flag, active) FROM stdin;
-6	DEFORMATION_FLOW	f	t
 0	NO_FLOW	f	t
-7	MULTI_COMPONENTIAL_FLOW	f	t
-5	PS_GLOBAL	t	t
-4	MULTI_PHASE_FLOW	t	t
 3	RICHARDS_FLOW	t	t
-1	LIQUID_FLOW	f	t
+4	MULTI_PHASE_FLOW	t	t
+5	PS_GLOBAL	t	t
+6	DEFORMATION_FLOW	f	t
+7	MULTI_COMPONENTIAL_FLOW	f	t
 2	GROUNDWATER_FLOW	f	t
+1	LIQUID_FLOW	f	t
 \.
 
 
@@ -1261,6 +1220,7 @@ COPY modi (id, computer_id, configuration_id) FROM stdin;
 18	4	4
 5	2	1
 9	2	5
+20	5	4
 \.
 
 
@@ -1275,179 +1235,179 @@ SELECT pg_catalog.setval('modi_id_seq', 1, false);
 -- Data for Name: numerics; Type: TABLE DATA; Schema: public; Owner: postgres
 --
 
-COPY numerics (id, case_id, flow_process_id, element_type_id, theta_flow, theta_mass, theta_heat, solver_flow_ogs_fem, solver_flow_ogs_fem_sp, solver_flow_ogs_fem_mkl, solver_flow_ogs_fem_mpi, solver_flow_ogs_fem_petsc, solver_mass_ogs_fem, solver_mass_ogs_fem_sp, solver_mass_ogs_fem_mkl, solver_mass_ogs_fem_mpi, solver_mass_ogs_fem_petsc, solver_heat_ogs_fem, solver_heat_ogs_fem_sp, solver_heat_ogs_fem_mkl, solver_heat_ogs_fem_mpi, solver_heat_ogs_fem_petsc, preconditioner_flow_ogs_fem, preconditioner_flow_ogs_fem_sp, preconditioner_flow_ogs_fem_mkl, preconditioner_flow_ogs_fem_mpi, preconditioner_flow_ogs_fem_petsc, preconditioner_mass_ogs_fem, preconditioner_mass_ogs_fem_sp, preconditioner_mass_ogs_fem_mkl, preconditioner_mass_ogs_fem_mpi, preconditioner_mass_ogs_fem_petsc, preconditioner_heat_ogs_fem, preconditioner_heat_ogs_fem_sp, preconditioner_heat_ogs_fem_mkl, preconditioner_heat_ogs_fem_mpi, preconditioner_heat_ogs_fem_petsc, flow_lumping_flag, solver_deformation_ogs_fem, solver_deformation_ogs_fem_sp, solver_deformation_ogs_fem_mkl, solver_deformation_ogs_fem_mpi, solver_deformation_ogs_fem_petsc, preconditioner_deformation_ogs_fem, preconditioner_deformation_ogs_fem_sp, preconditioner_deformation_ogs_fem_mkl, preconditioner_deformation_ogs_fem_mpi, preconditioner_deformation_ogs_fem_petsc, solver_fluid_momentum_ogs_fem, solver_fluid_momentum_ogs_fem_sp, solver_fluid_momentum_ogs_fem_mkl, solver_fluid_momentum_ogs_fem_mpi, solver_fluid_momentum_ogs_fem_petsc, preconditioner_fluid_momentum_ogs_fem, preconditioner_fluid_momentum_ogs_fem_sp, preconditioner_fluid_momentum_ogs_fem_mkl, preconditioner_fluid_momentum_ogs_fem_mpi, preconditioner_fluid_momentum_ogs_fem_petsc, solver_overland_ogs_fem, solver_overland_ogs_fem_sp, solver_overland_ogs_fem_mkl, solver_overland_ogs_fem_mpi, solver_overland_ogs_fem_petsc, preconditioner_overland_ogs_fem, preconditioner_overland_ogs_fem_sp, preconditioner_overland_ogs_fem_mkl, preconditioner_overland_ogs_fem_mpi, preconditioner_overland_ogs_fem_petsc) FROM stdin;
-93	36	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-61	17	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-62	18	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-46	5	3	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-86	32	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-91	35	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-92	35	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-85	32	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-74	22	2	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-42	13	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-44	14	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-43	14	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-41	13	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-71	22	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-49	6	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-51	6	4	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-52	6	5	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-50	6	3	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-73	22	2	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-84	31	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-89	34	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-90	34	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-94	36	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-119	50	2	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-140	64	4	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-134	63	4	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-132	62	4	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-135	64	4	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-95	37	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-99	41	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-98	40	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-96	38	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-97	39	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-100	42	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-133	62	5	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-131	61	4	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-136	63	4	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-137	63	4	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-169	5	1	12	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-172	6	1	12	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-170	6	1	10	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-167	5	1	10	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-168	5	1	11	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-171	6	1	11	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-15	2	5	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-2	1	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-8	1	5	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-40	12	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-21	5	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-7	1	5	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-6	1	4	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-4	1	3	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-35	8	4	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-29	7	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-9	2	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-20	4	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-18	3	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-17	3	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-19	4	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-22	5	3	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-23	5	4	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-3	1	3	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-54	16	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-58	20	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-56	18	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-57	19	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-53	15	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-55	17	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-139	64	4	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-122	53	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-121	52	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-120	51	2	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-102	44	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-138	63	4	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-101	43	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-103	45	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-104	46	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-105	46	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-162	6	1	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-161	5	1	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-16	2	5	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-28	6	5	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-26	6	3	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-27	6	4	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-25	6	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-69	21	2	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-30	7	3	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-24	5	5	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-5	1	4	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-12	2	3	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-1	1	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-68	21	2	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-65	21	2	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-67	21	2	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-70	21	2	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-66	21	2	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-64	20	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-59	15	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-31	7	4	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-32	7	5	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-33	8	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-34	8	3	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-36	8	5	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-39	11	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-129	60	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-38	10	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-37	9	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-127	58	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-130	60	7	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-60	16	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-63	19	1	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-116	48	5	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-107	47	5	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-110	47	5	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-108	47	5	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-115	48	5	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-117	48	5	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-109	47	5	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-111	47	5	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-113	48	5	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-106	47	5	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-47	5	4	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-83	31	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-87	33	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-88	33	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-48	5	5	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-45	5	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-81	29	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-153	76	3	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-11	2	3	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-10	2	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-14	2	4	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-13	2	4	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-128	59	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-114	48	5	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-112	47	5	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-163	1	1	8	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-165	2	1	8	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-166	2	1	9	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-141	65	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-79	27	1	4	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-75	23	1	2	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-76	24	1	2	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-77	25	1	2	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-80	28	1	4	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-78	26	1	2	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-142	66	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-143	67	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-144	68	1	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-145	69	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-146	69	1	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-158	77	2	5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-160	77	2	7	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-157	77	2	4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-155	77	2	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-154	77	2	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-159	77	2	6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-156	77	2	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-147	70	3	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-148	71	3	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-149	72	4	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-150	73	3	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-151	74	3	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1
-152	75	3	0	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1
-72	22	1	3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-164	1	1	9	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-126	57	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-124	55	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-123	54	1	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-125	56	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-118	49	5	1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
-82	30	1	2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+COPY numerics (id, theta_flow, theta_mass, theta_heat, solver_flow_ogs_fem, solver_flow_ogs_fem_sp, solver_flow_ogs_fem_mkl, solver_flow_ogs_fem_mpi, solver_flow_ogs_fem_petsc, solver_mass_ogs_fem, solver_mass_ogs_fem_sp, solver_mass_ogs_fem_mkl, solver_mass_ogs_fem_mpi, solver_mass_ogs_fem_petsc, solver_heat_ogs_fem, solver_heat_ogs_fem_sp, solver_heat_ogs_fem_mkl, solver_heat_ogs_fem_mpi, solver_heat_ogs_fem_petsc, preconditioner_flow_ogs_fem, preconditioner_flow_ogs_fem_sp, preconditioner_flow_ogs_fem_mkl, preconditioner_flow_ogs_fem_mpi, preconditioner_flow_ogs_fem_petsc, preconditioner_mass_ogs_fem, preconditioner_mass_ogs_fem_sp, preconditioner_mass_ogs_fem_mkl, preconditioner_mass_ogs_fem_mpi, preconditioner_mass_ogs_fem_petsc, preconditioner_heat_ogs_fem, preconditioner_heat_ogs_fem_sp, preconditioner_heat_ogs_fem_mkl, preconditioner_heat_ogs_fem_mpi, preconditioner_heat_ogs_fem_petsc, flow_lumping_flag, solver_deformation_ogs_fem, solver_deformation_ogs_fem_sp, solver_deformation_ogs_fem_mkl, solver_deformation_ogs_fem_mpi, solver_deformation_ogs_fem_petsc, preconditioner_deformation_ogs_fem, preconditioner_deformation_ogs_fem_sp, preconditioner_deformation_ogs_fem_mkl, preconditioner_deformation_ogs_fem_mpi, preconditioner_deformation_ogs_fem_petsc, solver_fluid_momentum_ogs_fem, solver_fluid_momentum_ogs_fem_sp, solver_fluid_momentum_ogs_fem_mkl, solver_fluid_momentum_ogs_fem_mpi, solver_fluid_momentum_ogs_fem_petsc, preconditioner_fluid_momentum_ogs_fem, preconditioner_fluid_momentum_ogs_fem_sp, preconditioner_fluid_momentum_ogs_fem_mkl, preconditioner_fluid_momentum_ogs_fem_mpi, preconditioner_fluid_momentum_ogs_fem_petsc, solver_overland_ogs_fem, solver_overland_ogs_fem_sp, solver_overland_ogs_fem_mkl, solver_overland_ogs_fem_mpi, solver_overland_ogs_fem_petsc, preconditioner_overland_ogs_fem, preconditioner_overland_ogs_fem_sp, preconditioner_overland_ogs_fem_mkl, preconditioner_overland_ogs_fem_mpi, preconditioner_overland_ogs_fem_petsc, case_id, flow_process_id, element_type_id) FROM stdin;
+119	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+140	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+134	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+132	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+135	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+133	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+131	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+136	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+137	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+169	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+172	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+49	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	1	1
+46	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	3	1
+62	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	18	1	6
+50	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	3	1
+51	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	4	1
+52	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	5	1
+61	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	17	1	6
+71	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	22	1	2
+73	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	22	2	2
+74	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	22	2	3
+44	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	14	1	3
+84	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	31	1	2
+85	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	32	1	1
+89	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	34	1	1
+90	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	34	1	2
+91	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	35	1	1
+92	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	35	1	2
+93	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	36	1	1
+94	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	36	1	2
+100	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	42	1	2
+95	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	37	1	2
+96	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	38	1	2
+97	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	39	1	2
+98	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	40	1	2
+99	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	41	1	2
+42	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	13	1	3
+43	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	14	1	2
+170	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+167	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+168	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+171	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+139	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+122	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+121	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+120	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+102	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+138	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+101	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+103	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+104	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+105	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+162	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+161	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+6	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	4	3
+7	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	5	2
+8	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	5	3
+9	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	1	2
+15	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	5	2
+17	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	3	1	2
+18	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	3	1	3
+20	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4	1	3
+23	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	4	4
+21	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	1	4
+54	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	16	1	4
+29	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7	1	6
+35	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	8	4	6
+40	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	12	1	6
+53	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	15	1	4
+55	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	17	1	4
+56	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	18	1	4
+57	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	19	1	4
+58	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	20	1	4
+3	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	3	2
+4	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	3	3
+19	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	4	1	2
+129	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+127	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+130	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+116	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+107	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+110	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+108	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+115	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+117	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+109	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+111	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+113	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+16	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	5	3
+24	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	5	4
+26	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	3	4
+31	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7	4	6
+27	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	4	4
+28	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	5	4
+30	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7	3	6
+34	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	8	3	6
+32	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	7	5	6
+36	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	8	5	6
+33	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	8	1	6
+39	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	11	1	6
+38	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	10	1	6
+59	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	15	1	6
+60	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	16	1	6
+63	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	19	1	6
+64	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	20	1	6
+65	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	1
+66	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	2
+67	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	3
+68	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	4
+69	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	5
+70	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	21	2	6
+25	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	6	1	4
+5	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	4	2
+12	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	3	3
+106	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+153	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+128	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+114	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+112	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+163	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+165	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+166	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+141	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+142	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+143	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+144	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+145	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+146	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+158	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+160	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+157	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+155	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+154	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+159	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+13	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	4	2
+14	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	4	3
+45	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	1	1
+47	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	4	1
+48	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	5	1
+75	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	23	1	2
+77	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	25	1	2
+76	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	24	1	2
+78	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	26	1	2
+79	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	27	1	4
+83	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	31	1	1
+87	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	33	1	1
+80	1	1	1	13	13	0	13	0	2	13	0	13	0	13	13	0	13	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	28	1	4
+88	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	33	1	2
+10	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	1	3
+11	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	3	2
+156	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+147	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+148	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+149	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+150	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	2	2	0	2	0	1	1	0	1	1	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+151	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N
+152	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	2	2	0	2	0	1	1	0	1	1	\N	\N	\N
+164	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+126	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+124	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+123	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+125	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+118	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N
+41	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	13	1	2
+72	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	22	1	3
+81	1	0.5	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	29	1	2
+82	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	30	1	2
+86	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	32	1	2
+1	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	1	2
+2	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	1	1	3
+22	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	5	3	4
+37	1	1	1	2	2	0	2	0	2	2	0	2	0	2	2	0	2	0	1	1	0	1	1	1	1	0	1	1	1	1	0	1	1	t	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	\N	9	1	6
 \.
 
 
@@ -1456,26 +1416,6 @@ COPY numerics (id, case_id, flow_process_id, element_type_id, theta_flow, theta_
 --
 
 SELECT pg_catalog.setval('numerics_id_seq', 3, true);
-
-
---
--- Data for Name: paths; Type: TABLE DATA; Schema: public; Owner: postgres
---
-
-COPY paths (id, computer_id, user_id, root) FROM stdin;
-1	1	3	F:\\\\
-2	2	2	/home/sungw389/
-3	3	2	/sfs/fs5/home-sh/sungw389/
-4	4	1	/home/jens/
-5	5	3	/home/jens/
-\.
-
-
---
--- Name: paths_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
---
-
-SELECT pg_catalog.setval('paths_id_seq', 1, false);
 
 
 --
@@ -1581,8 +1521,8 @@ SELECT pg_catalog.setval('solver_mkl_id_seq', 1, false);
 --
 
 COPY solver_petsc (id, name, specification) FROM stdin;
-1	\N	gmres
-0	\N	bcgs
+0	bcgs	bcgs
+1	gmres	gmres
 \.
 
 
@@ -1650,7 +1590,7 @@ SELECT pg_catalog.setval('types_id_seq', 1, false);
 COPY users (id, name) FROM stdin;
 1	jens
 2	sungw389
-3	delfs
+3	jens
 \.
 
 
@@ -1662,7 +1602,7 @@ SELECT pg_catalog.setval('users_id_seq', 1, false);
 
 
 --
--- Name: branches branches_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: branches_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY branches
@@ -1670,7 +1610,7 @@ ALTER TABLE ONLY branches
 
 
 --
--- Name: cases cases_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: cases_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY cases
@@ -1678,7 +1618,7 @@ ALTER TABLE ONLY cases
 
 
 --
--- Name: codes codes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: codes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY codes
@@ -1686,7 +1626,7 @@ ALTER TABLE ONLY codes
 
 
 --
--- Name: computer computer_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: computer_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY computer
@@ -1694,7 +1634,7 @@ ALTER TABLE ONLY computer
 
 
 --
--- Name: configurations configurations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: configurations_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY configurations
@@ -1702,7 +1642,7 @@ ALTER TABLE ONLY configurations
 
 
 --
--- Name: element_types element_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: element_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY element_types
@@ -1710,7 +1650,7 @@ ALTER TABLE ONLY element_types
 
 
 --
--- Name: examples examples_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: examples_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY examples
@@ -1718,7 +1658,7 @@ ALTER TABLE ONLY examples
 
 
 --
--- Name: flow_processes flow_processes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: flow_processes_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY flow_processes
@@ -1726,7 +1666,7 @@ ALTER TABLE ONLY flow_processes
 
 
 --
--- Name: modi modi_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: modi_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY modi
@@ -1734,7 +1674,7 @@ ALTER TABLE ONLY modi
 
 
 --
--- Name: numerics numerics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1742,15 +1682,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: paths paths_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY paths
-    ADD CONSTRAINT paths_pkey PRIMARY KEY (id);
-
-
---
--- Name: preconditioner_mkl preconditioner_mkl_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: preconditioner_mkl_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner_mkl
@@ -1758,7 +1690,7 @@ ALTER TABLE ONLY preconditioner_mkl
 
 
 --
--- Name: preconditioner_petsc preconditioner_petsc_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: preconditioner_petsc_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner_petsc
@@ -1766,7 +1698,7 @@ ALTER TABLE ONLY preconditioner_petsc
 
 
 --
--- Name: preconditioner preconditioner_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: preconditioner_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY preconditioner
@@ -1774,7 +1706,7 @@ ALTER TABLE ONLY preconditioner
 
 
 --
--- Name: solver_mkl solver_mkl_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: solver_mkl_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver_mkl
@@ -1782,7 +1714,7 @@ ALTER TABLE ONLY solver_mkl
 
 
 --
--- Name: solver_petsc solver_petsc_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: solver_petsc_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver_petsc
@@ -1790,7 +1722,7 @@ ALTER TABLE ONLY solver_petsc
 
 
 --
--- Name: solver solver_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: solver_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY solver
@@ -1798,7 +1730,7 @@ ALTER TABLE ONLY solver
 
 
 --
--- Name: superusers superusers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: superusers_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY superusers
@@ -1806,7 +1738,7 @@ ALTER TABLE ONLY superusers
 
 
 --
--- Name: types types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY types
@@ -1814,7 +1746,7 @@ ALTER TABLE ONLY types
 
 
 --
--- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY users
@@ -1822,7 +1754,7 @@ ALTER TABLE ONLY users
 
 
 --
--- Name: examples examples_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: examples_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY examples
@@ -1830,7 +1762,7 @@ ALTER TABLE ONLY examples
 
 
 --
--- Name: examples examples_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: examples_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY examples
@@ -1838,7 +1770,7 @@ ALTER TABLE ONLY examples
 
 
 --
--- Name: modi modi_computer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: modi_computer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY modi
@@ -1846,7 +1778,7 @@ ALTER TABLE ONLY modi
 
 
 --
--- Name: modi modi_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: modi_configuration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY modi
@@ -1854,7 +1786,7 @@ ALTER TABLE ONLY modi
 
 
 --
--- Name: numerics numerics_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_case_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1862,7 +1794,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_element_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_element_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1870,7 +1802,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_flow_process_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_flow_process_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1878,7 +1810,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_deformation_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_deformation_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1886,7 +1818,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_deformation_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_deformation_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1894,7 +1826,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_deformation_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_deformation_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1902,7 +1834,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_deformation_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_deformation_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1910,7 +1842,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_deformation_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_deformation_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1918,7 +1850,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_flow_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_flow_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1926,7 +1858,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_flow_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_flow_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1934,7 +1866,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_flow_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_flow_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1942,7 +1874,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_flow_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_flow_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1950,7 +1882,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_flow_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_flow_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1958,7 +1890,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_fluid_momentum_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_fluid_momentum_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1966,7 +1898,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_fluid_momentum_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_fluid_momentum_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1974,7 +1906,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_fluid_momentum_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_fluid_momentum_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1982,7 +1914,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_fluid_momentum_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_fluid_momentum_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1990,7 +1922,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_fluid_momentum_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_fluid_momentum_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -1998,7 +1930,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_heat_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_heat_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2006,7 +1938,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_heat_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_heat_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2014,7 +1946,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_heat_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_heat_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2022,7 +1954,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_heat_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_heat_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2030,7 +1962,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_heat_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_heat_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2038,7 +1970,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_mass_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_mass_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2046,7 +1978,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_mass_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_mass_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2054,7 +1986,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_mass_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_mass_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2062,7 +1994,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_mass_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_mass_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2070,7 +2002,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_mass_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_mass_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2078,7 +2010,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_overland_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_overland_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2086,7 +2018,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_overland_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_overland_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2094,7 +2026,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_overland_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_overland_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2102,7 +2034,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_overland_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_overland_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2110,7 +2042,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_preconditioner_overland_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_preconditioner_overland_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2118,7 +2050,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_deformation_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_deformation_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2126,7 +2058,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_deformation_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_deformation_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2134,7 +2066,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_deformation_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_deformation_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2142,7 +2074,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_deformation_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_deformation_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2150,7 +2082,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_deformation_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_deformation_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2158,7 +2090,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_flow_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_flow_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2166,7 +2098,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_flow_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_flow_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2174,7 +2106,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_flow_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_flow_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2182,7 +2114,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_flow_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_flow_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2190,7 +2122,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_flow_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_flow_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2198,7 +2130,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_fluid_momentum_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_fluid_momentum_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2206,7 +2138,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_fluid_momentum_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_fluid_momentum_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2214,7 +2146,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_fluid_momentum_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_fluid_momentum_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2222,7 +2154,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_fluid_momentum_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_fluid_momentum_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2230,7 +2162,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_fluid_momentum_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_fluid_momentum_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2238,7 +2170,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_heat_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_heat_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2246,7 +2178,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_heat_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_heat_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2254,7 +2186,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_heat_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_heat_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2262,7 +2194,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_heat_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_heat_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2270,7 +2202,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_heat_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_heat_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2278,7 +2210,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_mass_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_mass_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2286,7 +2218,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_mass_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_mass_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2294,7 +2226,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_mass_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_mass_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2302,7 +2234,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_mass_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_mass_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2310,7 +2242,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_mass_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_mass_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2318,7 +2250,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_overland_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_overland_ogs_fem_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2326,7 +2258,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_overland_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_overland_ogs_fem_mkl_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2334,7 +2266,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_overland_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_overland_ogs_fem_mpi_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2342,7 +2274,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_overland_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_overland_ogs_fem_petsc_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2350,7 +2282,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: numerics numerics_solver_overland_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: numerics_solver_overland_ogs_fem_sp_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY numerics
@@ -2358,23 +2290,7 @@ ALTER TABLE ONLY numerics
 
 
 --
--- Name: paths paths_computer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY paths
-    ADD CONSTRAINT paths_computer_id_fkey FOREIGN KEY (computer_id) REFERENCES computer(id);
-
-
---
--- Name: paths paths_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY paths
-    ADD CONSTRAINT paths_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
-
-
---
--- Name: superusers superusers_computer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: superusers_computer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY superusers
@@ -2382,11 +2298,21 @@ ALTER TABLE ONLY superusers
 
 
 --
--- Name: superusers superusers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: superusers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
 --
 
 ALTER TABLE ONLY superusers
     ADD CONSTRAINT superusers_user_id_fkey FOREIGN KEY (user_id) REFERENCES users(id);
+
+
+--
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
 
 
 --

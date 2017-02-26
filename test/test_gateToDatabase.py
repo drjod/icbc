@@ -5,7 +5,7 @@ from setting import Database
 
 import os
 
-db_inst = Database('jens', 'so3bt4jc', 'localhost', 'testing_environment')
+db_inst = Database('jens', '*****', 'localhost', 'testing_environment')
 gateToDatabase = GateToDatabase(db_inst)
 
 

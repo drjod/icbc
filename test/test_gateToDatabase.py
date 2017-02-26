@@ -37,35 +37,3 @@ def test_user_name_query():
     #assert gateToDatabase.query_username('', '') is None
     assert gateToDatabase.query_username('jens', 'amak') == 'jens'
     assert gateToDatabase.query_username('jens', 'rzcluster') == 'sungw389'
-
-
-#####################################################
-
-
-def test_foo(mocker):
-    # all valid calls
-    mocker.patch('os.remove')
-    mocker.patch.object(os, 'listdir', autospec=True)
-    mocked_isfile = mocker.patch('os.path.isfile')
-
-
-def test_spy(mocker):
-    class Foo(object):
-        def bar(self):
-            return 42
-
-    foo = Foo()
-    mocker.spy(foo, 'bar')
-
-    assert foo.bar() == 42
-    assert foo.bar.call_count == 1
-
-
-def test_stub(mocker):
-    def foo(on_something):
-        on_something('foo', 'bar')
-
-    stub = mocker.stub(name='on_something_stub')
-
-    foo(stub)
-    stub.assert_called_once_with('foo', 'bar')

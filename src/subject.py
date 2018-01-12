@@ -144,7 +144,7 @@ class Subject:
             'computer', self.__computer, 'compiler')
         self.__python = setting_inst.gateToDatabase.query_column_entry(
             'computer', self.__computer, 'python3')
-        self.__icbc_directory = path.join(self.__root_directory, 'testingEnvironment', 'scripts', 'icbc', 'src')
+        self.__icbc_directory = path.join(self.__root_directory, 'testingEnvironment', 'icbc', 'src')
         self.__gate_directory = path.join(self.__root_directory, 'testingEvironment', self.__computer, 'gate')
 
         # message(mode='INFO', text=self.__directory)
@@ -180,7 +180,8 @@ class Subject:
         :return:
         """
         return '{} {} {} Release'.format(path.join(
-            self.__root_directory, 'testingEnvironment', 'scripts', 'compileInKiel.sh'),
+            self.__root_directory, 'testingEnvironment', self.__computer, self.__code, self.__branch,
+            'compileInKiel.sh'),
             self.directory, item.configuration)
 
     def get_execution_command(self, item):
@@ -189,7 +190,11 @@ class Subject:
         :param item:
         :return: (3 strings) executable, test case, output
         """
-        return path.join(self.__directory, 'Build_Release_{}'.format(self.__compiler), item.configuration,
+        mpi_command = str()
+        if item.configuration == 'OGS_FEM_MPI' or item.configuration == 'OGS_FEM_PETSC':
+            mpi_command = 'mpirun -n 2 '
+
+        return path.join(mpi_command, self.__directory, 'Build_Release_{}'.format(self.__compiler), item.configuration,
                          'bin', 'ogs_{}'.format(item.configuration)), \
                path.join(item.directory, examplesName),\
                path.join(item.directory, outputFile)

@@ -9,16 +9,21 @@ class GateToDatabase:
     fetch entries from SQL database tables
     """
     def __init__(self, db_inst):
-        # connect to database
-        engine = create_engine('postgresql://{}:{}@{}:5432/{}'.format(
-            db_inst.user, db_inst.password, db_inst.host, db_inst.schema))
-        base = automap_base()
-        base.prepare(engine, reflect=True)
 
-        self.__metadata = MetaData()
-        self.__metadata.bind = engine
+        try:
+            # connect to database
+            engine = create_engine('postgresql://{}:{}@{}:5432/{}'.format(
+                db_inst.user, db_inst.password, db_inst.host, db_inst.schema))
+            base = automap_base()
+            base.prepare(engine, reflect=True)
 
-        self.__session = Session(engine)
+            self.__metadata = MetaData()
+            self.__metadata.bind = engine
+
+            self.__session = Session(engine)
+
+        except Exception as err:
+            message(mode='ERROR', text='{}'.format(err))
 
         # self.__superusers_table = base.classes.superusers  # id, name, computer_id, user_id
         # self.__users_table = base.classes.users  # id, name

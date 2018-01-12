@@ -1,19 +1,19 @@
 
 
 outputFile = 'out.txt'
+logFile = 'deviations.log'
 
 
-walltime  = '2:00:00'
+walltime = '0:25:00'
 queue = 'angus'
 setCompilerVariables = ''
 setMklVariables = ''
 setMpiVariables = ''
 
 
-
 inputFileEndings = ('bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st',
                     'tim', 'pqc', 'krc')
-outputFileEndings = ('tec', 'txt', 'vtk', 'asc')
+outputFileEndings = ('tec', 'txt', 'vtk', 'asc', 'vtu', 'pvd')
 additionalInputFileEndings = ('exe', 'dat', 'sts')  # to export to or import from repository
 
 
@@ -34,11 +34,11 @@ examplesName = 'testCase'
 coupling_iterations_min = '5'
 coupling_iterations_max = '25'
 
-maxIterations_linear = '5000'
+maxIterations_linear = '50000'
 maxIterations_nonlinear = '100'
 norm = '6'
-tollerance_linear = '1.e-14'
-tollerance_nonlinear = '10.'
+tolerance_linear = '1.e-14'
+tolerance_nonlinear = '.1'
 
 
 #matrixStorage = 'sparse'

@@ -55,6 +55,7 @@ class Operation:
         command = '{} {}'.format(self._subject.python, path.join(self._subject.icbc_directory, 'shared.py'))
         for arg in args:
             command += ' {}'.format(arg)
+
         self.execute(command)
 
     def select_operation(self, selected_operation):

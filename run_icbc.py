@@ -29,7 +29,7 @@ if version_info < (3, 5):
 environment = Environment(superuser='jens',
                           db_user=mod.user,
                           db_password=mod.pwd,
-                          computer='ibiza',
+                          computer='amak',
                           code='ogs',
                           branch='ogs_kb1')
 

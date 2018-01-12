@@ -3,7 +3,7 @@ from os import path, getpid
 from collections import OrderedDict
 from operation import Operation
 from simulationData import SimulationData
-from configuration import inputFileEndings, outputFileEndings, additionalInputFileEndings, examplesName
+from configuration import inputFileEndings, outputFileEndings, additionalInputFileEndings, examplesName, logFile
 from configuration import outputFile
 from shared import message, Commands
 
@@ -31,9 +31,12 @@ class Simulating(Operation):
                                             ('x', 'e(x)port files to repository'),
                                             ('t', 's(t)ore results as reference'),
                                             ('o', 'c(o)mpare results with reference'),
-                                            ('g', 'show re(g)ression')])
+                                            ('e', 'show r(e)gression')])
         if subject.remote_flag:
-            option_dict_amendments = {'b': 'write (b)atch', 'p': '(p)ack results'}
+            option_dict_amendments = {'b': 'write (b)atch',
+                                      #'p': '(p)ack results',
+                                      'g': '(g)et results'
+                                      }
             self._operation_dict.update(option_dict_amendments)
         option_dict_amendments = {'s': 're(s)elect'}
         self._operation_dict.update(option_dict_amendments)
@@ -99,7 +102,7 @@ class Simulating(Operation):
             self.store_results_as_reference()
         elif self._selected_operation == 'o':
             self.compare_results_with_reference()
-        elif self._selected_operation == 'g':
+        elif self._selected_operation == 'e':
             self.show_regression()
         elif self._selected_operation == 'i':
             self.import_from_repository()
@@ -113,8 +116,10 @@ class Simulating(Operation):
             self.wait()
         elif self._selected_operation == 'b' and self._subject.remote_flag:
             self.write_batch()
-        elif self._selected_operation == 'p' and self._subject.remote_flag:
-            self.pack_results()
+        #elif self._selected_operation == 'p' and self._subject.remote_flag:
+        #    self.pack_results()
+        elif self._selected_operation == 'g' and self._subject.remote_flag:
+            self.get_results()
         elif self._selected_operation == '0':
             message(mode='INFO', text='No Operation')
         else:
@@ -171,6 +176,7 @@ class Simulating(Operation):
         message(mode='INFO', text='Write numerics file {}'.format(self._item.name()))
 
         directory_write_destination = '/tmp' if self._subject.remote_flag else self._item.directory
+        self.execute_python('generate_folder', self._item.directory, False)  # in case folder does not exist
         self.__simulation_data.write_num(directory_write_destination)
         if self._subject.remote_flag:
             self._gateToCluster.upload_file(path.join('/tmp', '{}.num{}'.format(examplesName, getpid())),
@@ -189,6 +195,7 @@ class Simulating(Operation):
         if self._subject.remote_flag:
             self.__simulation_data.write_batch(self._item.directory,
                                                self._subject.get_built_file(self._item), self._item.type)
+            self.execute_python('generate_folder', self._item.directory, False)  # in case folder does not exist
             self._gateToCluster.upload_file(path.join('/tmp', 'run{}'.format(getpid())),
                                             path.join(self._item.directory, 'run'))
             Commands.remove_file(path.join('/tmp', 'run{}'.format(getpid())), False)
@@ -215,14 +222,36 @@ class Simulating(Operation):
 
         self.execute_python('remove_results', self._item.directory)
 
-    def pack_results(self):
+    # def pack_results(self):
+    #    """
+    #    pack results, e.g. to download them later on
+    #    :return:
+    #    """
+    #    message(mode='INFO', text='Pack results {}'.format(self._item.name()))
+    #
+    #    self.execute_python('pack_tar_file', self._item.directory)
+
+    def get_results(self):
         """
-        pack results, e.g. to download them later on
+        pack, download and unpack tar file from remote to local computer,
         :return:
         """
-        message(mode='INFO', text='Pack results {}'.format(self._item.name()))
+        if self._subject.remote_flag:
+            message(mode='INFO', text='Get results {}'.format(self._item.name()))
 
-        self.execute_python('pack_tar_file', self._item.directory)
+            self.execute_python('pack_tar_file', self._item.directory)
+
+            directory_local = self._item.directory_local
+
+            Commands.generate_folder(directory_local)
+            self._gateToCluster.download_file(
+                path.join(self._item.directory, 'results.tar'), directory_local)
+
+            #command = 'python {}'.format(path.join(self._subject.icbc_directory, 'shared.py')) + ' unpack_tar_file ' + path.join(directory_local, 'results.tar')
+            #Call(command)
+            Commands.unpack_tar_file(directory_local)
+        else:
+            message(mode='INFO', text='{} is local - Nothing done'.format(self._subject.computer))
 
     def wait(self):
         """
@@ -263,9 +292,9 @@ class Simulating(Operation):
         directory_reference = path.join(self._subject.directory, 'references', self._item.type, self._item.case,
                                         self._item.flow_process, self._item.element_type, self._item.configuration)
 
-        self.execute_python('remove_file', path.join(directory_reference, 'deviations.log'), False)
+        self.execute_python('remove_file', path.join(directory_reference, logFile), False)
         self.execute_python('record_regression_for_folder', self._item.directory, directory_reference,
-                            self._subject.directory, self._item.configuration, outputFile)
+                            self._subject.directory, self._item.configuration, outputFile, logFile)
 
     def show_regression(self):
         """

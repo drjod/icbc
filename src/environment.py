@@ -17,7 +17,7 @@ class Environment:
                  operation_type=None, operation=None,
                  test_mode='0',
                  db_user=None, db_password=None,
-                 db_host='localhost', db_schema='testing_environment'):
+                 db_host='134.245.120.134', db_schema='testing_environment'):
         """
         These parameters can be preselected:
             belong to (test) Subject:
@@ -60,16 +60,21 @@ class Environment:
             3. call loop if selections successfully made
         :return: 0
         """
-        operation_inst = self.select()  # rerun if reselect chosen
-        if operation_inst == 1:
-            self.run()  # rerun
+        try:
+            operation_inst = self.select()  # rerun if reselect chosen
+            if operation_inst == 1:
+                self.run()  # rerun
 
-        self.loop(operation_inst)
+            self.loop(operation_inst)
 
-        if self.__setting_inst.test_mode == '0':  # control with shell
-            self.run()
+            if self.__setting_inst.test_mode == '0':  # control with shell
+                self.run()
 
-        return 0
+            return 0
+
+        except Exception as err:
+            message(mode='ERROR', text='{}'.format(err))
+            return 1
 
     def select(self):
         """

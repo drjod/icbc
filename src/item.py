@@ -34,6 +34,10 @@ class Test(Item):
         self._type, self._case = item_type, item_case
         self._flow_process, self._element_type = flow_process, element_type
 
+        self.__directory_local = path.join(environ['HOME'], 'testingEnvironment',
+                                           subject.computer, subject.code, subject.branch, 'examples', 'files',
+                                           item_type, item_case, flow_process, element_type, item_configuration)
+
         Item.__init__(self, subject, item_configuration, directory)
 
     @property
@@ -51,6 +55,10 @@ class Test(Item):
     @property
     def element_type(self):
         return self._element_type
+
+    @property
+    def directory_local(self):
+        return self.__directory_local
 
     def name(self):
         return '{} {} {} {} {}'.format(
@@ -80,9 +88,12 @@ class Plot(Test):
     used in plotting operations
     """
     def __init__(self, subject, item_type, item_case, item_configuration, flow_process, element_type):
-        self.__directory_local = path.join(environ['HOME'], 'testingEnvironment',
-                                    subject.computer, subject.code,  subject.branch, 'examples', 'files',
-                                           item_type, item_case, flow_process, element_type, item_configuration)
+
+        # directory_local put to test to get get_results operation to simulation
+
+        #self.__directory_local = path.join(environ['HOME'], 'testingEnvironment',
+        #                            subject.computer, subject.code,  subject.branch, 'examples', 'files',
+        #                                   item_type, item_case, flow_process, element_type, item_configuration)
         # directory local exists to do local plotting operations for remote computer
         # if local computer, it's the same folder like 'directory' for simulating
 
@@ -90,7 +101,7 @@ class Plot(Test):
                       path.join(subject.directory, 'examples', 'files',
                                 item_type, item_case, flow_process, element_type, item_configuration))
 
-    @property
-    def directory_local(self):
-        return self.__directory_local
+    #@property
+    #def directory_local(self):
+    #    return self.__directory_local
 

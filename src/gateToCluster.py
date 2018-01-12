@@ -68,7 +68,7 @@ class GateToCluster:
         :return:
         """
         try:
-            self.__sftp.put(file, destination_file)  #, preserve_mtime=True)
+            self.__sftp.put(file, destination_file)  # , preserve_mtime=True)
         except Exception as err:
             message('ERROR', str(err))
 

@@ -1,8 +1,8 @@
 from os import path, getpid
 from configuration import walltime, queue
-from configuration import setCompilerVariables, setMklVariables, setMpiVariables
+# from configuration import setCompilerVariables, setMklVariables, setMpiVariables
 from configuration import examplesName, norm, coupling_iterations_min, coupling_iterations_max
-from configuration import tollerance_linear, tollerance_nonlinear, numberOfGaussPoints
+from configuration import tolerance_linear, tolerance_nonlinear, numberOfGaussPoints
 from configuration import maxIterations_linear, maxIterations_nonlinear, configuration_set
 from shared import message
 from numerics import Global, Processes
@@ -48,8 +48,8 @@ class SimulationData:
                              'deformation': None, 'fluid_momentum': None, 'overland': None}
         self.__preconditioner_dir = {'flow': None, 'mass': None, 'heat': None,
                              'deformation': None, 'fluid_momentum': None, 'overland': None}
-        self.__theta_dir = {'flow': None, 'mass': None, 'heat': None,
-                             'deformation': None, 'fluid_momentum': None, 'overland': None}
+        self.__theta_dir = {'flow': 1, 'mass': None, 'heat': None,  # default is implicit except for mass and heat
+                             'deformation': 1, 'fluid_momentum': 1, 'overland': 1}
         self.__numerics_global = Global()
         self.__processing = Processing()
         self.__read_file_flags = ReadFileFlags(operation)
@@ -134,6 +134,7 @@ class SimulationData:
             if self.__numerics_global.processes.overland_flag:
                 self.write_process_into_numerics_file(file_stream, 'overland')
             file_stream.write('\n#STOP\n')
+
             file_stream.close()
 
     def write_process_into_numerics_file(self, file_stream, process):
@@ -169,40 +170,43 @@ class SimulationData:
             file_stream.write(' $ELE_MASS_LUMPING\n')
             file_stream.write('  1\n')
         # LINEAR SOLVER
-            file_stream.write(' $LINEAR_SOLVER\n')
+        file_stream.write(' $LINEAR_SOLVER\n')
         if self.__processing.mode == 'mpi_nodes':
             file_stream.write('; method precond error_tolerance max_iterations theta\n')
             file_stream.write('  petsc {}  {}  {}  {} 1.\n'.format(self.__solver_dir[process],
                                                                    self.__preconditioner_dir[process],
-                                                                   tollerance_linear, maxIterations_linear))
+                                                                   tolerance_linear, maxIterations_linear))
         elif self.__processing.mode == 'omp':  # matrix storage is 4
             file_stream.write('; method norm error_tolerance max_iterations theta precond storage\n')
             file_stream.write('{} {} {} {} {} {} 4\n'.format(
-                self.__solver_dir[process], norm, tollerance_linear, maxIterations_linear,
+                self.__solver_dir[process], norm, tolerance_linear, maxIterations_linear,
                 self.__theta_dir[process], self.__preconditioner_dir[process]))
         elif self.__processing.mode == 'sequential' or self.__processing.mode == 'mpi_elements':
             file_stream.write('; method norm error_tolerance max_iterations theta precond storage\n')
             file_stream.write('  {} {} {} {} {} {} 2\n'.format(
-                self.__solver_dir[process], norm, tollerance_linear, maxIterations_linear,
+                self.__solver_dir[process], norm, tolerance_linear, maxIterations_linear,
                 self.__theta_dir[process], self.__preconditioner_dir[process]))
         else:
             message(mode='ERROR', text='Mode ' + self.__processing.mode + ' not supported')
         # NONLINEAR SOLVER
-        if self.__numerics_global.non_linear_flag:
-            file_stream.write(' $NON_LINEAR_ITERATIONS\n')
-            if process == 'overland':
-                file_stream.write(';type -- error_method -- max_iterations -- relaxation -- tolerance(s)\n')
-                file_stream.write('  PICARD LMAX {} 0.0 {}\n'.format(maxIterations_nonlinear, tollerance_nonlinear))
-            else:
-                file_stream.write('; NEWTON error_tolerance nls_error_tolerance_local  max_iterations  relaxation\n')
-                file_stream.write('  NEWTON 1.e-5 1.e-8 {} 0.0\n'.format(maxIterations_nonlinear))
+        if process == 'overland':  # with non-liner iteration, tolerance is 1.e-3
+            file_stream.write(' $NON_LINEAR_ITERATION\n')
+            # file_stream.write('; NEWTON error_tolerance nls_error_tolerance_local  max_iterations  relaxation\n')
+            # file_stream.write('  NEWTON 1.e-5 1.e-8 {} 0.0\n'.format(maxIterations_nonlinear))
+            file_stream.write(';type -- error_method -- max_iterations -- relaxation -- tolerance(s)\n')
+            file_stream.write('  NEWTON LMAX {} 0.0 {}\n'.format(maxIterations_nonlinear, 1.e-3))
+            # set tolerance 1.e-3 instead tolerance_nonlinear
+        elif self.__numerics_global.non_linear_flag:
+            file_stream.write(' $NON_LINEAR_ITERATION\n')
+            file_stream.write(';type -- error_method -- max_iterations -- relaxation -- tolerance(s)\n')
+            file_stream.write('  PICARD LMAX {} 0.0 {}\n'.format(maxIterations_nonlinear, tolerance_nonlinear))
         # NUMBER OF GAUSS POINTS
         file_stream.write(' $ELE_GAUSS_POINTS\n')
         file_stream.write('  {}\n'.format(numberOfGaussPoints))
         # COUPLING
         if self.__numerics_global.coupled_flag:
             file_stream.write('$COUPLING_CONTROL\n')
-            file_stream.write(' LMAX {}\n'.format(tollerance_nonlinear))
+            file_stream.write(' LMAX {}\n'.format(tolerance_nonlinear))
 
     def write_batch(self, directory, executable, item_type):
         """
@@ -255,6 +259,8 @@ class SimulationData:
                 file_stream.write('mpirun -np {} '.format(nr_cpus))
             file_stream.write('{} {}\n'.format(executable, path.join(directory, examplesName)))
 
+            file_stream.close()
+
     def partition_mesh(self, simulating):
         """
         mesh partition
@@ -264,7 +270,7 @@ class SimulationData:
         item_directory = simulating._item.directory
         root_directory = simulating._subject.root_directory
 
-        script_partition = path.join(root_directory, 'testingEnvironment', 'scripts', 'partition.sh')
+        script_partition = path.join(root_directory, 'testingEnvironment', 'icbc', 'partition.sh')
 
         try:
             if self.__processing.mode == 'mpi_elements':  # for OGS_FEM_MPI, ...
@@ -273,7 +279,7 @@ class SimulationData:
                         script_partition, self.__processing.number_cpus, item_directory))
             if self.__processing.mode == 'mpi_nodes':  # for OGS_FEM_PETSC
                 simulating.execute_python(
-                    'call', 'None {} {} -n -binary {}'.format(  # None for no output file in commands call
+                    'call', 'None {} {} -n -bin {}'.format(  # None for no output file in commands call
                         script_partition, self.__processing.number_cpus, item_directory))
         except Exception as err:
             message(mode='ERROR', text="{}".format(err))

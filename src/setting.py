@@ -283,10 +283,10 @@ class Setting:
         elif selected_id == 'r':  # selected range - so get the lower and upper range limits now
             lower_range = input('\n       From: ')
             upper_range = input('\n         To: ')
-            for i in range(int(lower_range), int(upper_range) + 1):
-                self.__selectedTypeIdList.append(deepcopy(lists_inst.id[i]))
+            for i in range(int(lower_range), int(upper_range) + 1):  # include last element
+                self.__selectedTypeIdList.append(str(i))  # deepcopy(lists_inst.id[i]))
         else:
-            self.__selectedTypeIdList.append(deepcopy(selected_id))
+            self.__selectedTypeIdList.append(str(selected_id))  # deepcopy(selected_id))
 
     def id2name(self, table, id_selected, lists_inst):
         """
@@ -418,7 +418,7 @@ class Setting:
                                           flow_process_name, element_type_name, 'fluid_momentum')
         if num_global_processes.overland_flag:
             self.set_numerics_directories(sim_data, item_case, item_configuration,
-                                          flow_process_name, element_type_name, 'overland_flow')
+                                          flow_process_name, element_type_name, 'overland')
 
     def set_numerics_directories(self, sim_data, item_case, item_configuration,
                                  flow_process_name, element_type_name, process):
@@ -430,8 +430,9 @@ class Setting:
             item_configuration, self.__gateToDatabase.query_numerics_column_entry(
                 item_case, flow_process_name, element_type_name,
                 'preconditioner_' + process + '_' + item_configuration.lower()), 'preconditioner')
-        sim_data.theta_dir[process] = self.__gateToDatabase.query_numerics_column_entry(
-            item_case, flow_process_name, element_type_name, 'theta_' + process)
+        if process == 'mass' or process == 'heat':
+            sim_data.theta_dir[process] = self.__gateToDatabase.query_numerics_column_entry(
+                item_case, flow_process_name, element_type_name, 'theta_' + process)
 
     def convert_numerics_entry_in_cases_table_to_specification(self, item_configuration, entry, numerics_type):
         """

@@ -22,6 +22,9 @@ def message(mode='ERROR', text=None, not_supported=None, output_flag=True):
     :param output_flag: setting this flag False switches output of
     :return:
     """
+    if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+        output_flag = False
+
     if output_flag:
         print_message = '{} is not supported'.format(not_supported) if not_supported else text
 
@@ -49,16 +52,21 @@ class Commands:
             message(mode='ERROR', text="{}".format(err))
 
     @staticmethod
-    def generate_folder(directory):
+    def generate_folder(directory, output_flag=True):
         """
         makes dirs including subdirectories if they do not exist
         :param directory: (string)
+        :param output_flag: bool
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
         try:
             stat(directory)
         except:
-            message(mode='INFO', text='    Generate folder {}'.format(directory))
+            if output_flag:
+                message(mode='INFO', text='    Generate folder {}'.format(directory))
             makedirs(directory)
 
     @staticmethod
@@ -72,6 +80,12 @@ class Commands:
         :param ending_flag: (bool) set true if item is a file ending
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
+        if ending_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            ending_flag = False
+
         if ending_flag:
             for file_item in listdir(folder):
                 if file_item.endswith(item):
@@ -107,6 +121,7 @@ class Commands:
         """
         for ending in outputFileEndings:
             for file_item in listdir(folder):
+                # print(file_item)
                 if file_item.endswith(ending):
                     Commands.remove_file(path.join(folder, file_item), False)
 
@@ -115,13 +130,16 @@ class Commands:
 
 
     @staticmethod
-    def remove_file(file, output_flag=True):
+    def remove_file(file, output_flag=False):
         """
         if file exists, remove it, else do nothing
         :param file: (string) file or ending
         :param output_flag: (bool) print INFO that removing file and print WARNING if file does not exist
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
         message(mode='INFO', text='    Removing {}'.format(file), output_flag=output_flag)
         try:
             remove(file)
@@ -142,11 +160,18 @@ class Commands:
             message(mode='ERROR', text="{}".format(err))
 
     @staticmethod
-    def compare_files(file1, file2):
+    def compare_files(file1, file2, output_flag=False):
+        """
+        compare content of two files
+        :param file1: (string) one file to compare
+        :param file2: (string) other file to compare
+        :param output_flag: (bool) print WARNING if file does not exist
+        :return:
+        """
         try:
             return cmp(file1, file2)
         except Exception as err:
-            message(mode='ERROR', text="{}".format(err))
+            message(mode='ERROR', text="{}".format(err), output_flag=output_flag)
 
     @staticmethod
     def append_to_file(file, new_text):
@@ -198,7 +223,7 @@ class Commands:
 
     @staticmethod
     def record_regression_for_folder(directory_item, directory_reference, directory_subject,
-                                     configuration, output_file):
+                                     configuration, output_file, log_file_name):
         """
         compare results with results in reference folder for regression tests
         if file disagrees, write file name into file 'deviatingFiles_{configuration}.log' in sub ject references folder
@@ -211,7 +236,7 @@ class Commands:
         :return:
         """
         for file_name in listdir(directory_reference):
-            if file_name not in [output_file, 'deviations.log']:
+            if file_name not in [output_file, log_file_name]:
                 result_comparison_flag = Commands.compare_files(path.join(directory_item, file_name),
                                                                 path.join(directory_reference, file_name))
                 if not result_comparison_flag:
@@ -221,7 +246,7 @@ class Commands:
                         path.join(directory_subject, 'references', 'deviatingFiles_{}.log'.format(configuration)),
                         '{}\n'.format(path.join(directory_item, file_name)))
                     Commands.record_regression(
-                        file_name, directory_item, directory_reference, 'deviations.log', output_flag=False)
+                        file_name, directory_item, directory_reference, log_file_name, output_flag=False)
 
     @staticmethod
     def record_regression(file_affected_name, directory, directory_reference, log_file_name, output_flag=True):
@@ -236,6 +261,9 @@ class Commands:
         :param output_flag: (bool)
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
         message(mode='INFO', text='Record regression of file {}'.format(file_affected_name), output_flag=output_flag)
         try:
             f = open(path.join(directory_reference, log_file_name), 'a')
@@ -316,6 +344,9 @@ class Commands:
         :param output_flag: (string)
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
         for ending_running in inputFileEndings:
             file_running = path.join(directory_source, '{}.{}'.format(examplesName, ending_running))
             if path.isfile(file_running) and access(file_running, R_OK):
@@ -339,12 +370,15 @@ class Commands:
         :param output_flag: (bool)
         :return:
         """
+        if output_flag == "False":  # for remote python call - string (e.g. "False") is passed
+            output_flag = False
+
         for file_name_running in listdir(directory_source):
             file_running = path.join(directory_source, file_name_running)
             for ending in additional_input_file_endings:
                 if file_name_running.endswith('.{}'.format(ending)):
                     message(mode='INFO', text='    Copy file {}'.format(file_name_running), output_flag=output_flag)
-                    Commands.copy(file_running, directory_destination)
+                    Commands.copy_file(file_running, directory_destination)
 
 
 if __name__ == '__main__':

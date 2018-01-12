@@ -1,6 +1,7 @@
 from subprocess import call
 from shared import message
 
+
 class Call:
     """
     subprocess call

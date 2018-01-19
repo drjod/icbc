@@ -10,6 +10,8 @@ setCompilerVariables = ''
 setMklVariables = ''
 setMpiVariables = ''
 
+module_set = ('intel16.0.0', 'intelmpi16.0.0', 'petsc-3.7.5')
+
 
 inputFileEndings = ('bc', 'fct', 'gli', 'ic', 'mcp', 'mfp', 'mmp', 'msh', 'msp', 'num', 'out', 'pcs', 'rfd', 'st',
                     'tim', 'pqc', 'krc')

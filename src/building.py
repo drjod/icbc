@@ -26,7 +26,7 @@ class Building(Operation):
         pass
 
     def configure_for_item(self, item_type, item_case, item_configuration,
-                       flow_process_name, element_type_name, setting_inst):
+                           flow_process_name, element_type_name, setting_inst):
         pass
 
     def run(self, item):

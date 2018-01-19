@@ -1,6 +1,5 @@
 from os import path, getpid
-from configuration import walltime, queue
-# from configuration import setCompilerVariables, setMklVariables, setMpiVariables
+from configuration import walltime, queue, module_set
 from configuration import examplesName, norm, coupling_iterations_min, coupling_iterations_max
 from configuration import tolerance_linear, tolerance_nonlinear, numberOfGaussPoints
 from configuration import maxIterations_linear, maxIterations_nonlinear, configuration_set
@@ -249,13 +248,12 @@ class SimulationData:
             file_stream.write('\n')
 
             file_stream.writelines('export OMP_NUM_THREADS={}\n'.format(nr_omp_threads))
-            file_stream.write('module load intel1502\n')
-            if self.__processing.mode == 'mpi_elements':
-                file_stream.write('module load intelmpi1502\n')
-                file_stream.write('mpirun -np {} '.format(nr_cpus))
-            if self.__processing.mode == 'mpi_nodes':
-                file_stream.write('module load intelmpi1502\n')
-                file_stream.write('module load petsc-3.5.3-intel1502\n')
+
+            for module in module_set:
+                file_stream.write('module load {}\n'.format(module))
+            file_stream.write('\n')
+
+            if self.__processing.mode == 'mpi_elements' or self.__processing.mode == 'mpi_nodes':
                 file_stream.write('mpirun -np {} '.format(nr_cpus))
             file_stream.write('{} {}\n'.format(executable, path.join(directory, examplesName)))
 
